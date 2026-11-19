@@ -1,0 +1,5 @@
+Contact: mailto:security@spindle.example
+Expires: 2027-11-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://spindle.app/.well-known/security.txt
+Policy: https://spindle.app/security

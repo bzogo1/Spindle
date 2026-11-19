@@ -1,0 +1,11 @@
+# Probe-only proxy for the ADR 0001 §7 verification. It stands in for the lab
+# proxy on the internal `spindle` network, forwards the WebSocket upgrade, and
+# has no knowledge of session tokens. Never deploy this file as the lab proxy.
+
+:7000 {
+	handle /lab/probe/* {
+		reverse_proxy ws-probe:8080
+	}
+
+	respond 404
+}

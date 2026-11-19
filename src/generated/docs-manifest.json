@@ -1,0 +1,444 @@
+{
+  "guides": [
+    {
+      "id": "quickstart",
+      "title": "Quickstart",
+      "description": "Create a free workspace, add your first files, open the lab, and run a search.",
+      "eyebrow": "Start here",
+      "section": "Getting started",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "quickstart-whats-included",
+          "title": "What's included"
+        },
+        {
+          "id": "quickstart-create-your-first-project",
+          "title": "Create your first project"
+        },
+        {
+          "id": "quickstart-next-steps",
+          "title": "Next steps"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "quickstart",
+          "sectionTitle": "Quickstart",
+          "text": "Create a free workspace, add your first files, open the lab, and run a search."
+        },
+        {
+          "sectionId": "quickstart-whats-included",
+          "sectionTitle": "What's included",
+          "text": "A free workspace includes the whole platform. The first project is usually a folder, a notebook, and a few sources — add the rest as you need it."
+        },
+        {
+          "sectionId": "quickstart-create-your-first-project",
+          "sectionTitle": "Create your first project",
+          "text": "Pick a name you'll recognize later, like the study or lab you're working on. Upload a CSV, a notebook, or a PDF. Spindle detects common formats and previews them in place. Start RStudio, JupyterLab, VS Code, or a terminal on the same files. Save results and citations into the project instead of a browser history."
+        },
+        {
+          "sectionId": "quickstart-next-steps",
+          "sectionTitle": "Next steps",
+          "text": "Need the short sales pitch instead? See pricing or the homepage tour."
+        }
+      ]
+    },
+    {
+      "id": "workspaces",
+      "title": "Workspaces & files",
+      "description": "How each project keeps its files, notes, results, and conversations in one file tree.",
+      "eyebrow": "The basics",
+      "section": "Getting started",
+      "order": 2,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "workspaces-one-tree-per-project",
+          "title": "One tree per project"
+        },
+        {
+          "id": "workspaces-project-layout",
+          "title": "Project layout"
+        },
+        {
+          "id": "workspaces-files-and-previews",
+          "title": "Files and previews"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "workspaces",
+          "sectionTitle": "Workspaces & files",
+          "text": "How each project keeps its files, notes, results, and conversations in one file tree."
+        },
+        {
+          "sectionId": "workspaces-one-tree-per-project",
+          "sectionTitle": "One tree per project",
+          "text": "Each project has its own file tree. Files, notes, results, and conversations stay with it, so handing a project to someone else means sharing one place rather than a pile of links."
+        },
+        {
+          "sectionId": "workspaces-files-and-previews",
+          "sectionTitle": "Files and previews",
+          "text": "Upload a CSV, an Excel workbook, a notebook, a PDF, or an image and Spindle previews it in place. Common research formats are detected automatically, so you can check a table or read a paper without downloading it first. Files keep their folder, name, and history when they move. Rename an export and the notebooks that reference it can be repointed from the same project, which keeps a field season from turning into finalv7."
+        }
+      ]
+    },
+    {
+      "id": "lab",
+      "title": "Lab sessions",
+      "description": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files.",
+      "eyebrow": "Compute",
+      "section": "Using Spindle",
+      "order": 3,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "lab-a-session-on-your-files",
+          "title": "A session on your files"
+        },
+        {
+          "id": "lab-start-a-session",
+          "title": "Start a session"
+        },
+        {
+          "id": "lab-share-a-running-session",
+          "title": "Share a running session"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "lab",
+          "sectionTitle": "Lab sessions",
+          "text": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files."
+        },
+        {
+          "sectionId": "lab-a-session-on-your-files",
+          "sectionTitle": "A session on your files",
+          "text": "Lab environments boot connected to the project files. Use RStudio for statistics, JupyterLab for notebooks, VS Code for code, or a terminal for everything else. Teammates can share kernels and leave comments in context."
+        },
+        {
+          "sectionId": "lab-start-a-session",
+          "sectionTitle": "Start a session",
+          "text": "Open a project, choose a lab from the project toolbar, and pick the files or notebook you want to work on. The session starts with the same tree you see in the file browser, so there is no upload step and no second copy to reconcile."
+        },
+        {
+          "sectionId": "lab-share-a-running-session",
+          "sectionTitle": "Share a running session",
+          "text": "Sessions belong to the project, not to one browser tab. Invite a teammate to the project and they can join the same kernel, watch a cell run, and leave a comment against the result. When the session ends, outputs and notes stay with the project."
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "title": "Local search",
+      "description": "Academic and Basic search through a self-hosted SearXNG instance.",
+      "eyebrow": "Sources",
+      "section": "Using Spindle",
+      "order": 4,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "search-two-search-modes",
+          "title": "Two search modes"
+        },
+        {
+          "id": "search-keep-the-sources",
+          "title": "Keep the sources"
+        },
+        {
+          "id": "search-try-it-on-the-homepage",
+          "title": "Try it on the homepage"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "search",
+          "sectionTitle": "Local search",
+          "text": "Academic and Basic search through a self-hosted SearXNG instance."
+        },
+        {
+          "sectionId": "search-two-search-modes",
+          "sectionTitle": "Two search modes",
+          "text": "Academic mode queries BASE, arXiv, Crossref, Semantic Scholar, and OpenAlex. Basic mode uses Mojeek, Brave, and DuckDuckGo. Both run through a SearXNG instance hosted alongside Spindle, so results and notes stay inside the project."
+        },
+        {
+          "sectionId": "search-keep-the-sources",
+          "sectionTitle": "Keep the sources",
+          "text": "Search results can be saved into a project as sources. A saved result keeps its title, authors, link, and the note you wrote about it, which makes a literature list part of the project instead of a browser history."
+        },
+        {
+          "sectionId": "search-try-it-on-the-homepage",
+          "sectionTitle": "Try it on the homepage",
+          "text": "Run a sample query on the homepage before you create a workspace."
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "title": "Working with the agent",
+      "description": "Hand the agent a task, review the diff, and keep the changes that belong in the project.",
+      "eyebrow": "Autonomy",
+      "section": "Using Spindle",
+      "order": 5,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "agent-what-the-agent-does",
+          "title": "What the agent does"
+        },
+        {
+          "id": "agent-what-it-can-change",
+          "title": "What it can change"
+        },
+        {
+          "id": "agent-how-a-request-runs",
+          "title": "How a request runs"
+        },
+        {
+          "id": "agent-requests-and-review",
+          "title": "Requests and review"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "agent",
+          "sectionTitle": "Working with the agent",
+          "text": "Hand the agent a task, review the diff, and keep the changes that belong in the project."
+        },
+        {
+          "sectionId": "agent-what-the-agent-does",
+          "sectionTitle": "What the agent does",
+          "text": "The agent reads the project, edits files in place, moves and reorganizes them, runs the lab, and keeps going through a multi-step task. Every change arrives as a diff you can review, approve, or throw away. It has the same access to the project that you do: the file tree, notebooks, notes, sources, and recent activity. That is what lets it finish the work instead of describing it."
+        },
+        {
+          "sectionId": "agent-what-it-can-change",
+          "sectionTitle": "What it can change",
+          "text": "Edit datasets, notebooks, scripts, spreadsheets, and notes where they live. Create folders, move files, rename exports, and repair the paths that pointed at them. Run a script or notebook cell and feed the result into the next step. Leave a summary and a run log in the project when the task is done. It is scoped to the project it was invoked in and cannot reach the rest of the workspace."
+        },
+        {
+          "sectionId": "agent-how-a-request-runs",
+          "sectionTitle": "How a request runs",
+          "text": "It reads the file tree, notes, and recent activity to work out what you are asking for. The task becomes concrete steps: which files open, which commands run, what changes. It executes each step, re-reads the result, and retries when something does not line up. A summary, a diff, and a run log stay in the project for the next person."
+        },
+        {
+          "sectionId": "agent-requests-and-review",
+          "sectionTitle": "Requests and review",
+          "text": "One task is one request, however many steps it takes. Opening a diff, approving it, or rolling it back is free, and a retry inside the same task does not start a new one. The free plan includes 20 agent requests a day. Refer another person and 50 extra requests are added once; those never expire and are spent after your daily requests run out. See pricing for the current allowance, or read more about the agent on the [agent page](/agent)."
+        }
+      ]
+    },
+    {
+      "id": "collaboration",
+      "title": "Collaboration",
+      "description": "Edit the same document with live cursors, talk in project channels, and set roles and permissions.",
+      "eyebrow": "Team",
+      "section": "Using Spindle",
+      "order": 6,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "collaboration-work-in-the-same-document",
+          "title": "Work in the same document"
+        },
+        {
+          "id": "collaboration-team-chat",
+          "title": "Team chat"
+        },
+        {
+          "id": "collaboration-roles-and-access",
+          "title": "Roles and access"
+        },
+        {
+          "id": "collaboration-where-changes-live",
+          "title": "Where changes live"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "collaboration",
+          "sectionTitle": "Collaboration",
+          "text": "Edit the same document with live cursors, talk in project channels, and set roles and permissions."
+        },
+        {
+          "sectionId": "collaboration-work-in-the-same-document",
+          "sectionTitle": "Work in the same document",
+          "text": "Keystrokes and cursors land in under 40 ms through the CRDT sync engine, so two people can type in the same note, notebook, or document without merge conflicts. Presence shows who is in the project and which row they are editing."
+        },
+        {
+          "sectionId": "collaboration-team-chat",
+          "sectionTitle": "Team chat",
+          "text": "Each project has its own channels and threads. Conversations stay next to the files they are about, and a decision made in chat can be linked back to the note or result it changed. Anonymous messages can route through the Nym Mixnet when a team needs that extra layer."
+        },
+        {
+          "sectionId": "collaboration-roles-and-access",
+          "sectionTitle": "Roles and access",
+          "text": "Invite people to a project and choose what they can do. Roles cover the project you are in rather than the whole workspace, so an external collaborator can work on one study without seeing everything else. Owner can edit files, invite people, and manage the project. Editor can edit files but cannot invite people or change project settings. Viewer can read the project without changing it."
+        },
+        {
+          "sectionId": "collaboration-where-changes-live",
+          "sectionTitle": "Where changes live",
+          "text": "Edits, comments, and run logs stay with the project. History makes it clear who changed what and when, so a teammate can pick up a handoff without a separate status meeting."
+        }
+      ]
+    },
+    {
+      "id": "automations",
+      "title": "Automations",
+      "description": "Plain-language, visual, or cron automations that live with the project.",
+      "eyebrow": "Routines",
+      "section": "Using Spindle",
+      "order": 7,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "automations-describe-the-routine",
+          "title": "Describe the routine"
+        },
+        {
+          "id": "automations-a-weekly-example",
+          "title": "A weekly example"
+        },
+        {
+          "id": "automations-review-the-output",
+          "title": "Review the output"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "automations",
+          "sectionTitle": "Automations",
+          "text": "Plain-language, visual, or cron automations that live with the project."
+        },
+        {
+          "sectionId": "automations-describe-the-routine",
+          "sectionTitle": "Describe the routine",
+          "text": "Describe a repeated step in plain language or write a cron job yourself. Either way, the automation lives with the project it serves and can update files, notes, or results."
+        },
+        {
+          "sectionId": "automations-review-the-output",
+          "sectionTitle": "Review the output",
+          "text": "Automations write their results back into the project, so the next run has the same context as the last one. A failed run leaves its log and the files it touched in place, which makes a quiet Monday morning fixable without guessing what happened."
+        }
+      ]
+    },
+    {
+      "id": "guides",
+      "title": "Guides",
+      "description": "Short walkthroughs for files, automations, and the agent.",
+      "eyebrow": "More",
+      "section": "More",
+      "order": 8,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "guides-walkthroughs",
+          "title": "Walkthroughs"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "guides",
+          "sectionTitle": "Guides",
+          "text": "Short walkthroughs for files, automations, and the agent."
+        },
+        {
+          "sectionId": "guides-walkthroughs",
+          "sectionTitle": "Walkthroughs",
+          "text": "Short walkthroughs for the parts people use most. Each one opens the relevant preview on the homepage."
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "title": "FAQ",
+      "description": "Practical answers about the free plan, agent requests, collaboration, and search.",
+      "eyebrow": "Questions",
+      "section": "More",
+      "order": 9,
+      "updated": "2026-11-19",
+      "draft": false,
+      "headings": [
+        {
+          "id": "faq-what-does-the-free-plan-include",
+          "title": "What does the free plan include?"
+        },
+        {
+          "id": "faq-what-can-the-agent-change",
+          "title": "What can the agent change?"
+        },
+        {
+          "id": "faq-what-counts-as-one-agent-request",
+          "title": "What counts as one agent request?"
+        },
+        {
+          "id": "faq-do-daily-requests-carry-over",
+          "title": "Do daily requests carry over?"
+        },
+        {
+          "id": "faq-can-i-collaborate-with-other-people",
+          "title": "Can I collaborate with other people?"
+        },
+        {
+          "id": "faq-where-does-search-get-its-results",
+          "title": "Where does search get its results?"
+        },
+        {
+          "id": "faq-how-do-i-move-a-project-to-someone-else",
+          "title": "How do I move a project to someone else?"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "faq",
+          "sectionTitle": "FAQ",
+          "text": "Practical answers about the free plan, agent requests, collaboration, and search."
+        },
+        {
+          "sectionId": "faq-what-does-the-free-plan-include",
+          "sectionTitle": "What does the free plan include?",
+          "text": "A free workspace includes the whole platform: 5 GB of storage, projects with their own file trees, lab sessions, local search, automations, and 20 agent requests a day. There is no card and no trial."
+        },
+        {
+          "sectionId": "faq-what-can-the-agent-change",
+          "sectionTitle": "What can the agent change?",
+          "text": "Files inside the project: datasets, notebooks, scripts, spreadsheets, and notes. It can edit them in place, create folders, move and rename files, and update the references that pointed at them. It cannot reach outside the project it was invoked in."
+        },
+        {
+          "sectionId": "faq-what-counts-as-one-agent-request",
+          "sectionTitle": "What counts as one agent request?",
+          "text": "One task is one request, however many steps it takes. Reviewing a diff, approving it, or rolling it back is free, and a retry inside the same task does not start a new request."
+        },
+        {
+          "sectionId": "faq-do-daily-requests-carry-over",
+          "sectionTitle": "Do daily requests carry over?",
+          "text": "Each day brings a fresh twenty. Unused daily requests do not accumulate. The 50 requests from a referral are kept separate: they are added once, never expire, and are spent after your daily requests run out."
+        },
+        {
+          "sectionId": "faq-can-i-collaborate-with-other-people",
+          "sectionTitle": "Can I collaborate with other people?",
+          "text": "Yes. Invite people to a project, edit the same document with live cursors, and talk in project channels. Roles are scoped to the project, so an external collaborator can work on one study without seeing the rest of your workspace."
+        },
+        {
+          "sectionId": "faq-where-does-search-get-its-results",
+          "sectionTitle": "Where does search get its results?",
+          "text": "Academic search queries BASE, arXiv, Crossref, Semantic Scholar, and OpenAlex. Basic search uses Mojeek, Brave, and DuckDuckGo. Both run through a self-hosted SearXNG instance, and results you save stay in the project as sources."
+        },
+        {
+          "sectionId": "faq-how-do-i-move-a-project-to-someone-else",
+          "sectionTitle": "How do I move a project to someone else?",
+          "text": "Share the project rather than exporting a pile of files. The tree, notes, sources, results, and run logs travel together, and their history stays attached. See workspaces and files for the layout."
+        }
+      ]
+    }
+  ]
+}

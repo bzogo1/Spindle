@@ -1,0 +1,23 @@
+// Single schema file for the Spindle workspace. Add feature models here and
+// ship every change as a checked-in migration under prisma/migrations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Minimal account record so the database can be seeded before the auth work
+// (DEV-18/DEV-20) adds credentials, quota, and referral fields.
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}

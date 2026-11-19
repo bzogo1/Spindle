@@ -1,0 +1,578 @@
+/* Changelog page — standalone styles for the release timeline and feed link. */
+
+@font-face {
+  font-family: Geist;
+  src: url("/assets/changelog/fonts/geist-sans.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 900;
+}
+
+@font-face {
+  font-family: Geist Mono;
+  src: url("/assets/changelog/fonts/geist-mono.woff2") format("woff2");
+  font-display: swap;
+  font-weight: 100 900;
+}
+
+:root {
+  --radius: 0.625rem;
+
+  --background: oklch(100% 0 0);
+  --foreground: oklch(14.5% 0 0);
+  --card: oklch(100% 0 0);
+  --card-foreground: oklch(14.5% 0 0);
+  --popover: oklch(100% 0 0);
+  --popover-foreground: oklch(14.5% 0 0);
+  --primary: oklch(20.5% 0 0);
+  --primary-foreground: oklch(98.5% 0 0);
+  --secondary: oklch(97% 0 0);
+  --secondary-foreground: oklch(20.5% 0 0);
+  --muted: oklch(97% 0 0);
+  --muted-foreground: oklch(55.6% 0 0);
+  --accent: oklch(97% 0 0);
+  --accent-foreground: oklch(20.5% 0 0);
+  --destructive: oklch(57.7% 0.245 27.325);
+  --border: oklch(92.2% 0 0);
+  --input: oklch(92.2% 0 0);
+  --ring: oklch(70.8% 0 0);
+
+  --fd-background: #f5f5f5;
+  --fd-foreground: #0a0a0a;
+  --fd-card: #f1f1f1;
+  --fd-muted: #f5f5f5;
+  --fd-muted-foreground: #737373;
+  --fd-accent: #d1d1d180;
+  --fd-secondary: #ededed;
+  --fd-border: #9e9e9e33;
+
+  /* Fumadocs-style aliases used by the copied prose styles. */
+  --color-fd-foreground: var(--fd-foreground);
+}
+
+.dark {
+  --background: oklch(14.5% 0 0);
+  --foreground: oklch(98.5% 0 0);
+  --card: oklch(20.5% 0 0);
+  --card-foreground: oklch(98.5% 0 0);
+  --popover: oklch(20.5% 0 0);
+  --popover-foreground: oklch(98.5% 0 0);
+  --primary: oklch(92.2% 0 0);
+  --primary-foreground: oklch(20.5% 0 0);
+  --secondary: oklch(26.9% 0 0);
+  --secondary-foreground: oklch(98.5% 0 0);
+  --muted: oklch(26.9% 0 0);
+  --muted-foreground: oklch(70.8% 0 0);
+  --accent: oklch(26.9% 0 0);
+  --accent-foreground: oklch(98.5% 0 0);
+  --destructive: oklch(70.4% 0.191 22.216);
+  --border: oklch(100% 0 0 / 0.1);
+  --input: oklch(100% 0 0 / 0.15);
+  --ring: oklch(55.6% 0 0);
+
+  --fd-background: #121212;
+  --fd-foreground: #ebebeb;
+  --fd-card: #191919;
+  --fd-muted: #212121;
+  --fd-muted-foreground: #b3b3b3cc;
+  --fd-accent: #6868684d;
+  --fd-secondary: #212121;
+  --fd-border: #6663;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font: inherit;
+}
+
+.cl-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.cl-page {
+  min-height: 100vh;
+  position: relative;
+}
+
+.cl-shell {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.cl-topbar {
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+.cl-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+}
+
+.cl-page-title {
+  margin: 0;
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 2.25rem;
+  letter-spacing: -0.025em;
+}
+
+.cl-theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--background);
+  color: var(--foreground);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.cl-theme-toggle:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.cl-theme-toggle:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.cl-theme-toggle svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  pointer-events: none;
+}
+
+.cl-icon-sun {
+  transform: rotate(0) scale(1);
+  transition: transform 0.15s;
+}
+
+.cl-icon-moon {
+  position: absolute;
+  transform: rotate(90deg) scale(0);
+  transition: transform 0.15s;
+}
+
+.dark .cl-icon-sun {
+  transform: rotate(-90deg) scale(0);
+}
+
+.dark .cl-icon-moon {
+  transform: rotate(0) scale(1);
+}
+
+.cl-content {
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.cl-release {
+  scroll-margin-top: 1.5rem;
+}
+
+.cl-release-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cl-meta {
+  flex: none;
+}
+
+.cl-meta-inner {
+  padding-bottom: 2.5rem;
+}
+
+.cl-date {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  color: var(--muted-foreground);
+}
+
+.cl-version {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.cl-entry {
+  position: relative;
+  flex: 1;
+  padding-bottom: 2.5rem;
+}
+
+.cl-rail {
+  display: none;
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--border);
+}
+
+.cl-rail-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--primary);
+  z-index: 1;
+}
+
+.cl-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cl-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cl-release-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.cl-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cl-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+}
+
+.cl-prose {
+  color: color-mix(in oklab, var(--color-fd-foreground) 90%, transparent);
+  font-size: 1rem;
+  line-height: 1.75rem;
+}
+
+.cl-prose > :first-child {
+  margin-top: 0;
+}
+
+.cl-prose > :last-child {
+  margin-bottom: 0;
+}
+
+.cl-prose p {
+  margin: 1.25em 0;
+}
+
+.cl-prose ul {
+  margin: 1.25em 0;
+  padding-inline-start: 1rem;
+  list-style-type: disc;
+}
+
+.cl-prose li {
+  margin: 0.5em 0;
+  padding-inline-start: 0;
+}
+
+.cl-prose li::marker {
+  color: var(--fd-muted-foreground);
+}
+
+.cl-prose strong {
+  color: var(--fd-foreground);
+  font-weight: 500;
+}
+
+.cl-media {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 2em 0;
+  border: 1px solid var(--fd-border);
+  border-radius: 0.375rem;
+}
+
+.cl-prose p .cl-media {
+  margin: 2em 0;
+}
+
+.cl-figure {
+  margin: 2em 0;
+}
+
+.cl-figure .cl-media {
+  margin: 0;
+}
+
+.cl-empty {
+  margin: 0;
+  padding: 2rem 0 1rem;
+  color: var(--muted-foreground);
+}
+
+.cl-empty a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.cl-back {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.cl-back a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.cl-back a:hover {
+  color: var(--fd-foreground);
+}
+
+.cl-back button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cl-back button:hover {
+  color: var(--fd-foreground);
+}
+
+@media (min-width: 48rem) {
+  .cl-release-grid {
+    flex-direction: row;
+    gap: 0;
+  }
+
+  .cl-meta {
+    width: 12rem;
+  }
+
+  .cl-meta-inner {
+    position: sticky;
+    top: 2rem;
+  }
+
+  .cl-entry {
+    padding-left: 2rem;
+  }
+
+  .cl-rail {
+    display: block;
+  }
+
+  .cl-content {
+    padding-inline: 2.5rem;
+  }
+}
+
+/* 404 and error states */
+.cl-state {
+  max-width: 36rem;
+  padding: 2rem 0 3rem;
+}
+
+.cl-state-code {
+  margin: 0 0 0.75rem;
+  color: var(--muted-foreground);
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cl-state-title {
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.cl-state-text {
+  margin: 1rem 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.cl-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.cl-state-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.cl-state-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.cl-state-btn--primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.cl-state-btn--primary:hover {
+  border-color: var(--foreground);
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.cl-state-reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem 0.875rem;
+  margin: 2.5rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.cl-state-reference code {
+  color: var(--foreground);
+  font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.cl-state-copy {
+  padding: 0.3125rem 0.5625rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3125rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.cl-state-copy:hover {
+  border-color: var(--muted-foreground);
+  color: var(--foreground);
+}
+
+.cl-state-btn:focus-visible,
+.cl-state-copy:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-theme-toggle,
+  .cl-icon-sun,
+  .cl-icon-moon,
+  .cl-state-btn {
+    transition: none;
+  }
+}

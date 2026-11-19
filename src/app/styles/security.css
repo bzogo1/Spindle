@@ -1,0 +1,215 @@
+/* ==========================================================================
+   SPINDLE — security and trust centre.
+   Long-form trust page on the shared legal layout, plus a static request-path
+   diagram and honest compliance status labels.
+   ========================================================================== */
+
+.security-hero .page-lede {
+  max-width: 740px;
+}
+
+.security-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  margin: 26px 0 0;
+}
+.security-facts > div {
+  display: grid;
+  gap: 3px;
+}
+.security-facts dt {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.security-facts dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.security-facts a {
+  color: var(--accent);
+}
+
+/* Request-path figure ------------------------------------------------------ */
+
+.security-architecture {
+  margin: 24px 0 20px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse 380px 180px at 12% 0%, rgba(200, 240, 131, 0.06), transparent 70%),
+    rgba(255, 255, 255, 0.014);
+}
+.security-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.security-flow li {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  padding: 15px 13px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(13, 15, 14, 0.55);
+}
+.security-flow li:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1;
+}
+.security-flow-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+  border: 1px solid var(--accent-line);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.security-flow-icon .icon {
+  width: 14px;
+  height: 14px;
+}
+.security-flow-kicker {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.security-flow-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.security-flow-control {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.security-caption {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/* Disclosure callout ------------------------------------------------------- */
+
+.legal-block p.security-note {
+  margin: 20px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--accent-line);
+  border-left: 2px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.legal-block p.security-note a {
+  color: var(--accent);
+}
+
+/* Compliance table --------------------------------------------------------- */
+
+.security-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.security-status::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.security-status--none {
+  border: 1px solid rgba(227, 182, 126, 0.3);
+  background: rgba(227, 182, 126, 0.08);
+  color: var(--amber);
+}
+.security-status--yes {
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.security-status--na {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-dim);
+}
+
+/* Responsive --------------------------------------------------------------- */
+
+@media (max-width: 1080px) {
+  .security-flow {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .security-flow li {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 12px;
+  }
+  .security-flow li:not(:last-child)::after {
+    content: "↓";
+    top: auto;
+    bottom: -15px;
+    right: 50%;
+    transform: translateX(50%);
+  }
+  .security-flow-icon {
+    grid-row: span 3;
+    margin-bottom: 0;
+  }
+  .security-flow-kicker,
+  .security-flow-name,
+  .security-flow-control {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .security-architecture {
+    padding: 16px;
+  }
+  .security-facts {
+    gap: 10px 22px;
+  }
+}

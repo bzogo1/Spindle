@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f0e" />
+  <title>Collaboration — Spindle</title>
+  <meta name="description" content="Chat in project channels, edit the same document with live cursors, and manage roles and permissions — all at blazingly fast sync speeds. Anonymous messages route through the Nym Mixnet." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="collaboration.css" />
+</head>
+<body class="collab-page">
+
+  <!-- Icon sprite -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M16 5.5a3 3 0 010 5M18 14a6 6 0 013 6"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 00-3-3l-10 10L4 20zM14 6l4 4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header" id="header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Spindle home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-name">spindle</span>
+      </a>
+
+      <div class="nav-desktop-slot" id="ui-main-nav">
+        <nav class="nav-fallback" aria-label="Main navigation">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div id="ui-signin"></div>
+        <a href="#get-started" class="btn btn--primary btn--sm">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+          <svg class="icon icon--open"><use href="#i-menu"/></svg>
+          <svg class="icon icon--close"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation">
+      <div id="ui-mobile-nav">
+        <div class="nav-fallback-mobile">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- Hero -->
+    <section class="collab-hero" aria-labelledby="collab-hero-title">
+      <div class="collab-hero-wash" aria-hidden="true"></div>
+      <div class="collab-hero-grid-lines" aria-hidden="true"></div>
+
+      <div class="container collab-hero-grid">
+        <div class="collab-hero-copy" data-reveal>
+          <div class="collab-kicker"><span class="collab-kicker-dot"></span> COLLABORATION <span>/</span> LIVE EVERYWHERE</div>
+          <h1 id="collab-hero-title">One project.<br/><span class="collab-gradient-text">Everyone in sync.</span></h1>
+          <p class="collab-lede">Talk in channels, type in the same document, and manage who can touch what — without leaving the research. Keystrokes and cursors land in <strong>under 40&nbsp;ms</strong>. Blazingly fast is the boring part.</p>
+          <div class="collab-hero-actions">
+            <a href="#editing" class="btn btn--primary btn--lg">See it live <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+            <a href="#chat" class="btn btn--ghost btn--lg">Explore team chat <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a>
+          </div>
+          <div class="collab-hero-meta">
+            <span><svg class="icon icon--xs"><use href="#i-bolt"/></svg> CRDTsync engine</span>
+            <span><svg class="icon icon--xs"><use href="#i-shield"/></svg> Optional Nym anonymity</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Roles built in</span>
+          </div>
+        </div>
+
+        <div class="collab-globe-stage" data-reveal data-reveal-delay="100" aria-label="Interactive globe showing collaborators working together">
+          <div class="collab-globe-orbit" aria-hidden="true">
+            <svg viewBox="0 0 560 560" aria-hidden="true">
+              <ellipse class="collab-orbit-line" cx="280" cy="280" rx="252" ry="108" transform="rotate(-21 280 280)" />
+              <ellipse class="collab-orbit-line collab-orbit-line--flow" cx="280" cy="280" rx="252" ry="108" transform="rotate(-21 280 280)" pathLength="100" />
+              <ellipse class="collab-orbit-line collab-orbit-line--soft" cx="280" cy="280" rx="232" ry="158" transform="rotate(27 280 280)" />
+              <circle class="collab-orbit-point" cx="45" cy="350" r="3.5" />
+              <circle class="collab-orbit-point collab-orbit-point--soft" cx="490" cy="205" r="2.5" />
+            </svg>
+          </div>
+          <div class="collab-globe-halo" aria-hidden="true"></div>
+          <div id="ui-collab-globe" class="collab-globe-mount" aria-hidden="true"></div>
+
+          <div class="presence-float presence-float--one" aria-hidden="true">
+            <span class="presence-avatar presence-avatar--lime">MR</span>
+            <span><strong>Mara</strong> is editing <b>analysis.ipynb</b></span>
+          </div>
+          <div class="presence-float presence-float--two" aria-hidden="true">
+            <span class="presence-stack"><i>TJ</i><i>JL</i><i>+2</i></span>
+            <span><strong>5 people</strong> in this project</span>
+          </div>
+          <div class="presence-float presence-float--three" aria-hidden="true">
+            <svg class="icon icon--xs"><use href="#i-pen"/></svg>
+            <span>Theo's cursor · <b>row 42</b></span>
+          </div>
+          <div class="latency-chip" aria-hidden="true">
+            <span class="latency-bars"><i></i><i></i><i></i><i></i></span>
+            <strong>38 ms</strong><small>median sync</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="speed-strip" data-reveal>
+          <div class="speed-stat"><strong>38<span>ms</span></strong><small>p95 keystroke delivery</small></div>
+          <div class="speed-stat"><strong>CRDT</strong><small>conflict-free merges</small></div>
+          <div class="speed-stat"><strong>5-hop</strong><small>Nym Mixnet when anonymous</small></div>
+          <div class="speed-stat"><strong>0</strong><small><span class="mono">final_v3</span> copies</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Shared editing -->
+    <section class="section collab-doc-section" id="editing" aria-labelledby="editing-title">
+      <div class="container collab-split">
+        <div class="collab-copy" data-reveal>
+          <div class="collab-index"><span>01</span><i></i> SHARED CANVAS</div>
+          <h2 id="editing-title" class="section-title">Type together. No merge conflicts.</h2>
+          <p class="section-desc">Open a note, a notebook cell, or a CSV row and edit it side by side. You see other people's cursors move, selections highlight, and text arrive as it's typed — in the same file, not a copy of it.</p>
+          <ul class="feature-list collab-feature-list">
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Live cursors and presence</strong><small>Know who is here and exactly where they are working</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Character-by-character sync</strong><small>Updates stream over a persistent WebSocket</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Comments in context</strong><small>Feedback pinned to the cell, row, or sentence</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Attributable history</strong><small>Every change has an author and a rewind button</small></span></li>
+          </ul>
+
+          <div class="code-card collab-code">
+            <div class="code-card-head"><span>sync.ts</span><span class="mono">YJS + WEBSOCKET</span></div>
+<pre><span class="tok-com">// one CRDT document per project file</span>
+<span class="tok-key">const</span> doc = <span class="tok-key">new</span> <span class="tok-fn">Y.Doc</span>()
+<span class="tok-key">const</span> room = <span class="tok-key">new</span> <span class="tok-fn">WebsocketProvider</span>(ws, projectId, doc)
+
+doc.getText(<span class="tok-str">'field-notes'</span>).observe((event) =&gt; {
+  room.awareness.setLocalStateField(<span class="tok-str">'cursor'</span>, event.cursor)
+})</pre>
+            <div class="code-card-foot"><span class="status-pill status-pill--tiny"><i></i> 3 peers connected</span><span class="mono">38 MS RTT</span></div>
+          </div>
+        </div>
+
+        <div class="collab-visual" data-reveal data-reveal-delay="100">
+          <div class="product-window doc-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-pen"/></svg> coastal-resilience / field-notes.md</span>
+              <span class="window-bar-status"><i></i> Synced 12 ms ago</span>
+            </div>
+            <div class="doc-toolbar">
+              <div class="doc-avatars" aria-label="People editing">
+                <span class="presence-avatar presence-avatar--lime" title="Mara">MR</span>
+                <span class="presence-avatar presence-avatar--mint" title="Theo">TJ</span>
+                <span class="presence-avatar presence-avatar--teal" title="Jules">JL</span>
+              </div>
+              <span class="doc-toolbar-note">3 editing now</span>
+              <span class="doc-toolbar-right mono">UTF-8 · MARKDOWN</span>
+            </div>
+
+            <div class="doc-page" id="docPage">
+              <div class="doc-line"><span class="doc-ln">01</span><span class="doc-h1">Field notes — transect 04</span></div>
+              <div class="doc-line"><span class="doc-ln">02</span><span>Site <strong>A-01</strong>, lower marsh edge. Overcast, light wind from the west.</span></div>
+              <div class="doc-line"><span class="doc-ln">03</span><span class="doc-selection">Salinity at the outer station read 28.4 PSU after the tide turned.</span></div>
+              <div class="doc-line doc-line--active"><span class="doc-ln">04</span><span>Second sample taken at <strong>14:20</strong> — <span id="docTyping" class="doc-typing"></span><span class="doc-caret" aria-hidden="true"></span></span></div>
+              <div class="doc-line"><span class="doc-ln">05</span><span>Need to cross-check the turbidity series with <strong>tidal-2026.csv</strong>.</span></div>
+              <div class="doc-line doc-line--blank"><span class="doc-ln">06</span><span>&nbsp;</span></div>
+              <div class="doc-line"><span class="doc-ln">07</span><span class="doc-muted">— Mara, field lead</span></div>
+
+              <div class="remote-cursor remote-cursor--mara" aria-hidden="true"><span>Mara</span></div>
+              <div class="remote-cursor remote-cursor--theo" aria-hidden="true"><span>Theo</span></div>
+              <div class="comment-pin" aria-hidden="true"><svg class="icon icon--xs"><use href="#i-message"/></svg><span>2</span></div>
+            </div>
+
+            <div class="doc-foot">
+              <span><svg class="icon icon--xs"><use href="#i-check"/></svg> All changes saved locally + synced</span>
+              <span class="mono">REV 1,284</span>
+            </div>
+          </div>
+          <div class="doc-callout" aria-hidden="true"><span class="callout-dot"></span> Theo is typing in the same block</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat + Nym -->
+    <section class="section section--alt collab-chat-section" id="chat" aria-labelledby="chat-title">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">02 / Team chat</div>
+          <h2 id="chat-title" class="section-title">Talk where the work happens.</h2>
+          <p class="section-desc">Channels feel like Discord or Slack, but they live inside the project — next to the files, decisions, and people they're about. And when the conversation is sensitive, Anonymous mode routes it through the Nym Mixnet.</p>
+        </div>
+
+        <div class="chat-grid">
+          <div class="chat-window-shell" data-reveal>
+            <div class="product-window chat-window">
+              <div class="chat-layout">
+                <aside class="chat-rail" aria-label="Chat channels">
+                  <div class="chat-workspace"><span class="workspace-mark">CR</span> coastal-resilience <svg class="icon icon--xs"><use href="#i-chevron-down"/></svg></div>
+                  <div class="chat-section-label">CHANNELS</div>
+                  <button class="chat-channel is-active" data-channel="field-notes"><span>#</span> field-notes</button>
+                  <button class="chat-channel" data-channel="data-cleaning"><span>#</span> data-cleaning</button>
+                  <button class="chat-channel" data-channel="writing"><span>#</span> writing</button>
+                  <button class="chat-channel" data-channel="random"><span>#</span> random</button>
+                  <div class="chat-section-label chat-section-label--spaced">DIRECT</div>
+                  <div class="chat-channel chat-channel--dm"><span class="presence-dot"></span> Mara <span class="chat-you">you</span></div>
+                  <div class="chat-channel chat-channel--dm"><span class="presence-dot presence-dot--away"></span> Theo</div>
+
+                  <button class="anon-toggle" id="anonToggle" aria-pressed="false">
+                    <span class="anon-switch"><i></i></span>
+                    <span><strong>Anonymous mode</strong><small id="anonStatus">Off · normal project chat</small></span>
+                  </button>
+                </aside>
+
+                <div class="chat-panel">
+                  <div class="chat-head">
+                    <span><span class="chat-hash">#</span> <span id="chatChannelName">field-notes</span></span>
+                    <span class="chat-head-meta" id="chatRoute">8 members · project channel</span>
+                  </div>
+                  <div class="chat-messages" id="chatMessages" aria-live="polite">
+                    <div class="chat-msg"><span class="chat-avatar chat-avatar--lime">MR</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Mara</strong><time>09:14</time></div><p>New survey batch is in <code>/data</code>. The viewer detected it as Parquet right away.</p></div></div>
+                    <div class="chat-msg"><span class="chat-avatar chat-avatar--mint">TJ</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Theo</strong><time>09:18</time></div><p>Nice. I kicked off the cron refresh and the lab still has the kernel from yesterday.</p></div></div>
+                    <div class="chat-msg"><span class="chat-avatar chat-avatar--teal">JL</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Jules</strong><time>09:21</time></div><p>Adding the site IDs to the shared note now — you'll see my cursor in the second block.</p></div></div>
+                    <div class="chat-msg chat-msg--anon" id="anonMessage" hidden><span class="chat-avatar chat-avatar--anon"><svg class="icon icon--xs"><use href="#i-shield"/></svg></span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Anonymous</strong><time>now</time></div><p>Routing this message through the Nym Mixnet…</p></div></div>
+                    <div class="chat-typing" id="chatTyping" aria-hidden="true"><span class="chat-avatar chat-avatar--mint">TJ</span><span class="typing-dots"><i></i><i></i><i></i></span><span>Theo is typing</span></div>
+                  </div>
+                  <form class="chat-composer" id="chatForm">
+                    <label class="sr-only" for="chatInput">Message channel</label>
+                    <input id="chatInput" type="text" autocomplete="off" placeholder="Message #field-notes" />
+                    <button type="submit" aria-label="Send message"><svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="route-strip" id="routeStrip" aria-hidden="true">
+              <span>YOUR LAPTOP</span><i></i><span>ENTRY</span><i></i><span class="route-node"></span><i></i><span class="route-node"></span><i></i><span class="route-node"></span><i></i><span>EXIT</span><i></i><span>PROJECT</span>
+            </div>
+          </div>
+
+          <div class="chat-explain" data-reveal data-reveal-delay="90">
+            <h3>Channels, threads, and a quieter mode.</h3>
+            <p>Every project gets its own channels. Messages, links, and decisions stay with the data instead of disappearing into another app.</p>
+
+            <div class="anon-card" id="anonCard">
+              <div class="anon-card-head"><svg class="icon icon--xs"><use href="#i-shield"/></svg> ANONYMOUS MODE</div>
+              <p>Working with confidential sources, whistleblower material, or clinical data? Flip on Anonymous mode. Your identity and the timing pattern of your messages are hidden — even from us.</p>
+              <button type="button" class="anon-card-action" id="anonExplainToggle">Switch Anonymous mode on <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></button>
+            </div>
+
+            <div class="nym-heading">
+              <div class="eyebrow">Under the hood</div>
+              <h4>How the Nym Mixnet works</h4>
+              <p>Switching on anonymity wraps each message in layers and sends it through a decentralized mixnet instead of a normal project route.</p>
+            </div>
+
+            <ol class="nym-steps">
+              <li><span class="nym-step-num">01</span><div><strong>Your laptop → Sphinx packet</strong><p>The message is split into fixed-size packets and wrapped in layers of encryption, so no single hop sees both who sent it and where it's going.</p></div></li>
+              <li><span class="nym-step-num">02</span><div><strong>Nym Mixnet → three mixing layers</strong><p>Independent mix nodes reorder packets, add randomized delays, and mix in indistinguishable cover traffic. Timing and volume patterns disappear.</p></div></li>
+              <li><span class="nym-step-num">03</span><div><strong>Exit gateway → project</strong><p>The exit gateway sees only the destination, not the sender. Nothing in the chain can link your account to the conversation.</p></div></li>
+            </ol>
+
+            <figure class="nym-figure">
+              <img src="assets/nym-mixnet-diagram.png" alt="Nym's Noise Generating Mixnet diagram: a person's laptop sends packets through the Nym protocol and out through exit gateways" loading="lazy" />
+              <figcaption>Your device → the Nym Mixnet → exits. Diagram from <a href="https://nym.com/blog/what-is-a-mixnet" target="_blank" rel="noopener noreferrer">Nym <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a></figcaption>
+            </figure>
+
+            <div class="nym-facts">
+              <div><svg class="icon icon--xs"><use href="#i-lock"/></svg><span><strong>Metadata protection</strong><small>Hides who is talking, when, and how often — not just the content.</small></span></div>
+              <div><svg class="icon icon--xs"><use href="#i-shield"/></svg><span><strong>Open source &amp; audited</strong><small>Nym's code is public and independently reviewed by security firms.</small></span></div>
+              <div><svg class="icon icon--xs"><use href="#i-clock"/></svg><span><strong>Honest tradeoff</strong><small>Anonymous messages take longer: mixing and cover traffic add latency by design.</small></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Roles & permissions -->
+    <section class="section collab-roles-section" id="roles" aria-labelledby="roles-title">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">03 / Access control</div>
+          <h2 id="roles-title" class="section-title">Invite people. Set the boundaries.</h2>
+          <p class="section-desc">The project manager adds teammates and decides who can read, comment, edit files, run the lab, or manage the team. Changes are immediate, attributable, and easy to review.</p>
+        </div>
+
+        <div class="roles-grid">
+          <div class="product-window roles-window" data-reveal>
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-users"/></svg> coastal-resilience / access</span>
+              <span class="window-bar-status"><i></i> 5 members</span>
+            </div>
+
+            <form class="invite-bar" id="inviteForm">
+              <div class="invite-field">
+                <label class="sr-only" for="inviteEmail">Teammate email</label>
+                <input id="inviteEmail" type="email" placeholder="name@lab.edu" required />
+              </div>
+              <div class="invite-select">
+                <label class="sr-only" for="inviteRole">Role</label>
+                <select id="inviteRole">
+                  <option value="manager">Manager</option>
+                  <option value="editor" selected>Editor</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+                <svg class="icon icon--xs"><use href="#i-chevron-down"/></svg>
+              </div>
+              <button type="submit" class="btn btn--primary btn--sm"><svg class="icon icon--xs"><use href="#i-plus"/></svg> Add member</button>
+            </form>
+
+            <div class="member-head" aria-hidden="true"><span>Member</span><span>Role</span><span>Status</span><span></span></div>
+            <div class="member-list" id="memberList">
+              <div class="member-row" data-member="Mara Reyes">
+                <span class="member-identity"><span class="member-avatar member-avatar--lime">MR</span><span><strong>Mara Reyes</strong><small>mara@lab.edu</small></span></span>
+                <span><span class="role-pill role-pill--owner">Owner</span></span>
+                <span class="member-status"><i></i> Active</span>
+                <button class="member-remove" type="button" disabled aria-label="Cannot remove owner"><svg class="icon icon--xs"><use href="#i-trash"/></svg></button>
+              </div>
+              <div class="member-row" data-member="Theo Jensen">
+                <span class="member-identity"><span class="member-avatar member-avatar--mint">TJ</span><span><strong>Theo Jensen</strong><small>theo@lab.edu</small></span></span>
+                <span><select class="member-role" aria-label="Role for Theo Jensen"><option value="manager">Manager</option><option value="editor" selected>Editor</option><option value="viewer">Viewer</option></select></span>
+                <span class="member-status"><i></i> Active</span>
+                <button class="member-remove" type="button" aria-label="Remove Theo Jensen"><svg class="icon icon--xs"><use href="#i-trash"/></svg></button>
+              </div>
+              <div class="member-row" data-member="Jules Lemaire">
+                <span class="member-identity"><span class="member-avatar member-avatar--teal">JL</span><span><strong>Jules Lemaire</strong><small>jules@lab.edu</small></span></span>
+                <span><select class="member-role" aria-label="Role for Jules Lemaire"><option value="manager">Manager</option><option value="editor" selected>Editor</option><option value="viewer">Viewer</option></select></span>
+                <span class="member-status"><i></i> Active</span>
+                <button class="member-remove" type="button" aria-label="Remove Jules Lemaire"><svg class="icon icon--xs"><use href="#i-trash"/></svg></button>
+              </div>
+              <div class="member-row" data-member="Priya Nair">
+                <span class="member-identity"><span class="member-avatar member-avatar--violet">PN</span><span><strong>Priya Nair</strong><small>priya@university.edu</small></span></span>
+                <span><select class="member-role" aria-label="Role for Priya Nair"><option value="manager">Manager</option><option value="editor">Editor</option><option value="viewer" selected>Viewer</option></select></span>
+                <span class="member-status member-status--pending"><i></i> Invited</span>
+                <button class="member-remove" type="button" aria-label="Remove Priya Nair"><svg class="icon icon--xs"><use href="#i-trash"/></svg></button>
+              </div>
+            </div>
+
+            <div class="roles-foot">
+              <span><svg class="icon icon--xs"><use href="#i-lock"/></svg> Owner controls billing and deletion</span>
+              <span class="mono">AUDIT LOG ON</span>
+            </div>
+            <p class="role-toast" id="roleToast" role="status" aria-live="polite"></p>
+          </div>
+
+          <aside class="roles-side" data-reveal data-reveal-delay="90">
+            <div class="permission-card">
+              <div class="permission-head"><h3>What can they do?</h3><span class="mono">ROLE MATRIX</span></div>
+              <div class="role-tabs" role="tablist" aria-label="Roles">
+                <button role="tab" aria-selected="false" data-role-tab="manager">Manager</button>
+                <button role="tab" aria-selected="true" class="is-active" data-role-tab="editor">Editor</button>
+                <button role="tab" aria-selected="false" data-role-tab="viewer">Viewer</button>
+              </div>
+              <div class="permission-list" id="permissionList"></div>
+            </div>
+
+            <div class="audit-card">
+              <div class="audit-head"><svg class="icon icon--xs"><use href="#i-clock"/></svg> RECENT ACCESS CHANGES</div>
+              <div class="audit-row"><span class="audit-dot"></span><span><strong>Theo</strong> was given Editor access</span><time>2h</time></div>
+              <div class="audit-row"><span class="audit-dot audit-dot--soft"></span><span><strong>Priya</strong> was invited as Viewer</span><time>1d</time></div>
+              <div class="audit-row"><span class="audit-dot audit-dot--soft"></span><span><strong>Mara</strong> enabled Anonymous mode</span><time>3d</time></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- Closing globe -->
+    <section class="collab-globe-cta" aria-label="A globe of collaborators working in the same project">
+      <div class="collab-globe-cta-glow" aria-hidden="true"></div>
+      <div class="collab-globe-cta-orbit" aria-hidden="true">
+        <svg viewBox="0 0 560 560" aria-hidden="true">
+          <ellipse class="collab-orbit-line" cx="280" cy="280" rx="252" ry="108" transform="rotate(-21 280 280)" />
+          <ellipse class="collab-orbit-line collab-orbit-line--soft" cx="280" cy="280" rx="232" ry="158" transform="rotate(27 280 280)" />
+          <circle class="collab-orbit-point" cx="45" cy="350" r="3.5" />
+          <circle class="collab-orbit-point collab-orbit-point--soft" cx="490" cy="205" r="2.5" />
+        </svg>
+      </div>
+      <div id="ui-collab-bottom-globe" class="collab-globe-cta-mount" aria-hidden="true"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="brand" aria-label="Spindle home">
+            <span class="brand-mark">
+              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="brand-name">spindle</span>
+          </a>
+          <p>One place for all your research.</p>
+          <div class="socials" id="ui-socials"></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col"><h4>Product</h4><a href="platform.html">Platform overview</a><a href="index.html#files">Files</a><a href="lab.html">Lab</a><a href="index.html#search">Search</a><a href="index.html#automations">Automations</a><a href="infrastructure.html">Infrastructure</a><a href="pricing.html">Pricing</a></div>
+          <div class="footer-col"><h4>Workspace</h4><a href="index.html#integrations">Integrations</a><a href="agent.html">Agent</a><a href="collaboration.html">Collaboration</a><a href="collaboration.html#roles">Roles &amp; permissions</a><a href="index.html#get-started">Get started</a></div>
+          <div class="footer-col"><h4>Resources</h4><a href="docs.html">Documentation</a><a href="docs.html#quickstart">Quickstart</a><a href="docs.html#guides">Guides</a><a href="changelog.html">Changelog</a><a href="index.html#faq">FAQ</a></div>
+          <div class="footer-col"><h4>Company</h4><a href="about.html">About</a><a href="about.html#contact">Contact</a><a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Spindle Labs. Built for curious people.</span>
+        <span class="system-status"><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+  <script type="module" src="/src/nav.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
+  <script type="module" src="collaboration.js"></script>
+</body>
+</html>

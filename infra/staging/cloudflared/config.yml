@@ -1,0 +1,23 @@
+# Ingress for the separate staging tunnel. Staging has its own instance,
+# database, buckets, and secret-store environment (ADR 0001 §5.3).
+
+credentials-file: /etc/cloudflared/credentials.json
+no-autoupdate: true
+protocol: quic
+
+ingress:
+  - hostname: staging.spindle.app
+    # The connector and the app share the internal `spindle` network.
+    service: http://app:8080
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+
+  - hostname: staging-lab.spindle.app
+    # The lab proxy is on the internal network and is never published off-host.
+    service: http://lab-proxy:7000
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+
+  - service: http_status:404

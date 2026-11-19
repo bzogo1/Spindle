@@ -1,0 +1,347 @@
+/* Consent banner and settings dialog. Self-contained (no site tokens) so the
+   changelog's separate layout can mount the same component with its own theme. */
+
+.banner,
+.dialog {
+  --cc-bg: #141715;
+  --cc-fg: #e9ede8;
+  --cc-muted: #9aa49c;
+  --cc-border: rgba(255, 255, 255, 0.14);
+  --cc-accent: #c8f083;
+  --cc-accent-fg: #12160f;
+  --cc-button-bg: rgba(255, 255, 255, 0.06);
+  --cc-button-border: rgba(255, 255, 255, 0.18);
+  --cc-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color: var(--cc-fg);
+}
+
+.banner[data-appearance="changelog"],
+.dialog[data-appearance="changelog"] {
+  --cc-bg: #ffffff;
+  --cc-fg: #0a0a0a;
+  --cc-muted: #5f5f5f;
+  --cc-border: #e5e5e5;
+  --cc-accent: #171717;
+  --cc-accent-fg: #fafafa;
+  --cc-button-bg: #ffffff;
+  --cc-button-border: #d4d4d4;
+  --cc-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+}
+
+:global(.dark) .banner[data-appearance="changelog"],
+:global(.dark) .dialog[data-appearance="changelog"] {
+  --cc-bg: #18181b;
+  --cc-fg: #fafafa;
+  --cc-muted: #a1a1aa;
+  --cc-border: #3f3f46;
+  --cc-accent: #fafafa;
+  --cc-accent-fg: #18181b;
+  --cc-button-bg: transparent;
+  --cc-button-border: #52525b;
+  --cc-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Banner: a bottom bar in normal flow order, never an overlay over the hero. */
+.banner {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--cc-border);
+  background: var(--cc-bg);
+  box-shadow: 0 -14px 40px rgba(0, 0, 0, 0.28);
+}
+
+.bannerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 28px;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+.bannerCopy {
+  max-width: 640px;
+}
+
+.bannerTitle {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bannerText {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--cc-muted);
+}
+
+.bannerText a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bannerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Buttons: reject and accept share size and weight, so neither is easier. */
+.button,
+.buttonPrimary,
+.linkButton {
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    color 0.18s;
+}
+
+.button {
+  border: 1px solid var(--cc-button-border);
+  background: var(--cc-button-bg);
+  color: var(--cc-fg);
+}
+
+.button:hover {
+  border-color: var(--cc-fg);
+}
+
+.buttonPrimary {
+  border: 1px solid var(--cc-accent);
+  background: var(--cc-accent);
+  color: var(--cc-accent-fg);
+}
+
+.buttonPrimary:hover {
+  filter: brightness(1.06);
+}
+
+.linkButton {
+  padding-right: 6px;
+  padding-left: 6px;
+  border: 0;
+  background: none;
+  color: var(--cc-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.linkButton:hover {
+  color: var(--cc-fg);
+}
+
+.button:focus-visible,
+.buttonPrimary:focus-visible,
+.linkButton:focus-visible,
+.dialogPolicy a:focus-visible,
+.bannerText a:focus-visible {
+  outline: 2px solid var(--cc-accent);
+  outline-offset: 2px;
+}
+
+/* Settings dialog */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 61;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 26px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--cc-border);
+  border-radius: 12px;
+  background: var(--cc-bg);
+  box-shadow: var(--cc-shadow);
+}
+
+.dialogTitle {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.dialogText {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--cc-muted);
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+}
+
+.categories {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.category {
+  border: 1px solid var(--cc-border);
+  border-radius: 8px;
+}
+
+.categoryLabel {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+
+.categoryLabel:has(.checkbox:disabled) {
+  cursor: default;
+}
+
+.checkbox {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 2px;
+  accent-color: var(--cc-accent);
+}
+
+.categoryBody {
+  display: grid;
+  gap: 4px;
+}
+
+.categoryHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.categoryBadge {
+  padding: 2px 6px;
+  border: 1px solid var(--cc-border);
+  border-radius: 4px;
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cc-muted);
+}
+
+.categoryText {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--cc-muted);
+}
+
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dialogPolicy {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--cc-muted);
+}
+
+.dialogPolicy a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .banner {
+    animation: consent-rise 0.28s ease-out;
+  }
+
+  .dialog {
+    animation: consent-fade 0.18s ease-out;
+  }
+
+  @keyframes consent-rise {
+    from {
+      transform: translateY(12px);
+      opacity: 0;
+    }
+
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+
+  @keyframes consent-fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .bannerInner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bannerCopy {
+    max-width: none;
+  }
+
+  .bannerActions {
+    width: 100%;
+  }
+
+  .bannerActions .button,
+  .bannerActions .buttonPrimary {
+    flex: 1;
+    text-align: center;
+  }
+
+  .dialog {
+    padding: 20px;
+  }
+}

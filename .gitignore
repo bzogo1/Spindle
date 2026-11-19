@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+.next/
+coverage/
+
+# Generated Prisma Client (recreated by `npm install` / `npm run db:generate`).
+src/generated/prisma/
+
+.env
+.env.*
+!.env.example
+
+# Local agent credentials (never commit a provider token)
+.agents/mcp.json
+
+# Build/test artifacts
+test-results/
+*.tsbuildinfo
+.node_modules.original/

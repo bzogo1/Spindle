@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f0e" />
+  <title>Automations — Spindle</title>
+  <meta name="description" content="Turn a sentence into a repeatable research workflow. Text Spindle's AI, build with a friendly visual editor, or write raw cron — with one set of guardrails." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="automations.css" />
+</head>
+<body class="automations-page">
+
+  <!-- Icon sprite -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3.2-6.5L4 12z"/><path d="M10.8 13.5L20 4"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5z"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.8 18a2 2 0 001.7 3h11a2 2 0 001.7-3L14 9V3M7.5 15h9"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8V4z"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.3-4.8L4 8M4 4v4h4M4 13a8 8 0 0014.3 4.8L20 16M20 20v-4h-4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 01-6 6H6"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5A10.2 10.2 0 0022 12.3C22 6.6 17.5 2 12 2z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-x-social" viewBox="0 0 24 24"><path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.5 21H1.3l7.5-8.6L1 3h6.6l4.5 5.6L17.5 3zm-1.1 16h1.8L7.6 4.9H5.7L16.4 19z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-discord" viewBox="0 0 24 24"><path d="M19.5 5.6A17 17 0 0015.4 4l-.5 1a15 15 0 00-4.8 0l-.5-1a17 17 0 00-4.1 1.6C2.6 9.3 1.9 13 2.2 16.6a17 17 0 005.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3c3.4 1.6 7.1 1.6 10.5 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 005.2-2.6c.4-4.2-.7-7.8-2.9-11zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z" fill="currentColor" stroke="none"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header" id="header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Spindle home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-name">spindle</span>
+      </a>
+
+      <div class="nav-desktop-slot" id="ui-main-nav">
+        <nav class="nav-fallback" aria-label="Main navigation">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div id="ui-signin"></div>
+        <a href="#get-started" class="btn btn--primary btn--sm">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+          <svg class="icon icon--open"><use href="#i-menu"/></svg>
+          <svg class="icon icon--close"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation">
+      <div id="ui-mobile-nav">
+        <div class="nav-fallback-mobile">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- ============================ HERO ============================ -->
+    <section class="auto-hero">
+      <div class="auto-hero-grid-bg" aria-hidden="true"></div>
+      <div class="auto-hero-glow" aria-hidden="true"></div>
+
+      <div class="container auto-hero-grid">
+        <div class="auto-hero-copy" data-reveal>
+          <div class="auto-kicker"><i aria-hidden="true"></i> AUTOMATIONS · ONE WORKSPACE</div>
+          <h1>Put your research<br /><span>on a schedule.</span></h1>
+          <p class="auto-subtitle">
+            Text an AI what you need, shape it with a friendly builder, or write the cron yourself.
+            Spindle turns the sentence into a real workflow — with your files, logs, and guardrails already attached.
+          </p>
+          <div class="auto-hero-actions">
+            <a href="#studio" class="btn btn--primary btn--lg">Open the studio <svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            <a href="#how-it-works" class="btn btn--ghost btn--lg">See how it works</a>
+          </div>
+          <div class="auto-hero-foot">
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Preview before anything runs</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> No infrastructure to manage</span>
+          </div>
+        </div>
+
+        <div class="auto-hero-visual" data-reveal data-reveal-delay="100">
+          <div class="visual-halo" aria-hidden="true"></div>
+          <div class="product-window auto-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title">coastal-resilience / automations</span>
+              <span class="window-bar-status"><i></i> 3 active</span>
+            </div>
+
+            <div class="auto-window-body">
+              <div class="runs-head">
+                <div>
+                  <span class="panel-kicker">PROJECT / DAILY RHYTHM</span>
+                  <h2>This week's runs</h2>
+                </div>
+                <span class="status-pill status-pill--tiny"><i></i> All healthy</span>
+              </div>
+
+              <div class="run-list">
+                <div class="run-row">
+                  <span class="run-time">17:00</span>
+                  <span class="run-icon run-icon--lime"><svg class="icon icon--xs"><use href="#i-flask"/></svg></span>
+                  <span class="run-main"><strong>Check study results</strong><small>9 new records · 1 flagged for review</small></span>
+                  <span class="run-result run-result--ok">Success</span>
+                </div>
+                <div class="run-row">
+                  <span class="run-time">08:30</span>
+                  <span class="run-icon run-icon--teal"><svg class="icon icon--xs"><use href="#i-refresh"/></svg></span>
+                  <span class="run-main"><strong>Sync source folder</strong><small>4 files changed · 12 MB</small></span>
+                  <span class="run-result run-result--ok">Success</span>
+                </div>
+                <div class="run-row">
+                  <span class="run-time">06:00</span>
+                  <span class="run-icon run-icon--amber"><svg class="icon icon--xs"><use href="#i-code"/></svg></span>
+                  <span class="run-main"><strong>tide-sync.py</strong><small>cron · generated 3 snapshots</small></span>
+                  <span class="run-result run-result--ok">Success</span>
+                </div>
+              </div>
+
+              <div class="pipeline-card">
+                <div class="pipeline-card-head">
+                  <span class="mono">SELECTED · DAILY STUDY CHECK</span>
+                  <span class="pipeline-live"><i></i> Next run today, 17:00</span>
+                </div>
+                <div class="pipeline">
+                  <div class="pipe-step">
+                    <span class="pipe-ico"><svg class="icon icon--sm"><use href="#i-clock"/></svg></span>
+                    <span class="pipe-label">WHEN</span>
+                    <strong>Every day<br />at 17:00</strong>
+                  </div>
+                  <div class="pipe-connector" aria-hidden="true"><span></span></div>
+                  <div class="pipe-step">
+                    <span class="pipe-ico"><svg class="icon icon--sm"><use href="#i-sparkle"/></svg></span>
+                    <span class="pipe-label">THEN</span>
+                    <strong>Check results<br />&amp; flag outliers</strong>
+                  </div>
+                  <div class="pipe-connector" aria-hidden="true"><span></span></div>
+                  <div class="pipe-step">
+                    <span class="pipe-ico"><svg class="icon icon--sm"><use href="#i-message"/></svg></span>
+                    <span class="pipe-label">DELIVER</span>
+                    <strong>Digest to<br />#study-updates</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div class="clock-strip">
+                <div class="clock-dial" aria-hidden="true">
+                  <span class="clock-ring"></span>
+                  <span class="clock-hand"></span>
+                  <span class="clock-center"></span>
+                </div>
+                <div class="clock-copy">
+                  <span class="mono">NEXT TRIGGER</span>
+                  <strong>05:00 PM</strong>
+                  <small>Local time · Europe/Berlin</small>
+                </div>
+                <div class="clock-bars" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="is-hot"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="floating-note" aria-hidden="true">
+            <span class="note-icon"><svg class="icon icon--xs"><use href="#i-bolt"/></svg></span>
+            <span><strong>4.5 hrs</strong><small>saved this month</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= THREE PATHS ======================= -->
+    <section class="paths" id="how-it-works" aria-label="Ways to create an automation">
+      <div class="container">
+        <div class="paths-grid">
+          <button type="button" class="path-card" data-goto-mode="ask">
+            <span class="path-num">01</span>
+            <span class="path-icon path-icon--lime"><svg class="icon"><use href="#i-sparkle"/></svg></span>
+            <strong>Text it</strong>
+            <span class="path-desc">Say it like you'd text a labmate. The AI drafts the workflow.</span>
+            <span class="path-example">“Check results for this study at 5 PM every day”</span>
+            <span class="path-cta">Try the chat <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></span>
+          </button>
+
+          <button type="button" class="path-card" data-goto-mode="build">
+            <span class="path-num">02</span>
+            <span class="path-icon path-icon--teal"><svg class="icon"><use href="#i-grid"/></svg></span>
+            <strong>Build it</strong>
+            <span class="path-desc">Pick a trigger, stack a few steps, choose where it lands.</span>
+            <span class="path-example">Friendly controls, plain-English preview, zero syntax.</span>
+            <span class="path-cta">Open builder <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></span>
+          </button>
+
+          <button type="button" class="path-card" data-goto-mode="cron">
+            <span class="path-num">03</span>
+            <span class="path-icon path-icon--amber"><svg class="icon"><use href="#i-code"/></svg></span>
+            <strong>Script it</strong>
+            <span class="path-desc">Drop into Cron mode with your own command and schedule.</span>
+            <span class="path-example">0 17 * * * · full syntax · project files mounted</span>
+            <span class="path-cta">Write cron <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== STUDIO ======================== -->
+    <section class="section studio-section" id="studio">
+      <div class="container">
+        <div class="studio-head">
+          <div class="section-head">
+            <div class="eyebrow">The studio</div>
+            <h2 class="section-title">Three ways in. One reliable run.</h2>
+            <p class="section-desc">Start with a sentence, shape it with controls, or go full cron. Every path lands in the same place: a preview you approve, a history you can trust, and logs you can actually read.</p>
+          </div>
+
+          <div class="mode-tabs" role="tablist" aria-label="Automation creation mode">
+            <button type="button" class="mode-tab is-active" role="tab" aria-selected="true" id="tab-ask" aria-controls="panel-ask" data-mode="ask">
+              <svg class="icon icon--sm"><use href="#i-sparkle"/></svg> Ask AI
+            </button>
+            <button type="button" class="mode-tab" role="tab" aria-selected="false" id="tab-build" aria-controls="panel-build" data-mode="build" tabindex="-1">
+              <svg class="icon icon--sm"><use href="#i-grid"/></svg> Builder
+            </button>
+            <button type="button" class="mode-tab" role="tab" aria-selected="false" id="tab-cron" aria-controls="panel-cron" data-mode="cron" tabindex="-1">
+              <svg class="icon icon--sm"><use href="#i-code"/></svg> Cron
+            </button>
+          </div>
+        </div>
+
+        <div class="product-window studio-window">
+          <div class="window-bar studio-topbar">
+            <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="window-bar-title">New automation <span class="slash">/</span> <span id="studioModeLabel">Ask AI</span></span>
+            <div class="studio-topbar-right">
+              <span class="status-pill status-pill--tiny" id="studioStatus"><i></i> Draft</span>
+              <button type="button" class="reset-btn" id="resetDemo" title="Reset demo">
+                <svg class="icon icon--xs"><use href="#i-refresh"/></svg> Reset
+              </button>
+            </div>
+          </div>
+
+          <!-- ---------- ASK MODE ---------- -->
+          <div class="studio-panel is-active" id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" data-mode-panel="ask">
+            <div class="ask-layout">
+              <div class="chat-side">
+                <div class="chat-head">
+                  <span class="ai-avatar"><svg class="icon icon--sm"><use href="#i-sparkle"/></svg></span>
+                  <span class="chat-head-text"><strong>Spindle agent</strong><small><i></i> Reading coastal-resilience</small></span>
+                  <span class="chat-head-tag">GPT · project-aware</span>
+                </div>
+
+                <div class="chat-thread" id="chatThread" aria-live="polite">
+                  <div class="msg msg--ai">
+                    <span class="msg-avatar"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg></span>
+                    <div class="bubble">Hey — want an automation? Tell me what should happen and when. I'll draft the steps and you approve them before anything runs.</div>
+                  </div>
+                  <div class="msg msg--user">
+                    <div class="bubble">Check results for this study at 5 PM every day.</div>
+                  </div>
+                  <div class="msg msg--ai" id="chatDraft">
+                    <span class="msg-avatar"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg></span>
+                    <div class="bubble bubble--draft">
+                      <p>Got it. Here's the routine I'd set up:</p>
+                      <ol class="draft-steps">
+                        <li>Read new results in <code>/results</code></li>
+                        <li>Compare against the baseline and flag outliers</li>
+                        <li>Write a short digest to <code>#study-updates</code></li>
+                      </ol>
+                      <div class="draft-schedule"><svg class="icon icon--xs"><use href="#i-clock"/></svg> Every day at 5:00 PM · Europe/Berlin</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="chat-suggestions" aria-label="Example requests">
+                  <button type="button" data-prompt="Check results for this study at 5 PM every day">Check results daily</button>
+                  <button type="button" data-prompt="Every Monday, summarize new papers into notes.md">Summarize papers weekly</button>
+                  <button type="button" data-prompt="When a new CSV lands in /data, clean it and flag weird rows">Watch new CSVs</button>
+                </div>
+
+                <form class="chat-form" id="chatForm" autocomplete="off">
+                  <label for="chatInput" class="sr-only">Describe an automation</label>
+                  <svg class="icon chat-form-icon"><use href="#i-sparkle"/></svg>
+                  <input id="chatInput" type="text" placeholder="Describe an automation…" maxlength="180" />
+                  <button type="submit" class="send-btn" aria-label="Send request"><svg class="icon icon--sm"><use href="#i-send"/></svg></button>
+                </form>
+              </div>
+
+              <aside class="draft-side">
+                <div class="draft-side-head">
+                  <span class="panel-kicker">READY TO REVIEW</span>
+                  <h3 id="askTitle">Daily study results check</h3>
+                </div>
+
+                <div class="draft-preview" id="askFlow">
+                  <div class="draft-flow-step"><span class="step-dot step-dot--lime"></span><div><small>TRIGGER</small><strong id="askTrigger">Every day · 17:00</strong></div></div>
+                  <div class="draft-flow-step"><span class="step-dot step-dot--teal"></span><div><small>ACTION 1</small><strong id="askAction1">Scan /results for new entries</strong></div></div>
+                  <div class="draft-flow-step"><span class="step-dot step-dot--teal"></span><div><small>ACTION 2</small><strong id="askAction2">Flag outliers against baseline</strong></div></div>
+                  <div class="draft-flow-step"><span class="step-dot step-dot--amber"></span><div><small>DELIVER</small><strong id="askDelivery">Digest to #study-updates</strong></div></div>
+                </div>
+
+                <dl class="draft-facts">
+                  <div><dt>Project</dt><dd>coastal-resilience</dd></div>
+                  <div><dt>Timezone</dt><dd>Europe/Berlin</dd></div>
+                  <div><dt>Guardrails</dt><dd>Preview · logs · alerts</dd></div>
+                </dl>
+
+                <button type="button" class="btn btn--primary btn--full" id="askApprove"><svg class="icon icon--sm"><use href="#i-check"/></svg> Approve &amp; schedule</button>
+                <p class="demo-note">Interface preview — nothing is scheduled.</p>
+              </aside>
+            </div>
+          </div>
+
+          <!-- ---------- BUILDER MODE ---------- -->
+          <div class="studio-panel" id="panel-build" role="tabpanel" aria-labelledby="tab-build" data-mode-panel="build" hidden>
+            <div class="builder-layout">
+              <div class="builder-form">
+                <div class="builder-intro">
+                  <span class="panel-kicker">NO CODE, JUST CHOICES</span>
+                  <h3>Make it yours in three steps.</h3>
+                </div>
+
+                <fieldset class="builder-block">
+                  <legend><span class="step-num">1</span> When should it run?</legend>
+                  <div class="segmented" id="freqGroup" role="group" aria-label="Frequency">
+                    <button type="button" class="seg is-active" data-freq="daily" aria-pressed="true">Daily</button>
+                    <button type="button" class="seg" data-freq="weekly" aria-pressed="false">Weekly</button>
+                    <button type="button" class="seg" data-freq="file" aria-pressed="false">On new file</button>
+                  </div>
+                  <div class="builder-fields" id="timeFields">
+                    <label class="field"><span>At</span><input type="time" id="buildTime" value="17:00" /></label>
+                    <label class="field"><span>Timezone</span>
+                      <select id="buildTz">
+                        <option value="Europe/Berlin">Europe/Berlin (UTC+2)</option>
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">America/New_York (UTC−4)</option>
+                        <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="day-pills" id="dayPills" hidden aria-label="Days of the week">
+                    <button type="button" class="day is-active" data-day="1" aria-pressed="true">M</button>
+                    <button type="button" class="day" data-day="2" aria-pressed="false">T</button>
+                    <button type="button" class="day" data-day="3" aria-pressed="false">W</button>
+                    <button type="button" class="day" data-day="4" aria-pressed="false">T</button>
+                    <button type="button" class="day" data-day="5" aria-pressed="false">F</button>
+                    <button type="button" class="day" data-day="6" aria-pressed="false">S</button>
+                    <button type="button" class="day" data-day="0" aria-pressed="false">S</button>
+                  </div>
+                </fieldset>
+
+                <fieldset class="builder-block">
+                  <legend><span class="step-num">2</span> What should it do?</legend>
+                  <div class="option-grid">
+                    <label class="option checked"><input type="checkbox" data-action="results" checked /><span class="option-box"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Check study results</strong><small>Look for new or updated entries</small></span></label>
+                    <label class="option checked"><input type="checkbox" data-action="flag" checked /><span class="option-box"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Flag outliers</strong><small>Compare with the running baseline</small></span></label>
+                    <label class="option"><input type="checkbox" data-action="summary" /><span class="option-box"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Write a summary</strong><small>Turn the changes into a short note</small></span></label>
+                    <label class="option"><input type="checkbox" data-action="log" /><span class="option-box"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Append to project log</strong><small>Keep a dated trail in notes.md</small></span></label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="builder-block">
+                  <legend><span class="step-num">3</span> Where should it land?</legend>
+                  <div class="channel-row" id="channelGroup">
+                    <button type="button" class="channel active" data-channel="Project log" aria-pressed="true"><svg class="icon icon--xs"><use href="#i-folder"/></svg> Project log</button>
+                    <button type="button" class="channel active" data-channel="#study-updates" aria-pressed="true"><svg class="icon icon--xs"><use href="#i-message"/></svg> #study-updates</button>
+                    <button type="button" class="channel" data-channel="Email digest" aria-pressed="false"><svg class="icon icon--xs"><use href="#i-send"/></svg> Email digest</button>
+                  </div>
+                </fieldset>
+
+                <div class="builder-buttons">
+                  <button type="button" class="btn btn--ghost" id="buildDraft">Save as draft</button>
+                  <button type="button" class="btn btn--primary" id="buildCreate"><svg class="icon icon--sm"><use href="#i-bolt"/></svg> Create automation</button>
+                </div>
+              </div>
+
+              <aside class="builder-side">
+                <div class="plain-card">
+                  <span class="panel-kicker">IN PLAIN ENGLISH</span>
+                  <p id="plainEnglish">Every day at 17:00 (Europe/Berlin), check study results and flag outliers. Send the outcome to Project log and #study-updates.</p>
+                </div>
+
+                <div class="flow-card">
+                  <span class="panel-kicker">WHAT WILL HAPPEN</span>
+                  <ol class="flow-list" id="flowList"></ol>
+                </div>
+
+                <div class="next-card">
+                  <span class="panel-kicker">NEXT RUNS</span>
+                  <ul id="nextRuns"></ul>
+                </div>
+
+                <div class="toast" id="buildToast" role="status" hidden></div>
+              </aside>
+            </div>
+          </div>
+
+          <!-- ---------- CRON MODE ---------- -->
+          <div class="studio-panel" id="panel-cron" role="tabpanel" aria-labelledby="tab-cron" data-mode-panel="cron" hidden>
+            <div class="cron-layout">
+              <div class="cron-editor">
+                <div class="editor-head">
+                  <div class="editor-tabs" role="tablist" aria-label="Code files">
+                    <button type="button" class="code-tab is-active" data-code-tab="script" role="tab" aria-selected="true">check_results.py</button>
+                    <button type="button" class="code-tab" data-code-tab="env" role="tab" aria-selected="false">spindle.toml</button>
+                  </div>
+                  <button type="button" class="copy-btn" id="copyCode"><svg class="icon icon--xs"><use href="#i-copy"/></svg> Copy</button>
+                </div>
+
+                <div class="crontab-line">
+                  <span class="cron-hash">#</span>
+                  <label for="cronExpr" class="sr-only">Cron expression</label>
+                  <input id="cronExpr" class="cron-input mono" value="0 17 * * *" spellcheck="false" aria-describedby="cronValidation" />
+                  <span class="cron-command">python check_results.py</span>
+                </div>
+
+                <pre class="code-block" data-code-panel="script"><code><span class="tok-com"># Spindle mounts your project files automatically</span>
+<span class="tok-key">from</span> spindle <span class="tok-key">import</span> project <span class="tok-key">as</span> sp
+<span class="tok-key">import</span> pandas <span class="tok-key">as</span> pd
+
+results = sp.files.read(<span class="tok-str">"results/latest.csv"</span>)
+baseline = sp.files.read(<span class="tok-str">"baselines/survey.csv"</span>)
+
+outliers = results[results.zscore &gt; <span class="tok-num">2.5</span>]
+digest = sp.agent.summarize(outliers, baseline)
+
+sp.log.write(<span class="tok-str">"notes.md"</span>, digest)
+sp.notify(<span class="tok-str">"#study-updates"</span>, digest)</code></pre>
+
+                <pre class="code-block" data-code-panel="env" hidden><code><span class="tok-com"># /project/spindle.toml</span>
+[<span class="tok-key">runtime</span>]
+image = <span class="tok-str">"python:3.12-slim"</span>
+timeout = <span class="tok-str">"10m"</span>
+
+[<span class="tok-key">secrets</span>]
+api_key = <span class="tok-str">"$SPINDLE_RESEARCH_KEY"</span>
+
+[<span class="tok-key">alerts</span>]
+on_failure = <span class="tok-str">"#lab-ops"</span></code></pre>
+
+                <div class="cron-actions">
+                  <div class="cron-presets" aria-label="Cron presets">
+                    <button type="button" data-cron="0 17 * * *">Daily 17:00</button>
+                    <button type="button" data-cron="0 6 * * 1-5">Weekdays 06:00</button>
+                    <button type="button" data-cron="30 9 * * 1">Mondays 09:30</button>
+                    <button type="button" data-cron="*/15 * * * *">Every 15 min</button>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="cron-side">
+                <div class="cron-human">
+                  <span class="panel-kicker">HUMAN TRANSLATION</span>
+                  <p id="cronHuman">At 05:00 PM, every day</p>
+                  <div class="cron-fields" id="cronFields"></div>
+                  <div class="validation" id="cronValidation" role="status"><svg class="icon icon--xs"><use href="#i-check"/></svg> Valid 5-field cron</div>
+                </div>
+
+                <div class="terminal-card">
+                  <div class="terminal-head"><span><i></i><i></i><i></i></span><span class="mono">last run · 17:00</span></div>
+                  <pre><span class="term-time">17:00:02</span>  loading results/latest.csv
+<span class="term-time">17:00:04</span>  248 rows · 9 new
+<span class="term-time">17:00:06</span>  <span class="term-warn">1 outlier flagged</span>
+<span class="term-time">17:00:07</span>  digest → #study-updates
+<span class="term-ok">✓ exited 0 in 6.4s</span></pre>
+                </div>
+
+                <div class="tz-row">
+                  <label class="field"><span>Timezone</span>
+                    <select id="cronTz">
+                      <option value="Europe/Berlin">Europe/Berlin</option>
+                      <option value="UTC">UTC</option>
+                      <option value="America/New_York">America/New_York</option>
+                      <option value="Asia/Tokyo">Asia/Tokyo</option>
+                    </select>
+                  </label>
+                </div>
+
+                <button type="button" class="btn btn--primary btn--full" id="cronDeploy"><svg class="icon icon--sm"><use href="#i-terminal"/></svg> Deploy job</button>
+                <div class="toast" id="cronToast" role="status" hidden></div>
+              </aside>
+            </div>
+          </div>
+        </div>
+
+        <p class="studio-caption"><svg class="icon icon--xs"><use href="#i-lock"/></svg> All three modes run inside the project. Files, secrets, and logs stay scoped to the workspace.</p>
+      </div>
+    </section>
+
+    <!-- ===================== GUARDRAILS ===================== -->
+    <section class="section section--alt guardrails-section" id="guardrails">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Under the hood</div>
+          <h2 class="section-title">The boring parts, handled.</h2>
+          <p class="section-desc">An automation you forget about is worse than no automation. Every job — typed, clicked, or scripted — gets the same operational backbone.</p>
+        </div>
+
+        <div class="guard-grid">
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-eye"/></svg></span>
+            <h3>Preview before run</h3>
+            <p>See the exact steps, files, and recipients first. Nothing is scheduled until you say so.</p>
+          </article>
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-git"/></svg></span>
+            <h3>Run history</h3>
+            <p>Every execution keeps inputs, diffs, output, and timing. Rewind or re-run in one click.</p>
+          </article>
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-lock"/></svg></span>
+            <h3>Scoped secrets</h3>
+            <p>Keys live in the project, not in your prompt or cron line. Rotate them without editing jobs.</p>
+          </article>
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-globe"/></svg></span>
+            <h3>Timezone aware</h3>
+            <p>5 PM means 5 PM where your team works. DST shifts are handled for you.</p>
+          </article>
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-bolt"/></svg></span>
+            <h3>Failure alerts</h3>
+            <p>Get a message when a run fails, times out, or flags something that needs a human.</p>
+          </article>
+          <article class="guard-card" data-reveal>
+            <span class="guard-icon"><svg class="icon"><use href="#i-folder"/></svg></span>
+            <h3>Project context</h3>
+            <p>Jobs see the right files, notes, and channel history — no copy-pasted paths or API tokens.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= RHYTHM ======================= -->
+    <section class="section rhythm-section" id="rhythm">
+      <div class="container rhythm-grid">
+        <div class="rhythm-copy" data-reveal>
+          <div class="eyebrow">A day in the life</div>
+          <h2 class="section-title">Your project keeps its promises.</h2>
+          <p class="section-desc">Automations run quietly in the background of every Spindle project. You show up to the interesting part: the result.</p>
+          <ol class="timeline">
+            <li><span class="tl-time">06:00</span><span class="tl-dot"></span><strong>Sources refreshed</strong><small>New PDFs pulled into the shared folder.</small></li>
+            <li><span class="tl-time">12:30</span><span class="tl-dot"></span><strong>Notebook snapshot</strong><small>The lab saved the current analysis state.</small></li>
+            <li class="is-hot"><span class="tl-time">17:00</span><span class="tl-dot"></span><strong>Results checked</strong><small>Nine new records, one flagged for review.</small></li>
+            <li><span class="tl-time">17:01</span><span class="tl-dot"></span><strong>Digest delivered</strong><small>A two-paragraph summary in #study-updates.</small></li>
+          </ol>
+        </div>
+
+        <div class="rhythm-visual" data-reveal data-reveal-delay="100">
+          <div class="digest-window product-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title">#study-updates</span>
+              <span class="window-bar-status">Today</span>
+            </div>
+            <div class="digest-body">
+              <div class="digest-message">
+                <span class="digest-avatar"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg></span>
+                <div>
+                  <div class="digest-meta"><strong>Spindle</strong><span class="mono">17:01</span><span class="auto-tag">automation</span></div>
+                  <h4>Daily results · coastal resilience</h4>
+                  <p>9 new survey entries landed today. Turbidity is up 12% at station 4 — that's outside the usual range and worth a look.</p>
+                  <div class="digest-stat"><span><strong>9</strong> new entries</span><span><strong>1</strong> flagged</span><span><strong>248</strong> total</span></div>
+                  <div class="digest-actions"><button type="button">Open results <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></button><button type="button">Snooze until tomorrow</button></div>
+                </div>
+              </div>
+              <div class="digest-line"><span></span></div>
+              <div class="digest-quiet"><svg class="icon icon--xs"><use href="#i-check"/></svg> 3 automations ran today · all healthy</div>
+            </div>
+          </div>
+          <div class="rhythm-glow" aria-hidden="true"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================== CTA ======================== -->
+    <section class="cta-section" id="get-started">
+      <div class="container">
+        <div class="cta-box auto-cta">
+          <div class="cta-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="eyebrow">READY WHEN YOU ARE</div>
+          <h2>Your next 5 PM can take care of itself.</h2>
+          <p>Bring the project. Text the first automation in under a minute — no infrastructure, no cron crate, no babysitting.</p>
+          <div class="cta-actions">
+            <a href="#studio" class="btn btn--primary btn--lg">Build your first one <svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            <a href="index.html#get-started" class="btn btn--ghost btn--lg">Start a free workspace</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="brand" aria-label="Spindle home">
+            <span class="brand-mark">
+              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="brand-name">spindle</span>
+          </a>
+          <p>One place for all your research.</p>
+          <div class="socials" id="ui-socials"></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col"><h4>Product</h4><a href="platform.html">Platform overview</a><a href="index.html#integrations">Integrations</a><a href="automations.html" aria-current="page">Automations</a><a href="lab.html">The Lab</a><a href="infrastructure.html">Infrastructure</a><a href="index.html#search">Search</a><a href="index.html#files">Files</a></div>
+          <div class="footer-col"><h4>Workspace</h4><a href="agent.html">Agent</a><a href="collaboration.html">Collaboration</a><a href="pricing.html">Free plan</a><a href="#get-started">Get started</a></div>
+          <div class="footer-col"><h4>Resources</h4><a href="https://nym.com/" target="_blank" rel="noopener noreferrer">Nym Mixnet ↗</a><a href="https://searxng.org/" target="_blank" rel="noopener noreferrer">SearXNG ↗</a><a href="changelog.html">Changelog</a><a href="index.html#docs">Documentation</a></div>
+          <div class="footer-col"><h4>Legal</h4><a href="index.html#privacy">Privacy</a><a href="index.html#terms">Terms</a><a href="index.html#security">Security</a></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Spindle Labs. Built for curious people.</span>
+        <span class="system-status"><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+  <script type="module" src="automations.js"></script>
+  <script type="module" src="/src/nav.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

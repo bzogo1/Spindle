@@ -1,0 +1,28 @@
+# Dependencies and build output
+node_modules/
+.node_modules.original/
+.next/
+coverage/
+dist/
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+
+# Generated sources
+src/generated/
+next-env.d.ts
+*.tsbuildinfo
+
+# Vendored reference material kept from the original Vite site
+legacy/
+
+# Static assets and downloadable templates
+public/
+
+# Lockfiles
+package-lock.json
+
+# SQL migrations are owned by Prisma
+prisma/migrations/

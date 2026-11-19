@@ -1,0 +1,196 @@
+/* Standalone branded error screen used when no app shell is available. */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  background: #0d0f0e;
+  color: #e9ede8;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  box-sizing: border-box;
+  padding: 48px 24px;
+}
+
+.panel {
+  width: 100%;
+  max-width: 620px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brandMark {
+  display: inline-flex;
+  width: 27px;
+  height: 27px;
+}
+
+.brandMark svg {
+  width: 100%;
+  height: 100%;
+}
+
+.eyebrow {
+  margin: 42px 0 12px;
+  color: #c8f083;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+.description {
+  max-width: 52ch;
+  margin: 18px 0 0;
+  color: #9aa49c;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+
+.action:focus-visible {
+  outline: 2px solid #c8f083;
+  outline-offset: 3px;
+}
+
+.primary {
+  background: #c8f083;
+  border-color: #c8f083;
+  color: #11160f;
+}
+
+.primary:hover {
+  background: #d8f7a6;
+  border-color: #d8f7a6;
+}
+
+.ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #e9ede8;
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.footer {
+  margin-top: 34px;
+  color: #6d766e;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.footer a {
+  color: #c8f083;
+  text-underline-offset: 3px;
+}
+
+.footer a:hover {
+  color: #d8f7a6;
+}
+
+.reference {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  color: #9aa49c;
+}
+
+.code {
+  color: #e9ede8;
+  font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+
+.copy {
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 5px;
+  background: transparent;
+  color: #9aa49c;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.copy:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #e9ede8;
+}
+
+.copy:focus-visible {
+  outline: 2px solid #c8f083;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .action {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    transition: none;
+  }
+}

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f0e" />
+  <title>Infrastructure — Spindle</title>
+  <meta name="description" content="Spindle never sells or tampers with your research data. See how HTTPS/TLS, Cloudflare Turnstile and Tunnels, and private Backblaze B2 storage keep every project secure." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="infrastructure.css" />
+</head>
+<body class="infra-page">
+
+  <!-- Icon sprite -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5zM3 7l9 5 9-5M12 12v10"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5A10.2 10.2 0 0022 12.3C22 6.6 17.5 2 12 2z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-x-social" viewBox="0 0 24 24"><path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.5 21H1.3l7.5-8.6L1 3h6.6l4.5 5.6L17.5 3zm-1.1 16h1.8L7.6 4.9H5.7L16.4 19z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-discord" viewBox="0 0 24 24"><path d="M19.5 5.6A17 17 0 0015.4 4l-.5 1a15 15 0 00-4.8 0l-.5-1a17 17 0 00-4.1 1.6C2.6 9.3 1.9 13 2.2 16.6a17 17 0 005.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3c3.4 1.6 7.1 1.6 10.5 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 005.2-2.6c.4-4.2-.7-7.8-2.9-11zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z" fill="currentColor" stroke="none"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header" id="header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Spindle home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-name">spindle</span>
+      </a>
+
+      <div class="nav-desktop-slot" id="ui-main-nav">
+        <nav class="nav-fallback" aria-label="Main navigation">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div id="ui-signin"></div>
+        <a href="index.html#get-started" class="btn btn--primary btn--sm">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+          <svg class="icon icon--open"><use href="#i-menu"/></svg>
+          <svg class="icon icon--close"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation">
+      <div id="ui-mobile-nav">
+        <div class="nav-fallback-mobile">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top" class="page-main">
+
+    <!-- Hero / privacy promise -->
+    <section class="infra-hero" aria-labelledby="infra-hero-title">
+      <div class="infra-hero-wash" aria-hidden="true"></div>
+      <div class="infra-hero-grid-lines" aria-hidden="true"></div>
+
+      <div class="container infra-hero-layout">
+        <div class="infra-hero-copy" data-reveal>
+          <div class="infra-kicker"><span class="infra-kicker-dot"></span> INFRASTRUCTURE <span>/</span> PRIVACY FIRST</div>
+          <h1 id="infra-hero-title">Your data is<br/><span class="infra-gradient-text">not a product.</span></h1>
+          <p class="infra-lede">Your files, projects, notes, and searches belong to you. We never sell them, never turn them into advertising profiles, and never quietly alter your work. They stay private, intact, and secure — from sign-in to export.</p>
+
+          <div class="infra-hero-actions">
+            <a href="#topology" class="btn btn--primary btn--lg">See the secure path <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+            <a href="#storage" class="btn btn--ghost btn--lg">How files are stored <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a>
+          </div>
+
+          <div class="infra-hero-meta">
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> No data sales</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> No ad profiling</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> No silent edits</span>
+          </div>
+        </div>
+
+        <div class="infra-seal-stage" data-reveal data-reveal-delay="100" aria-hidden="true">
+          <div class="infra-seal-ring infra-seal-ring--outer"></div>
+          <div class="infra-seal-ring infra-seal-ring--inner"></div>
+          <div class="infra-seal-ticks"></div>
+          <div class="infra-seal-core">
+            <svg class="icon"><use href="#i-shield"/></svg>
+            <small>PRIVATE</small>
+            <strong>BY DEFAULT</strong>
+            <span class="infra-seal-core-line"></span>
+          </div>
+          <span class="infra-seal-satellite infra-seal-satellite--a">NO BROKERS</span>
+          <span class="infra-seal-satellite infra-seal-satellite--b">ENCRYPTED</span>
+          <span class="infra-seal-satellite infra-seal-satellite--c">YOURS ONLY</span>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="infra-trust-strip" data-reveal>
+          <div><span class="mono">01</span><strong>Not for sale</strong><small>Your research is never inventory.</small></div>
+          <div><span class="mono">02</span><strong>Not altered</strong><small>Every change is yours and traceable.</small></div>
+          <div><span class="mono">03</span><strong>Not public</strong><small>Only you and your invites get in.</small></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The live topology -->
+    <section class="section infra-map-section" id="topology" aria-labelledby="topology-title">
+      <div class="container">
+        <div class="section-head infra-section-head" data-reveal>
+          <div class="eyebrow">The whole path</div>
+          <h2 class="section-title" id="topology-title">Private in transit. Private at rest. In unison.</h2>
+          <p class="section-desc">Follow one request from your browser to the file it came for. Every handoff is authenticated, encrypted, and designed so no single layer has to trust the open internet.</p>
+        </div>
+
+        <div class="infra-map-shell" data-reveal data-reveal-delay="80">
+          <div class="infra-map-toolbar">
+            <span><i class="infra-live-dot"></i> LIVE REQUEST TOPOLOGY</span>
+            <span class="infra-map-toolbar-right">TLS 1.3 <b>·</b> EDGE VERIFIED <b>·</b> ORIGIN HIDDEN <b>·</b> BUCKET PRIVATE</span>
+          </div>
+
+          <div class="infra-map-stage" id="infraMapStage">
+            <div class="infra-map-scan" aria-hidden="true"></div>
+            <div class="infra-map-hud infra-map-hud--left" aria-hidden="true">INGRESS <span>ENCRYPTED</span></div>
+            <div class="infra-map-hud infra-map-hud--right" aria-hidden="true">EGRESS <span>PRIVATE</span></div>
+
+            <svg class="infra-map-svg" viewBox="0 0 1120 520" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <filter id="infra-packet-glow" x="-300%" y="-300%" width="700%" height="700%">
+                  <feGaussianBlur stdDeviation="5" result="blur" />
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+
+              <path class="infra-route infra-route--flow" data-route="client" d="M202 240 H291" />
+              <path class="infra-route infra-route--flow" data-route="edge" d="M471 240 H560" />
+              <path class="infra-route infra-route--flow" data-route="bot" d="M381 180 V112" />
+              <path class="infra-route infra-route--flow" data-route="bot" d="M381 300 V366" />
+              <path class="infra-route infra-route--flow" data-route="tunnel" d="M740 240 H828" />
+              <path class="infra-route infra-route--flow" data-route="core" d="M918 300 V356" />
+
+              <circle class="infra-packet" r="4" filter="url(#infra-packet-glow)">
+                <animateMotion dur="7s" repeatCount="indefinite" path="M202 240 H291 M471 240 H560 M740 240 H828 M918 300 V356" />
+              </circle>
+              <circle class="infra-packet infra-packet--soft" r="3" filter="url(#infra-packet-glow)">
+                <animateMotion dur="7s" begin="-3.5s" repeatCount="indefinite" path="M202 240 H291 M471 240 H560 M740 240 H828 M918 300 V356" />
+              </circle>
+            </svg>
+
+            <div class="infra-node infra-node--client is-active" data-stage="client" style="--x:10%;--y:46%">
+              <span class="infra-node-icon"><svg class="icon icon--sm"><use href="#i-globe"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">01 · YOU</span>
+                <strong>Browser</strong>
+                <small>HTTPS / TLS request</small>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--edge" data-stage="edge" style="--x:34%;--y:46%">
+              <span class="infra-node-icon"><svg class="icon icon--sm"><use href="#i-shield"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">02 · CLOUDFLARE</span>
+                <strong>Edge network</strong>
+                <small>TLS · session check</small>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--satellite infra-node--turnstile" data-stage="bot" style="--x:34%;--y:16%">
+              <span class="infra-node-icon infra-node-icon--tiny"><svg class="icon icon--xs"><use href="#i-check"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">TURNSTILE</span>
+                <strong>Bot check</strong>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--satellite infra-node--attack" data-stage="bot" style="--x:34%;--y:76%">
+              <span class="infra-node-icon infra-node-icon--tiny"><svg class="icon icon--xs"><use href="#i-bolt"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">EDGE DEFENSE</span>
+                <strong>Attacks absorbed</strong>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--tunnel" data-stage="tunnel" style="--x:58%;--y:46%">
+              <span class="infra-node-icon"><svg class="icon icon--sm"><use href="#i-lock"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">03 · PRIVATE LINK</span>
+                <strong>Cloudflare Tunnel</strong>
+                <small>Encrypted, outbound-only</small>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--core" data-stage="core" style="--x:82%;--y:46%">
+              <span class="infra-node-icon"><svg class="icon icon--sm"><use href="#i-cube"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">04 · SPINDLE</span>
+                <strong>Authenticated core</strong>
+                <small>Workspace services</small>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+
+            <div class="infra-node infra-node--storage" data-stage="storage" style="--x:82%;--y:80%">
+              <span class="infra-node-icon"><svg class="icon icon--sm"><use href="#i-folder"/></svg></span>
+              <span class="infra-node-body">
+                <span class="infra-node-kicker">05 · BACKBLAZE B2</span>
+                <strong>Private bucket</strong>
+                <small>Files &amp; projects</small>
+              </span>
+              <i class="infra-node-led"></i>
+            </div>
+          </div>
+
+          <div class="infra-trace">
+            <div class="infra-trace-head">
+              <span><i class="infra-live-dot"></i> REQUEST TRACE</span>
+              <span class="mono" id="infraTraceCount">01 / 06</span>
+            </div>
+            <ol class="infra-trace-steps" id="infraTraceSteps">
+              <li><button type="button" class="infra-trace-step is-active" data-trace="client" aria-current="step"><span class="mono">01</span><strong>Browser</strong><small>TLS request</small></button></li>
+              <li><button type="button" class="infra-trace-step" data-trace="edge"><span class="mono">02</span><strong>Cloudflare</strong><small>TLS + identity</small></button></li>
+              <li><button type="button" class="infra-trace-step" data-trace="bot"><span class="mono">03</span><strong>Edge defense</strong><small>Bots + attacks</small></button></li>
+              <li><button type="button" class="infra-trace-step" data-trace="tunnel"><span class="mono">04</span><strong>Tunnel</strong><small>Encrypted link</small></button></li>
+              <li><button type="button" class="infra-trace-step" data-trace="core"><span class="mono">05</span><strong>Spindle</strong><small>Session verified</small></button></li>
+              <li><button type="button" class="infra-trace-step" data-trace="storage"><span class="mono">06</span><strong>B2 vault</strong><small>Private object</small></button></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Connection -->
+    <section class="section section--alt infra-connection-section" id="connection" aria-labelledby="connection-title">
+      <div class="container infra-split">
+        <div class="infra-copy" data-reveal>
+          <div class="infra-index"><span>01</span><i></i> THE CONNECTION</div>
+          <h2 class="section-title" id="connection-title">A protected line, every time you visit.</h2>
+          <p class="section-desc">When you open Spindle, your browser sends an HTTPS request to our servers. TLS encrypts it in transit, Cloudflare authenticates it at the edge, and only then does it reach the workspace. There is no open-backdoor path to our origin.</p>
+
+          <ol class="infra-steps">
+            <li><strong>Your browser opens the request.</strong><span>HTTPS negotiates a TLS session before any project data moves.</span></li>
+            <li><strong>Cloudflare verifies it.</strong><span>The edge terminates TLS, checks the request, and applies our rules.</span></li>
+            <li><strong>You get the website.</strong><span>Verified traffic continues; suspicious traffic never reaches Spindle.</span></li>
+            <li><strong>The origin stays hidden.</strong><span>Cloudflare Tunnels connect outward from our servers, so no inbound port has to be exposed.</span></li>
+          </ol>
+        </div>
+
+        <div class="infra-console" data-reveal data-reveal-delay="100">
+          <div class="infra-console-head">
+            <span>REQUEST TRACE</span>
+            <span class="infra-console-status"><i></i> 200 OK</span>
+          </div>
+          <div class="infra-console-body">
+            <div class="infra-console-line"><span class="infra-console-prompt">$</span><code>open https://spindle.app/workspace</code></div>
+            <div class="infra-console-line" data-log="client"><span>→</span><code>client handshake</code><em>TLS 1.3 · encrypted</em></div>
+            <div class="infra-console-line" data-log="edge"><span>→</span><code>edge authentication</code><em>verified</em></div>
+            <div class="infra-console-line" data-log="bot"><span>→</span><code>turnstile + waf</code><em>human traffic only</em></div>
+            <div class="infra-console-line" data-log="tunnel"><span>→</span><code>cloudflare tunnel</code><em>outbound-only</em></div>
+            <div class="infra-console-line" data-log="core"><span>→</span><code>session check</code><em>project access</em></div>
+            <div class="infra-console-line" data-log="storage"><span>→</span><code>b2 private object</code><em>retrieved</em></div>
+            <div class="infra-console-line infra-console-line--done"><span>✓</span><code>workspace ready</code><em>no origin exposed</em></div>
+            <span class="infra-console-cursor" aria-hidden="true"></span>
+          </div>
+          <div class="infra-console-foot">
+            <span><svg class="icon icon--xs"><use href="#i-lock"/></svg> ENCRYPTED IN TRANSIT</span>
+            <span class="mono">NO PUBLIC ORIGIN IP</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Edge defense -->
+    <section class="section infra-defense-section" id="defense" aria-labelledby="defense-title">
+      <div class="container">
+        <div class="section-head infra-section-head" data-reveal>
+          <div class="eyebrow">At the edge</div>
+          <h2 class="section-title" id="defense-title">Bots stop at the door. Attacks stop at the edge.</h2>
+          <p class="section-desc">Cloudflare sits in front of Spindle, so hostile traffic is filtered long before it can touch a workspace. Your projects stay reachable without exposing our servers to the internet.</p>
+        </div>
+
+        <div class="infra-defense-grid">
+          <article class="infra-defense-card" data-reveal>
+            <span class="infra-defense-icon"><svg class="icon icon--sm"><use href="#i-check"/></svg></span>
+            <span class="infra-defense-tag">TURNSTILE</span>
+            <h3>Humans pass. Scripts don't.</h3>
+            <p>Invisible checks separate real people from automated bots before a request is allowed through. No puzzle boxes for you, no free rein for scrapers.</p>
+          </article>
+
+          <article class="infra-defense-card" data-reveal data-reveal-delay="60">
+            <span class="infra-defense-icon"><svg class="icon icon--sm"><use href="#i-shield"/></svg></span>
+            <span class="infra-defense-tag">WAF + RATE LIMITS</span>
+            <h3>Known attacks get dropped.</h3>
+            <p>Malicious patterns and floods are challenged, throttled, or blocked at Cloudflare's edge instead of being handed to our application.</p>
+          </article>
+
+          <article class="infra-defense-card" data-reveal data-reveal-delay="120">
+            <span class="infra-defense-icon"><svg class="icon icon--sm"><use href="#i-bolt"/></svg></span>
+            <span class="infra-defense-tag">DDOS ABSORPTION</span>
+            <h3>The network takes the hit.</h3>
+            <p>Cloudflare absorbs large volumes of hostile traffic across its network, keeping Spindle online when a single server would buckle.</p>
+          </article>
+
+          <article class="infra-defense-card" data-reveal data-reveal-delay="180">
+            <span class="infra-defense-icon"><svg class="icon icon--sm"><use href="#i-lock"/></svg></span>
+            <span class="infra-defense-tag">CLOUDFLARE TUNNELS</span>
+            <h3>No origin to attack.</h3>
+            <p>Our services connect out through encrypted tunnels. There is no public origin IP to scan and no inbound port left open for attackers.</p>
+          </article>
+        </div>
+
+        <div class="infra-defense-band" data-reveal>
+          <div class="infra-defense-flow">
+            <span>INTERNET</span><i></i><span class="infra-defense-flow-highlight">CLOUDFLARE EDGE</span><i></i><span>SPINDLE CORE</span>
+          </div>
+          <p><svg class="icon icon--sm"><use href="#i-shield"/></svg> Verified requests continue. Bots, scrapes, and floods end at the edge.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Storage -->
+    <section class="section section--alt infra-storage-section" id="storage" aria-labelledby="storage-title">
+      <div class="container infra-split infra-split--reverse">
+        <div class="infra-vault" data-reveal data-reveal-delay="100" aria-hidden="true">
+          <div class="infra-vault-grid"></div>
+          <div class="infra-vault-ring"></div>
+          <div class="infra-vault-core">
+            <svg class="icon"><use href="#i-lock"/></svg>
+            <span class="mono">BUCKET: PRIVATE</span>
+            <strong>Backblaze B2</strong>
+            <small>Your files · your projects</small>
+          </div>
+          <div class="infra-vault-file infra-vault-file--one"><svg class="icon icon--xs"><use href="#i-folder"/></svg> survey.parquet</div>
+          <div class="infra-vault-file infra-vault-file--two"><svg class="icon icon--xs"><use href="#i-code"/></svg> analysis.ipynb</div>
+          <div class="infra-vault-file infra-vault-file--three"><svg class="icon icon--xs"><use href="#i-layers"/></svg> field-notes.md</div>
+          <span class="infra-vault-chip infra-vault-chip--top">ENCRYPTED AT REST</span>
+          <span class="infra-vault-chip infra-vault-chip--bottom">NO PUBLIC URLS</span>
+        </div>
+
+        <div class="infra-copy" data-reveal>
+          <div class="infra-index"><span>02</span><i></i> THE STORAGE</div>
+          <h2 class="section-title" id="storage-title">A private vault for your files and projects.</h2>
+          <p class="section-desc">Spindle stores your files and project data in Backblaze B2, durable object storage built for keeping valuable data safe. Buckets stay private. Access is scoped to Spindle's services. Nothing in your workspace becomes a public link by accident.</p>
+
+          <ul class="feature-list infra-feature-list">
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Private buckets only</strong><small>No open-to-the-internet objects and no guessed URLs into your project.</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Encrypted in transit and at rest</strong><small>TLS on the way in, server-side encryption once the object is stored.</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Scoped access, not shared secrets</strong><small>Only the service that needs an object can read or write it.</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Made to last</strong><small>Redundant object storage keeps research intact across projects and seasons.</small></span></li>
+          </ul>
+
+          <div class="infra-storage-note">
+            <svg class="icon icon--sm"><use href="#i-sparkle"/></svg>
+            <span>Your files are never used to train ad models, broker profiles, or mine your research. They are stored so you can keep working — nothing more.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Guarantee -->
+    <section class="section infra-guarantee-section" aria-labelledby="guarantee-title">
+      <div class="container">
+        <div class="infra-guarantee" data-reveal>
+          <div class="eyebrow">The short version</div>
+          <h2 id="guarantee-title">Private in transit. Private at rest. Yours throughout.</h2>
+          <p>HTTPS/TLS protects the trip. Cloudflare verifies the visitor, filters the bots, absorbs the attacks, and hides the origin. Cloudflare Tunnels carry only authenticated traffic inward. Backblaze B2 keeps the actual files in a private, durable vault.</p>
+          <div class="infra-guarantee-chips">
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Never sold</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Never tampered with</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Never public by default</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="get-started">
+      <div class="container">
+        <div class="cta-box" data-reveal>
+          <h2>Bring the project. We'll keep it private.</h2>
+          <p>Start with 5 GB of secure storage, a lab, local search, and 20 agent requests a day. Your research stays yours.</p>
+          <div class="cta-actions">
+            <a href="index.html#get-started" class="btn btn--primary btn--lg">Create free workspace</a>
+            <a href="docs.html" class="btn btn--ghost btn--lg">Read the docs</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="brand" aria-label="Spindle home">
+            <span class="brand-mark">
+              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="brand-name">spindle</span>
+          </a>
+          <p>One place for all your research.</p>
+          <div class="socials" id="ui-socials"></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col"><h4>Product</h4><a href="platform.html">Platform overview</a><a href="index.html#files">Files</a><a href="lab.html">Lab</a><a href="index.html#search">Search</a><a href="automations.html">Automations</a><a href="infrastructure.html">Infrastructure</a><a href="pricing.html">Pricing</a></div>
+          <div class="footer-col"><h4>Workspace</h4><a href="index.html#integrations">Integrations</a><a href="agent.html">Agent</a><a href="collaboration.html">Collaboration</a><a href="index.html#get-started">Get started</a></div>
+          <div class="footer-col"><h4>Resources</h4><a href="docs.html">Documentation</a><a href="docs.html#quickstart">Quickstart</a><a href="docs.html#guides">Guides</a><a href="changelog.html">Changelog</a><a href="index.html#faq">FAQ</a></div>
+          <div class="footer-col"><h4>Company</h4><a href="about.html">About</a><a href="about.html#contact">Contact</a><a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Spindle Labs. Built for curious people.</span>
+        <span class="system-status"><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+  <script type="module" src="/src/nav.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
+  <script type="module" src="infrastructure.js"></script>
+</body>
+</html>

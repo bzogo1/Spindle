@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18181b" />
+  <title>Changelog</title>
+  <link rel="stylesheet" href="changelog.css" />
+  <script>
+    // Applied before paint so the copied page never flashes the wrong theme.
+    (function () {
+      try {
+        var saved = localStorage.getItem('changelog-theme');
+        var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', dark);
+      } catch (e) {}
+    })();
+  </script>
+  <script type="module" src="changelog.js"></script>
+</head>
+<body>
+  <div class="cl-page">
+    <div class="cl-topbar">
+      <div class="cl-shell cl-topbar-inner">
+        <h1 class="cl-page-title">Changelog</h1>
+        <button type="button" class="cl-theme-toggle" aria-label="Toggle theme">
+          <svg class="cl-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41-1.41"></path>
+          </svg>
+          <svg class="cl-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+          </svg>
+          <span class="cl-sr-only">Toggle theme</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="cl-shell cl-content">
+      <!-- 2.1 -->
+      <article class="cl-release">
+        <div class="cl-release-grid">
+          <div class="cl-meta">
+            <div class="cl-meta-inner">
+              <time class="cl-date">June 30, 2025</time>
+              <div class="cl-version">2.1</div>
+            </div>
+          </div>
+          <div class="cl-entry">
+            <div class="cl-rail" aria-hidden="true"><span class="cl-rail-dot"></span></div>
+            <div class="cl-stack">
+              <header class="cl-head">
+                <h2 class="cl-release-title">Release 2.1 - Kimi K2 Support</h2>
+                <div class="cl-tags">
+                  <span class="cl-tag">AI</span>
+                  <span class="cl-tag">Performance</span>
+                  <span class="cl-tag">Reasoning</span>
+                  <span class="cl-tag">Multi-modal</span>
+                </div>
+              </header>
+
+              <div class="cl-prose">
+                <video class="cl-media" controls loop src="assets/changelog/demo.mp4"></video>
+                <ul>
+                  <li><strong>Advanced reasoning engine</strong> with improved logical thinking</li>
+                  <li><strong>Multi-modal processing</strong> for text, images, and code analysis</li>
+                  <li><strong>Context-aware responses</strong> with better conversation memory</li>
+                  <li><strong>Adaptive communication</strong> that matches user preferences</li>
+                </ul>
+
+                <figure class="cl-code">
+                  <button type="button" class="cl-code-copy" aria-label="Copy Text">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                    </svg>
+                  </button>
+                  <div class="cl-code-body">
+                    <pre><code><span class="cl-line"><span class="tok-comment">// Example of updated API usage</span></span>
+<span class="cl-line"><span class="tok-keyword">const</span> agent <span class="tok-keyword">=</span> <span class="tok-keyword">new</span> <span class="tok-class">AIAgent</span>({</span>
+<span class="cl-line">  model: <span class="tok-string">"kimi-k2"</span>,</span>
+<span class="cl-line">  reasoning: <span class="tok-string">"enhanced"</span>,</span>
+<span class="cl-line">  multiModal: <span class="tok-boolean">true</span>,</span>
+<span class="cl-line">})</span></code></pre>
+                  </div>
+                </figure>
+
+                <div class="cl-accordions">
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Features<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Bug Fixes<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 1.2 -->
+      <article class="cl-release">
+        <div class="cl-release-grid">
+          <div class="cl-meta">
+            <div class="cl-meta-inner">
+              <time class="cl-date">June 15, 2025</time>
+              <div class="cl-version">1.2</div>
+            </div>
+          </div>
+          <div class="cl-entry">
+            <div class="cl-rail" aria-hidden="true"><span class="cl-rail-dot"></span></div>
+            <div class="cl-stack">
+              <header class="cl-head">
+                <h2 class="cl-release-title">Enhanced AI Agent Interface and Reasoning Capabilities</h2>
+                <div class="cl-tags">
+                  <span class="cl-tag">AI</span>
+                  <span class="cl-tag">Performance</span>
+                  <span class="cl-tag">Interface</span>
+                  <span class="cl-tag">Reasoning</span>
+                </div>
+              </header>
+
+              <div class="cl-prose">
+                <p><img class="cl-media" src="assets/changelog/agent-interface.jpg" alt="Enhanced AI Agent Interface" width="900" height="506" /></p>
+                <ul>
+                  <li><strong>Enhanced Reasoning</strong>: Improved logical thinking and problem-solving</li>
+                  <li><strong>Context Awareness</strong>: Better understanding of conversation history</li>
+                  <li><strong>Multi-modal Support</strong>: Process text, images, and code simultaneously</li>
+                  <li><strong>Adaptive Responses</strong>: Tailored communication style based on user preferences</li>
+                  <li><strong>Real-time Learning</strong>: Dynamic adaptation during conversations</li>
+                </ul>
+
+                <div class="cl-accordions">
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Features<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Bug Fixes<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 0.9 -->
+      <article class="cl-release">
+        <div class="cl-release-grid">
+          <div class="cl-meta">
+            <div class="cl-meta-inner">
+              <time class="cl-date">May 23, 2025</time>
+              <div class="cl-version">0.9</div>
+            </div>
+          </div>
+          <div class="cl-entry">
+            <div class="cl-rail" aria-hidden="true"><span class="cl-rail-dot"></span></div>
+            <div class="cl-stack">
+              <header class="cl-head">
+                <h2 class="cl-release-title">UX Improvements</h2>
+                <div class="cl-tags">
+                  <span class="cl-tag">UI</span>
+                  <span class="cl-tag">UX</span>
+                </div>
+              </header>
+
+              <div class="cl-prose">
+                <p><img class="cl-media" src="assets/changelog/ux-improvements.jpg" alt="UX Improvements" width="2874" height="2156" /></p>
+                <ul>
+                  <li><strong>Redesigned interface</strong> with cleaner, more intuitive navigation</li>
+                  <li><strong>Enhanced accessibility</strong> with improved keyboard navigation and screen reader support</li>
+                  <li><strong>Streamlined workflows</strong> for faster task completion</li>
+                  <li><strong>Responsive design</strong> optimized for all device sizes</li>
+                </ul>
+
+                <div class="cl-accordions">
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Features<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                  <div class="cl-accordion-item">
+                    <h3><button type="button" class="cl-accordion-trigger" aria-expanded="false">Bug Fixes<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></h3>
+                    <div class="cl-accordion-content" hidden></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <p class="cl-back"><a href="index.html">← Back to Spindle</a></p>
+    </div>
+  </div>
+</body>
+</html>

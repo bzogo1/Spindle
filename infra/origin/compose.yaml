@@ -1,0 +1,232 @@
+# Production origin stack (ADR 0001).
+#
+# One self-managed Hetzner box runs the app, worker, Postgres, Valkey, and the
+# Docker socket proxy. Cloudflare Tunnel is the only ingress; nothing here
+# publishes a public port. Session containers are created on `spindle-lab` by
+# the orchestrator (DEV-102) and are never defined in this file.
+#
+# Start it with an environment file that is readable only by root:
+#
+#   docker compose --env-file /srv/spindle/host.env up -d
+#
+# The app and worker images are built and published by CI (DEV-9/DEV-10). The
+# host only pulls pinned tags; `latest` is never used.
+
+name: ${SPINDLE_STACK_NAME:-spindle}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+x-hardening: &hardening
+  init: true
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging: *logging
+
+services:
+  app:
+    <<: *hardening
+    image: ${SPINDLE_APP_IMAGE:?set SPINDLE_APP_IMAGE to a pinned app image tag}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: 0.0.0.0
+      PORT: "8080"
+      SPINDLE_ENV: ${SPINDLE_ENV:-prod}
+      SPINDLE_SECRETS_PATH: /app
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:?set INFISICAL_PROJECT_ID}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:?set INFISICAL_TOKEN}
+    ports:
+      # Loopback only: the tunnel reaches the app over the compose network, and
+      # operators use this port for local health checks.
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - app-cache:/app/.next/cache
+    tmpfs:
+      - /tmp:size=128m
+      - /home/node:size=16m
+    read_only: true
+    stop_grace_period: 30s
+    networks:
+      - spindle
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  worker:
+    <<: *hardening
+    image: ${SPINDLE_WORKER_IMAGE:?set SPINDLE_WORKER_IMAGE to a pinned worker image tag}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      SPINDLE_ENV: ${SPINDLE_ENV:-prod}
+      SPINDLE_SECRETS_PATH: /worker
+      INFISICAL_PROJECT_ID: ${INFISICAL_PROJECT_ID:?set INFISICAL_PROJECT_ID}
+      INFISICAL_TOKEN: ${INFISICAL_TOKEN:?set INFISICAL_TOKEN}
+    volumes:
+      # The sync worker reconciles the local working set with B2 (DEV-103).
+      - ${SPINDLE_ROOT:?set SPINDLE_ROOT}/projects:/srv/spindle/projects
+    tmpfs:
+      - /tmp:size=256m
+      - /home/node:size=16m
+    read_only: true
+    stop_grace_period: 5m
+    networks:
+      - spindle
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-spindle}
+      POSTGRES_USER: ${POSTGRES_USER:-spindle}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    shm_size: 256mb
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+    networks:
+      - spindle
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spindle} -d ${POSTGRES_DB:-spindle}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru
+    volumes:
+      - valkey-data:/data
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+    networks:
+      - spindle
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: unless-stopped
+    environment:
+      # The orchestrator needs to create and inspect sessions. Everything that
+      # can execute a process or change the daemon stays disabled.
+      CONTAINERS: "1"
+      IMAGES: "1"
+      NETWORKS: "1"
+      VOLUMES: "1"
+      POST: "1"
+      EXEC: "0"
+      BUILD: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      AUTH: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /run:size=16m
+    logging: *logging
+    networks:
+      - spindle-control
+
+  # Two connectors on the same tunnel keep ingress up when one replica or one
+  # Cloudflare edge connection fails. They share the tunnel credentials file.
+  cloudflared-1: &cloudflared
+    image: cloudflare/cloudflared:${CLOUDFLARE_IMAGE_TAG:-2026.11.1}
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    command:
+      - tunnel
+      - --no-autoupdate
+      - --config
+      - /etc/cloudflared/config.yml
+      - run
+      - ${CLOUDFLARE_TUNNEL_ID:?set CLOUDFLARE_TUNNEL_ID}
+    environment:
+      TUNNEL_EDGE_IP_VERSION: "4"
+      NO_AUTOUPDATE: "true"
+    volumes:
+      - ${CLOUDFLARE_CONFIG_FILE:?set CLOUDFLARE_CONFIG_FILE}:/etc/cloudflared/config.yml:ro
+      - ${CLOUDFLARE_CREDENTIALS_FILE:?set CLOUDFLARE_CREDENTIALS_FILE}:/etc/cloudflared/credentials.json:ro
+    # The tunnel reaches both upstreams over the internal `spindle` network.
+    # The lab proxy joins `spindle` and `spindle-lab`; nothing here publishes a
+    # public host port (ADR 0001 §4).
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m
+      - /home/nonroot:size=16m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging: *logging
+    networks:
+      - spindle
+
+  cloudflared-2:
+    <<: *cloudflared
+
+# Bootstrap creates these networks so the orchestrator and short-lived session
+# containers can share them with this stack. Treating them as external keeps
+# Compose from fighting the labels on a network it did not create.
+networks:
+  spindle:
+    external: true
+  # Session containers and the host-run lab proxy attach here. Kept separate
+  # from `spindle` so a session can never resolve Postgres or the app.
+  spindle-lab:
+    external: true
+  # Only the orchestrator and the socket proxy join this network; bootstrap
+  # creates it with `--internal`.
+  spindle-control:
+    external: true
+
+volumes:
+  postgres-data:
+  valkey-data:
+  app-cache:

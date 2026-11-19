@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f0e" />
+  <title>Spindle — One place for all your research</title>
+  <meta name="description" content="Spindle gives every research project its own home: files, a live lab, local search, automations, an agent, and real-time team collaboration. 5 GB free." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Icon sprite -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0112 0M16 5.5a3 3 0 010 5M18 14a6 6 0 013 6"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5zM3 7l9 5 9-5M12 12v10"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 01-6 6H6"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.8 18a2 2 0 001.7 3h11a2 2 0 001.7-3L14 9V3M7.5 15h9"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5A10.2 10.2 0 0022 12.3C22 6.6 17.5 2 12 2z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-x-social" viewBox="0 0 24 24"><path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.5 21H1.3l7.5-8.6L1 3h6.6l4.5 5.6L17.5 3zm-1.1 16h1.8L7.6 4.9H5.7L16.4 19z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-discord" viewBox="0 0 24 24"><path d="M19.5 5.6A17 17 0 0015.4 4l-.5 1a15 15 0 00-4.8 0l-.5-1a17 17 0 00-4.1 1.6C2.6 9.3 1.9 13 2.2 16.6a17 17 0 005.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3c3.4 1.6 7.1 1.6 10.5 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 005.2-2.6c.4-4.2-.7-7.8-2.9-11zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z" fill="currentColor" stroke="none"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header" id="header">
+    <div class="container header-inner">
+      <a href="#top" class="brand" aria-label="Spindle home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-name">spindle</span>
+      </a>
+
+      <div class="nav-desktop-slot" id="ui-main-nav">
+        <nav class="nav-fallback" aria-label="Main navigation">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div id="ui-signin"></div>
+        <a href="#get-started" class="btn btn--primary btn--sm">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+          <svg class="icon icon--open"><use href="#i-menu"/></svg>
+          <svg class="icon icon--close"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation">
+      <div id="ui-mobile-nav">
+        <div class="nav-fallback-mobile">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <div id="ui-hero-badge"></div>
+
+        <h1 class="hero-title">One place for all your research.</h1>
+
+        <p class="hero-subtitle">Files, notebooks, search, automations, an agent, and your team — organized around each project, not scattered across a dozen tabs.</p>
+
+        <div class="hero-actions">
+          <div id="ui-hero-actions"></div>
+        </div>
+
+        <!-- Product preview -->
+        <div class="hero-visual">
+          <div class="app-window">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="window-title"><svg class="icon icon--xs"><use href="#i-lock"/></svg> spindle / coastal-resilience</div>
+            </div>
+
+            <div class="window-body">
+              <aside class="win-sidebar">
+                <div class="sidebar-label">This project</div>
+                <div class="side-project">
+                  <span class="side-project-mark">CR</span>
+                  <span><strong>Coastal Resilience</strong><small>Field study · 2026</small></span>
+                </div>
+                <div class="sidebar-label sidebar-label--spaced">Files</div>
+                <div class="file-tree" aria-hidden="true">
+                  <div class="tree-row"><svg class="icon icon--xs"><use href="#i-chevron-down"/></svg><span class="folder">data</span></div>
+                  <div class="tree-row tree-row--indent"><span class="file-ext file-ext--csv">CSV</span><span>tidal-2026.csv</span></div>
+                  <div class="tree-row tree-row--indent tree-row--active"><span class="file-ext file-ext--parquet">PQ</span><span>survey.parquet</span></div>
+                  <div class="tree-row"><svg class="icon icon--xs"><use href="#i-chevron-down"/></svg><span class="folder">notebooks</span></div>
+                  <div class="tree-row tree-row--indent"><span class="file-ext file-ext--ipynb">IPY</span><span>analysis.ipynb</span></div>
+                  <div class="tree-row"><svg class="icon icon--xs"><use href="#i-chevron-down"/></svg><span class="folder">output</span></div>
+                  <div class="tree-row tree-row--indent"><span class="file-ext file-ext--pdf">PDF</span><span>draft.pdf</span></div>
+                </div>
+                <div class="sidebar-usage">
+                  <div class="usage-label"><span>Storage</span><span>1.8 / 5 GB</span></div>
+                  <div class="usage-track"><span style="width:36%"></span></div>
+                </div>
+              </aside>
+
+              <div class="win-main">
+                <div class="win-tabs" role="tablist" aria-label="Workspace views">
+                  <button class="win-tab is-active" role="tab" aria-selected="true" data-hero-tab="overview">Overview</button>
+                  <button class="win-tab" role="tab" aria-selected="false" data-hero-tab="files">Files</button>
+                  <button class="win-tab" role="tab" aria-selected="false" data-hero-tab="lab">Lab</button>
+                  <button class="win-tab" role="tab" aria-selected="false" data-hero-tab="search">Search</button>
+                </div>
+
+                <div class="win-content">
+                  <div class="hero-panel is-active" data-hero-panel="overview" role="tabpanel">
+                    <div class="panel-head">
+                      <div><span class="panel-kicker">PROJECT HOME</span><h3>Coastal Resilience</h3></div>
+                      <div id="ui-hero-status"></div>
+                    </div>
+                    <div class="overview-grid">
+                      <div class="overview-tile"><span class="tile-label">Files</span><strong>128</strong><span class="tile-note">+12 this week</span></div>
+                      <div class="overview-tile"><span class="tile-label">Lab sessions</span><strong>04</strong><span class="tile-note">2 kernels ready</span></div>
+                      <div class="overview-tile"><span class="tile-label">Automations</span><strong>03</strong><span class="tile-note">1 cron job live</span></div>
+                    </div>
+                    <div class="activity-card">
+                      <div class="activity-head"><span>Recent activity</span><span class="mono">LIVE</span></div>
+                      <div class="activity-row"><span class="activity-dot activity-dot--lime"></span><span><strong>Agent</strong> cleaned 3 columns in tidal-2026.csv</span><time>2m</time></div>
+                      <div class="activity-row"><span class="activity-dot activity-dot--teal"></span><span><strong>Lab</strong> finished notebook run in 42s</span><time>18m</time></div>
+                      <div class="activity-row"><span class="activity-dot activity-dot--amber"></span><span><strong>Cron</strong> refreshed tide data at 06:00</span><time>1h</time></div>
+                    </div>
+                  </div>
+
+                  <div class="hero-panel" data-hero-panel="files" role="tabpanel" hidden>
+                    <div class="panel-head">
+                      <div><span class="panel-kicker">FILE MANAGER</span><h3>data / 2026 surveys</h3></div>
+                      <span class="status-pill status-pill--muted">100+ formats detected</span>
+                    </div>
+                    <div class="mini-filelist">
+                      <div class="mini-file"><span class="file-ext file-ext--csv">CSV</span><span class="mini-file-name">tidal-2026.csv</span><span class="mini-file-meta">2.4 MB · tabular</span></div>
+                      <div class="mini-file"><span class="file-ext file-ext--parquet">PQ</span><span class="mini-file-name">survey.parquet</span><span class="mini-file-meta">86 MB · columnar</span></div>
+                      <div class="mini-file"><span class="file-ext file-ext--ipynb">IPY</span><span class="mini-file-name">analysis.ipynb</span><span class="mini-file-meta">410 KB · notebook</span></div>
+                      <div class="mini-file"><span class="file-ext file-ext--pdf">PDF</span><span class="mini-file-name">site-photos.pdf</span><span class="mini-file-meta">18 MB · document</span></div>
+                    </div>
+                    <div class="preview-strip">Inline preview — no download, no guessing the format.</div>
+                  </div>
+
+                  <div class="hero-panel" data-hero-panel="lab" role="tabpanel" hidden>
+                    <div class="panel-head">
+                      <div><span class="panel-kicker">LAB</span><h3>analysis.ipynb</h3></div>
+                      <span class="status-pill"><i></i> Python 3.12 ready</span>
+                    </div>
+                    <div class="notebook">
+                      <div class="notebook-cell"><span class="cell-in">[1]</span><code><span class="tok-key">import</span> pandas <span class="tok-key">as</span> pd<br/>df = pd.read_parquet(<span class="tok-str">'survey.parquet'</span>)</code></div>
+                      <div class="notebook-out"><span class="cell-out">out</span><span>Loaded 48,102 rows × 14 columns</span></div>
+                      <div class="notebook-cell"><span class="cell-in">[2]</span><code>df.groupby(<span class="tok-str">'site'</span>).mean(numeric_only=<span class="tok-key">True</span>).head()</code></div>
+                      <div class="notebook-table"><span>site</span><span>salinity</span><span>turbidity</span><span>temp</span></div>
+                    </div>
+                  </div>
+
+                  <div class="hero-panel" data-hero-panel="search" role="tabpanel" hidden>
+                    <div class="panel-head">
+                      <div><span class="panel-kicker">SEARCH</span><h3>Find the source, not just a link</h3></div>
+                      <span class="status-pill status-pill--muted">SearXNG · local</span>
+                    </div>
+                    <div class="mini-searchbar"><svg class="icon icon--sm"><use href="#i-search"/></svg><span>salt marsh restoration blue carbon</span></div>
+                    <div class="mini-results">
+                      <div class="mini-result"><span class="result-source">BASE</span><span><strong>Blue carbon sequestration in restored tidal marshes</strong><small>Journal of Environmental Management · 2024</small></span></div>
+                      <div class="mini-result"><span class="result-source result-source--alt">arXiv</span><span><strong>Remote sensing of coastal vegetation recovery</strong><small>Physics · 2023</small></span></div>
+                      <div class="mini-result"><span class="result-source result-source--alt2">OpenAlex</span><span><strong>Long-term sediment accretion after rewetting</strong><small>Open access · 2025</small></span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Integrations — circular tool nodes with animated connections -->
+    <section class="integrations" id="integrations">
+      <div class="container integrations-inner">
+        <div class="integrations-copy">
+          <div class="eyebrow">Works with</div>
+          <h2 class="section-title">Your stack, connected.</h2>
+          <p class="section-desc">Spindle plugs into the tools your research already runs on. Notebooks, datasets, references, and search stay in sync around the project.</p>
+          <div class="integrations-meta"><i></i> 8 tools · one workspace</div>
+        </div>
+
+        <div class="network-scroll">
+          <div class="network" role="img" aria-label="Spindle connected to JupyterLab, RStudio, VS Code, Quarto, CSV and Parquet, NetCDF, Zotero, and SearXNG">
+            <svg class="network-lines" viewBox="0 0 960 360" aria-hidden="true">
+              <line class="network-guide" x1="0" y1="180" x2="960" y2="180" />
+              <line class="network-guide network-guide--soft" x1="0" y1="65" x2="960" y2="65" />
+              <line class="network-guide network-guide--soft" x1="0" y1="295" x2="960" y2="295" />
+              <line class="network-guide network-guide--soft" x1="480" y1="0" x2="480" y2="360" />
+
+              <g class="network-wires">
+                <path class="wire" d="M480 180 L173 180" />
+                <path class="wire" d="M480 180 L787 180" />
+                <path class="wire" d="M480 180 L288 65" />
+                <path class="wire" d="M480 180 L672 65" />
+                <path class="wire" d="M480 180 L288 295" />
+                <path class="wire" d="M480 180 L672 295" />
+                <path class="wire" d="M173 180 L67 180" />
+                <path class="wire" d="M787 180 L893 180" />
+
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-.4s;--flow-duration:4.4s" d="M480 180 L173 180" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-1.8s;--flow-duration:4.8s" d="M480 180 L787 180" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-2.6s;--flow-duration:5.2s" d="M480 180 L288 65" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-.9s;--flow-duration:4.6s" d="M480 180 L672 65" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-3.1s;--flow-duration:5s" d="M480 180 L288 295" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-1.3s;--flow-duration:4.2s" d="M480 180 L672 295" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-2.2s;--flow-duration:4.6s" d="M173 180 L67 180" />
+                <path class="wire-flow" pathLength="100" style="--flow-delay:-.6s;--flow-duration:4.9s" d="M787 180 L893 180" />
+              </g>
+            </svg>
+
+            <div class="network-hub" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </div>
+
+            <ul class="network-nodes">
+              <li class="node" style="--x:18%;--y:50%;--size:76px;--breath-delay:-.2s"><span class="node-orb">JL</span><span class="node-name">JupyterLab</span></li>
+              <li class="node" style="--x:82%;--y:50%;--size:76px;--breath-delay:-1.4s"><span class="node-orb">R</span><span class="node-name">RStudio</span></li>
+              <li class="node" style="--x:30%;--y:18%;--size:68px;--breath-delay:-2.1s"><span class="node-orb">VS</span><span class="node-name">VS Code</span></li>
+              <li class="node" style="--x:70%;--y:18%;--size:68px;--breath-delay:-.8s"><span class="node-orb">Q</span><span class="node-name">Quarto</span></li>
+              <li class="node" style="--x:30%;--y:82%;--size:68px;--breath-delay:-2.8s"><span class="node-orb">CSV</span><span class="node-name">CSV / Parquet</span></li>
+              <li class="node" style="--x:70%;--y:82%;--size:68px;--breath-delay:-1.7s"><span class="node-orb">NC</span><span class="node-name">NetCDF</span></li>
+              <li class="node node--small" style="--x:7%;--y:50%;--size:50px;--breath-delay:-3.4s"><span class="node-orb">Z</span><span class="node-name">Zotero</span></li>
+              <li class="node node--small node--accent" style="--x:93%;--y:50%;--size:50px;--breath-delay:-2.5s"><span class="node-orb">SX</span><span class="node-name">SearXNG</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Platform -->
+    <section class="section" id="platform">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Platform</div>
+          <h2 class="section-title">A home for every project.</h2>
+          <p class="section-desc">Files, notebooks, results, conversations, and automations stay together — even when a project runs for years.</p>
+        </div>
+
+        <div class="feature-grid" id="ui-feature-grid"></div>
+      </div>
+    </section>
+
+    <!-- Automations -->
+    <section class="section section--alt" id="automations">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Automations</div>
+          <h2 class="section-title">Describe it, or write the cron.</h2>
+          <p class="section-desc">Two ways to make a project run itself. Both share the same guardrails, run history, and logs.</p>
+        </div>
+
+        <div class="duo-grid">
+          <article class="duo-card">
+            <div class="duo-badge"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg> FOR EVERYONE</div>
+            <h3>Automations</h3>
+            <p>Tell Spindle what should happen. It turns your sentence into a repeatable workflow with a preview before anything runs.</p>
+            <ul class="check-list">
+              <li>“Refresh tide data every Monday”</li>
+              <li>“Summarize new sources into notes.md”</li>
+              <li>“Flag rows that look wrong”</li>
+            </ul>
+            <div class="prompt-card">
+              <p>When a new CSV lands in <strong>/data</strong>, clean it and add a short summary to the project log.</p>
+              <div class="prompt-foot"><span>AI built 4 steps</span><span class="prompt-live"><i></i> Ready to review</span></div>
+            </div>
+          </article>
+
+          <article class="duo-card">
+            <div class="duo-badge duo-badge--amber"><svg class="icon icon--xs"><use href="#i-code"/></svg> FOR DEVELOPERS</div>
+            <h3>Cron jobs</h3>
+            <p>Write the automation yourself. Schedule any script against your project files, with the runtime and secrets already wired up.</p>
+            <ul class="check-list">
+              <li>Full cron syntax and timezones</li>
+              <li>Your code, your dependencies</li>
+              <li>Run history and failure alerts</li>
+            </ul>
+            <div class="code-card">
+              <div class="code-card-head"><span>tide-sync.py</span><span class="mono">UTC</span></div>
+              <pre><span class="tok-com"># every weekday at 06:00</span>
+<span class="tok-num">0</span> <span class="tok-num">6</span> * * <span class="tok-num">1-5</span> python tide-sync.py
+
+<span class="tok-key">from</span> spindle <span class="tok-key">import</span> project
+project.files.sync(<span class="tok-str">'data/tides'</span>)</pre>
+              <div class="code-card-foot"><span class="status-pill status-pill--tiny"><i></i> Last run OK</span><span class="mono">42s</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lab -->
+    <section class="section" id="lab">
+      <div class="container split-grid">
+        <div class="split-copy">
+          <div class="eyebrow">The lab</div>
+          <h2 class="section-title">Your tools, already running.</h2>
+          <p class="section-desc">Every project has a Lab tab. Open the environment you already know, with your files mounted and your packages waiting.</p>
+          <ul class="feature-list">
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Preinstalled stacks</strong><small>Python, R, Julia, and common research libraries</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Snapshots per run</strong><small>Rewind a notebook or analysis to any point</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Shared kernels</strong><small>Pair on an analysis like it's a document</small></span></li>
+          </ul>
+          <a href="lab.html" class="text-link">Explore the full Lab <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+        </div>
+
+        <div class="product-window lab-window">
+          <div class="window-bar">
+            <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="window-bar-title" id="labWindowTitle">coastal-resilience / lab</span>
+            <span class="window-bar-status"><i></i> <span id="labWindowStatus">Kernel idle</span></span>
+          </div>
+          <div class="lab-tabs" role="tablist" aria-label="Lab environments">
+            <button class="lab-tab is-active" id="lab-tab-rstudio" role="tab" aria-selected="true" aria-controls="lab-panel-rstudio" data-lab-tab="rstudio" data-lab-title="coastal-resilience / lab" data-lab-status="Kernel idle">RStudio</button>
+            <button class="lab-tab" id="lab-tab-jupyter" role="tab" aria-selected="false" aria-controls="lab-panel-jupyter" tabindex="-1" data-lab-tab="jupyter" data-lab-title="coastal-resilience / analysis.ipynb" data-lab-status="Python 3.12 · idle">JupyterLab</button>
+            <button class="lab-tab" id="lab-tab-vscode" role="tab" aria-selected="false" aria-controls="lab-panel-vscode" tabindex="-1" data-lab-tab="vscode" data-lab-title="coastal-resilience / clean_data.py" data-lab-status="Workspace open">VS Code</button>
+            <button class="lab-tab" id="lab-tab-terminal" role="tab" aria-selected="false" aria-controls="lab-panel-terminal" tabindex="-1" data-lab-tab="terminal" data-lab-title="coastal-resilience — zsh" data-lab-status="Shell ready">Terminal</button>
+          </div>
+          <div class="lab-screen">
+            <div class="lab-panel is-active" id="lab-panel-rstudio" data-lab-panel="rstudio" role="tabpanel" aria-labelledby="lab-tab-rstudio">
+              <div class="rstudio-layout">
+                <div class="rstudio-editor">
+                  <div class="rstudio-tab">analysis.R</div>
+                  <pre><span class="tok-com"># read project data directly</span>
+survey &lt;- read_parquet(<span class="tok-str">"data/survey.parquet"</span>)
+
+<span class="tok-fn">ggplot</span>(survey, <span class="tok-fn">aes</span>(x = salinity, y = turbidity)) +
+  <span class="tok-fn">geom_point</span>(alpha = <span class="tok-num">0.7</span>) +
+  <span class="tok-fn">theme_minimal</span>()</pre>
+                </div>
+                <div class="rstudio-plot">
+                  <div class="plot-title">salinity vs. turbidity</div>
+                  <svg viewBox="0 0 200 110" preserveAspectRatio="none"><path d="M0 96H200M0 72H200M0 48H200M0 24H200" stroke="rgba(255,255,255,.07)"/><g fill="#bfe389"><circle cx="32" cy="78" r="3"/><circle cx="58" cy="66" r="3"/><circle cx="76" cy="72" r="3"/><circle cx="98" cy="52" r="3"/><circle cx="118" cy="58" r="3"/><circle cx="142" cy="38" r="3"/><circle cx="166" cy="44" r="3"/><circle cx="184" cy="26" r="3"/></g></svg>
+                </div>
+              </div>
+            </div>
+            <div class="lab-panel" id="lab-panel-jupyter" data-lab-panel="jupyter" role="tabpanel" aria-labelledby="lab-tab-jupyter" hidden>
+              <div class="jupyter-shell">
+                <div class="jupyter-menu" aria-hidden="true">
+                  <span>File</span><span>Edit</span><span>Run</span><span>Kernel</span><span>Tabs</span>
+                  <span class="jupyter-kernel"><i></i> Python 3.12</span>
+                </div>
+                <div class="notebook notebook--large">
+                  <div class="notebook-cell"><span class="cell-in">[1]</span><code><span class="tok-key">import</span> geopandas <span class="tok-key">as</span> gpd<br/>sites = gpd.read_file(<span class="tok-str">'data/sites.geojson'</span>)</code></div>
+                  <div class="notebook-out"><span class="cell-out">out</span><span>17 features loaded · CRS EPSG:4326</span></div>
+                  <div class="notebook-cell"><span class="cell-in">[2]</span><code>sites.plot(column=<span class="tok-str">'recovery'</span>, cmap=<span class="tok-str">'YlGn'</span>, legend=<span class="tok-key">True</span>)</code></div>
+                  <div class="notebook-map" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+                </div>
+              </div>
+            </div>
+            <div class="lab-panel" id="lab-panel-vscode" data-lab-panel="vscode" role="tabpanel" aria-labelledby="lab-tab-vscode" hidden>
+              <div class="vscode-layout">
+                <div class="vscode-tree" aria-hidden="true"><span class="tree-head">EXPLORER</span><span>v</span> coastal-resilience<br/><span class="indent">v data</span><br/><span class="indent indent--2">tidal-2026.csv</span><br/><span class="indent indent--2">survey.parquet</span><br/><span class="indent">v notebooks</span><br/><span class="indent indent--2">analysis.ipynb</span><br/><span class="indent">clean_data.py</span></div>
+                <div class="vscode-editor">
+                  <div class="vscode-tabs"><span class="vscode-tab is-active">clean_data.py</span><span class="vscode-tab">tide_sync.py</span></div>
+                  <div class="vscode-breadcrumb">data › clean_data.py › tidy()</div>
+                  <pre><span class="tok-key">from</span> spindle <span class="tok-key">import</span> project
+
+df = project.data.load(<span class="tok-str">"tidal-2026.csv"</span>)
+df = df.dropna(subset=[<span class="tok-str">"salinity"</span>])
+df[<span class="tok-str">"salinity"</span>] = df[<span class="tok-str">"salinity"</span>].round(<span class="tok-num">2</span>)
+project.data.save(df, <span class="tok-str">"output/clean.csv"</span>)</pre>
+                  <div class="vscode-status"><span>⑂ main</span><span>Python 3.12 · UTF-8</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="lab-panel" id="lab-panel-terminal" data-lab-panel="terminal" role="tabpanel" aria-labelledby="lab-tab-terminal" hidden>
+              <div class="terminal-card-body terminal-card-body--lab">
+                <div><span class="term-prompt">➜</span> <span class="term-dir">coastal-resilience</span> <span class="term-branch">git:(main)</span> spindle lab start --kernel python</div>
+                <div class="term-dim">◐ Mounting project files…</div>
+                <div class="term-success">✓ Python 3.12 · 24 packages ready</div>
+                <div><span class="term-prompt">➜</span> <span class="term-dir">coastal-resilience</span> <span class="term-branch">git:(main)</span> ls data</div>
+                <div class="term-dim">tidal-2026.csv&nbsp;&nbsp;survey.parquet&nbsp;&nbsp;sites.geojson</div>
+                <div><span class="term-prompt">➜</span> <span class="term-dir">coastal-resilience</span> <span class="term-branch">git:(main)</span> <span class="term-caret"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Search -->
+    <section class="section section--alt" id="search">
+      <div class="container split-grid split-grid--reverse">
+        <div class="product-window search-console">
+          <div class="window-bar">
+            <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="window-bar-title">search / coastal-resilience</span>
+            <span class="window-bar-status"><i></i> LOCAL</span>
+          </div>
+          <div class="console-body">
+            <div class="segmented" role="group" aria-label="Search mode">
+              <button class="segment is-active" data-search-mode="academic" aria-pressed="true">Academic</button>
+              <button class="segment" data-search-mode="basic" aria-pressed="false">Basic</button>
+            </div>
+            <div class="console-query">
+              <svg class="icon icon--sm"><use href="#i-search"/></svg>
+              <input id="searchInput" type="search" value="salt marsh restoration blue carbon" aria-label="Search query" enterkeyhint="search" autocomplete="off" />
+              <button class="console-go" id="searchGo" type="button" aria-label="Run search (preview)"><svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></button>
+            </div>
+            <div class="engine-row" id="engineRow" aria-label="Search engines in this mode">
+              <span class="engine-chip">BASE</span><span class="engine-chip">arXiv</span><span class="engine-chip">Crossref</span><span class="engine-chip">Semantic Scholar</span><span class="engine-chip">OpenAlex</span>
+            </div>
+            <div class="results-head"><span data-results-count aria-live="polite">Preview results</span><span class="mono" id="resultsMode">ACADEMIC MODE</span></div>
+            <div class="results-list" id="resultsList" aria-live="polite">
+              <article class="result-item"><span class="result-index">01</span><div><h4>Blue carbon sequestration in restored tidal marshes</h4><p>Journal of Environmental Management · 2024</p><span class="result-tag">BASE · open access</span></div><svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></article>
+              <article class="result-item"><span class="result-index">02</span><div><h4>Remote sensing of coastal vegetation recovery</h4><p>arXiv · Physics · 2023</p><span class="result-tag">arXiv · preprint</span></div><svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></article>
+              <article class="result-item"><span class="result-index">03</span><div><h4>Long-term sediment accretion after rewetting</h4><p>OpenAlex · 2025 · 118 citations</p><span class="result-tag">OpenAlex · cited by</span></div><svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></article>
+            </div>
+            <div class="console-foot" id="searchFoot">Preview only — results come from a small local demo index.</div>
+          </div>
+        </div>
+
+        <div class="split-copy">
+          <div class="eyebrow">Search</div>
+          <h2 class="section-title">Academic depth. Basic speed.</h2>
+          <p class="section-desc">Search runs through a SearXNG instance local to Spindle. Flip between modes without leaving the project — results, citations, and notes land next to your files.</p>
+          <div class="mode-explain" role="group" aria-label="Choose a search mode">
+            <button type="button" class="mode-explain-item is-active" data-search-mode="academic" aria-pressed="true">
+              <span class="mode-icon mode-icon--academic"><svg class="icon icon--xs"><use href="#i-layers"/></svg></span>
+              <span><strong>Academic</strong><p>BASE, arXiv, Crossref, Semantic Scholar, and OpenAlex for papers and citations.</p></span>
+            </button>
+            <button type="button" class="mode-explain-item" data-search-mode="basic" aria-pressed="false">
+              <span class="mode-icon mode-icon--basic"><svg class="icon icon--xs"><use href="#i-globe"/></svg></span>
+              <span><strong>Basic</strong><p>Mojeek, Brave, and DuckDuckGo for the wider web, news, and practical references.</p></span>
+            </button>
+          </div>
+          <div id="ui-local-note"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Files -->
+    <section class="section" id="files">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Files</div>
+          <h2 class="section-title">A file manager built for research data.</h2>
+          <p class="section-desc">Upload, organize, and preview 100+ formats inline — including datasets and notebooks. 5 GB free from day one.</p>
+        </div>
+
+        <div class="files-layout">
+          <div class="product-window file-manager">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-folder"/></svg> coastal-resilience / data</span>
+              <span class="window-bar-status" id="fmCount">128 items</span>
+            </div>
+            <div class="fm-toolbar">
+              <label class="fm-search" for="fileSearch"><svg class="icon icon--xs"><use href="#i-search"/></svg><input id="fileSearch" type="search" placeholder="Search this project" aria-label="Search this project" autocomplete="off" /></label>
+              <span id="ui-fm-new"></span>
+              <button class="fm-btn fm-btn--solid" id="fmUpload" type="button"><svg class="icon icon--xs"><use href="#i-upload"/></svg> Upload</button>
+              <input id="fmUploadInput" type="file" multiple hidden />
+            </div>
+            <div class="fm-columns"><span>Name</span><span>Detected as</span><span>Modified</span><span>Size</span></div>
+            <div class="fm-list" id="fileList">
+              <button class="fm-row is-selected" data-name="tidal-2026.csv" data-format="CSV · tabular" data-kind="csv" data-meta="2.4 MB · modified 2 min ago">
+                <span class="fm-name"><span class="file-ext file-ext--csv">CSV</span> tidal-2026.csv</span><span class="fm-type">Comma-separated values</span><span class="fm-date">2 min ago</span><span class="fm-size">2.4 MB</span>
+              </button>
+              <button class="fm-row" data-name="survey.parquet" data-format="Parquet · columnar" data-kind="parquet" data-meta="86 MB · modified yesterday">
+                <span class="fm-name"><span class="file-ext file-ext--parquet">PQ</span> survey.parquet</span><span class="fm-type">Apache Parquet</span><span class="fm-date">Yesterday</span><span class="fm-size">86 MB</span>
+              </button>
+              <button class="fm-row" data-name="analysis.ipynb" data-format="Jupyter notebook" data-kind="ipynb" data-meta="410 KB · modified 4 hours ago">
+                <span class="fm-name"><span class="file-ext file-ext--ipynb">IPY</span> analysis.ipynb</span><span class="fm-type">Jupyter Notebook</span><span class="fm-date">4 hours ago</span><span class="fm-size">410 KB</span>
+              </button>
+              <button class="fm-row" data-name="site-photos.pdf" data-format="PDF · document" data-kind="pdf" data-meta="18 MB · modified Mar 12">
+                <span class="fm-name"><span class="file-ext file-ext--pdf">PDF</span> site-photos.pdf</span><span class="fm-type">Portable Document Format</span><span class="fm-date">Mar 12</span><span class="fm-size">18 MB</span>
+              </button>
+              <button class="fm-row" data-name="marsh-core.tif" data-format="TIFF · raster image" data-kind="image" data-meta="34 MB · modified Mar 09">
+                <span class="fm-name"><span class="file-ext file-ext--tif">TIF</span> marsh-core.tif</span><span class="fm-type">GeoTIFF image</span><span class="fm-date">Mar 09</span><span class="fm-size">34 MB</span>
+              </button>
+            </div>
+            <div class="fm-storage">
+              <div class="fm-storage-label"><span><svg class="icon icon--xs"><use href="#i-cube"/></svg> Storage</span><strong>1.8 GB <span>/ 5 GB free</span></strong></div>
+              <div class="fm-storage-track" id="ui-storage-progress"></div>
+            </div>
+          </div>
+
+          <div class="files-aside">
+            <div class="preview-card">
+              <div class="preview-head"><span><svg class="icon icon--xs"><use href="#i-eye"/></svg> Inline preview</span><span class="preview-format" id="previewFormat">CSV · tabular</span></div>
+              <div class="preview-body" id="previewBody">
+                <div class="preview-title" id="previewName">tidal-2026.csv</div>
+                <div class="preview-table"><span>site_id</span><span>salinity</span><span>turbidity</span><span>date</span><span>A-01</span><span>28.4</span><span>3.1</span><span>06/02</span><span>A-02</span><span>27.9</span><span>3.4</span><span>06/02</span></div>
+                <div class="preview-meta" id="previewMeta">2.4 MB · modified 2 min ago</div>
+              </div>
+              <div class="preview-foot"><span>Detected automatically</span><span class="mono">100+ FORMATS</span></div>
+            </div>
+            <div class="format-support">
+              <h3>One viewer. Almost anything.</h3>
+              <p>Documents, spreadsheets, datasets, images, media, archives, code, and notebooks — opened in place.</p>
+              <div class="format-chips"><span>PDF</span><span>DOCX</span><span>XLSX</span><span>CSV</span><span>Parquet</span><span>JSON</span><span>IPYNB</span><span>TIFF</span><span>MP4</span><span>ZIP</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agent -->
+    <section class="section section--alt" id="agent">
+      <div class="container split-grid">
+        <div class="split-copy">
+          <div class="eyebrow">Agent</div>
+          <h2 class="section-title">An agent that knows the project.</h2>
+          <p class="section-desc">Ask it to clean a dataset, refactor a folder, or update a spreadsheet. Every change is reviewable before it lands.</p>
+          <div class="allowance">
+            <div class="allowance-main"><span class="allowance-num">20</span><span class="allowance-unit">agent requests<br/>every day</span></div>
+            <div class="allowance-bonus"><span class="bonus-plus">+50</span><p>more requests, one time, when a friend joins with your referral.</p></div>
+          </div>
+          <div class="agent-actions">
+            <a href="#get-started" class="text-link">Use your first request <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+            <a href="agent.html" class="text-link">Explore the agent <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+          </div>
+        </div>
+
+        <div class="product-window agent-window">
+          <div class="window-bar">
+            <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg> Agent · coastal-resilience</span>
+            <span class="window-bar-status"><i></i> 14 / 20 left</span>
+          </div>
+          <div class="agent-body">
+            <div class="agent-prompt-label">REQUEST</div>
+            <div class="agent-prompt" id="agentPrompt">Refactor the data pipeline and update results.csv with the new columns.</div>
+            <div class="agent-suggestions" role="group" aria-label="Example agent requests">
+              <button class="suggestion is-active" data-agent-example="refactor">Refactor files</button>
+              <button class="suggestion" data-agent-example="spreadsheet">Edit a spreadsheet</button>
+              <button class="suggestion" data-agent-example="summarize">Summarize sources</button>
+            </div>
+            <div class="agent-trace" id="agentTrace">
+              <div class="trace-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Read 12 files in <strong>/data</strong> and <strong>/notebooks</strong></span><time>0.4s</time></div>
+              <div class="trace-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Split cleaning logic into <strong>clean_data.py</strong></span><time>1.2s</time></div>
+              <div class="trace-row is-running"><span class="trace-icon"><span class="trace-pulse"></span></span><span>Updating <strong>results.csv</strong> — added 3 columns</span><time>2.8s</time></div>
+              <div class="trace-row"><span class="trace-icon trace-icon--empty"></span><span>Write a short summary to project log</span><time>—</time></div>
+            </div>
+            <div class="agent-diff"><span><i class="diff-add"></i> +84 lines</span><span><i class="diff-del"></i> −19 lines</span><span class="agent-diff-note">Nothing applied until you review</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section class="section" id="chat">
+      <div class="container split-grid split-grid--reverse">
+        <div class="product-window chat-window">
+          <div class="chat-layout">
+            <aside class="chat-sidebar">
+              <div class="chat-workspace">coastal-resilience <svg class="icon icon--xs"><use href="#i-chevron-down"/></svg></div>
+              <div class="chat-section-label">CHANNELS</div>
+              <button type="button" class="chat-channel is-active" data-chat-channel="field-notes"><span>#</span> field-notes</button>
+              <button type="button" class="chat-channel" data-chat-channel="data-cleaning"><span>#</span> data-cleaning</button>
+              <button type="button" class="chat-channel" data-chat-channel="writing"><span>#</span> writing</button>
+              <button type="button" class="chat-channel" data-chat-channel="random"><span>#</span> random</button>
+              <div class="chat-section-label chat-section-label--spaced">DIRECT</div>
+              <button type="button" class="chat-channel" data-chat-channel="mara"><span class="presence-dot"></span> Mara <span class="chat-you">you</span></button>
+              <button type="button" class="chat-channel" data-chat-channel="theo"><span class="presence-dot presence-dot--away"></span> Theo</button>
+              <button class="anon-toggle" id="anonToggle" aria-pressed="false" hidden>
+                <span class="anon-switch"><i></i></span>
+                <span><strong>Anonymous mode</strong><small id="anonStatus">Off · normal project chat</small></span>
+              </button>
+              <div id="ui-anon-switch"></div>
+            </aside>
+            <div class="chat-main">
+              <div class="chat-head"><span><span class="chat-hash" id="chatHash">#</span> <span id="chatChannelName">field-notes</span></span><span class="chat-head-meta" id="chatRoute">8 members · project channel</span></div>
+              <div class="chat-messages" id="chatMessages" aria-live="polite">
+                <div class="chat-msg"><span class="mini-avatar mini-avatar--a">MR</span><div><strong>Mara <time>09:14</time></strong><p>New survey batch is in /data. The viewer detected it as Parquet right away.</p></div></div>
+                <div class="chat-msg"><span class="mini-avatar mini-avatar--b">JL</span><div><strong>Jules <time>09:18</time></strong><p>Nice. I kicked off the cron refresh and the lab still has the kernel from yesterday.</p></div></div>
+                <form class="chat-composer" id="chatComposer">
+                  <input id="chatInput" type="text" placeholder="Message #field-notes" aria-label="Message #field-notes" autocomplete="off" />
+                  <button type="submit" class="chat-send" aria-label="Send message"><svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></button>
+                </form>
+              </div>
+            </div>
+          </div>
+          <div class="route-strip" id="routeStrip" aria-hidden="true">
+            <span>YOU</span><i></i><span class="route-node"></span><i></i><span class="route-node"></span><i></i><span class="route-node"></span><i></i><span>PROJECT</span>
+          </div>
+        </div>
+
+        <div class="split-copy">
+          <div class="eyebrow">Team chat</div>
+          <h2 class="section-title">Talk where the work happens.</h2>
+          <p class="section-desc">Channels live inside each project, like Discord or Slack — but the conversation stays next to the files and decisions it belongs to.</p>
+          <div class="privacy-note">
+            <div class="privacy-note-head"><svg class="icon icon--xs"><use href="#i-shield"/></svg> ANONYMOUS MODE</div>
+            <p>Turn on Anonymous mode to route a message through the Nym Mixnet, which hides the patterns your communications leave behind.</p>
+            <a href="https://nym.com/" target="_blank" rel="noopener noreferrer">Learn about Nym <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Collaboration -->
+    <section class="section collab-section" id="collaboration">
+      <div class="container split-grid collab-grid">
+        <div class="split-copy">
+          <div class="eyebrow">Collaboration</div>
+          <h2 class="section-title">One project. Everyone in sync.</h2>
+          <p class="section-desc">Work in the same notebook at the same time. See cursors as they move, edit side by side, and leave comments right where the data lives — no exports, no <span class="mono">final_v3</span> copies.</p>
+          <ul class="feature-list">
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Live cursors and presence</strong><small>See who is in the project and where they are working</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Real-time editing</strong><small>Pair on notebooks, notes, and data the way you would in a document</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Comments in context</strong><small>Keep feedback next to the file, cell, or row it refers to</small></span></li>
+            <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Shared history</strong><small>Every change is attributable and easy to rewind</small></span></li>
+          </ul>
+          <div class="collab-cta-links">
+            <a href="#get-started" class="text-link">Bring your team in <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+            <a href="collaboration.html" class="text-link">Explore live collaboration <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+          </div>
+        </div>
+
+        <div class="globe-visual" role="img" aria-label="Animated globe showing teammates editing and commenting together in real time">
+          <span class="globe-glow globe-glow--wide" aria-hidden="true"></span>
+          <span class="globe-glow" aria-hidden="true"></span>
+
+          <svg class="globe-orbit" viewBox="0 0 560 560" aria-hidden="true">
+            <ellipse class="orbit-line" cx="280" cy="280" rx="252" ry="106" transform="rotate(-22 280 280)" />
+            <ellipse class="orbit-line orbit-line--flow" cx="280" cy="280" rx="252" ry="106" transform="rotate(-22 280 280)" pathLength="100" />
+            <ellipse class="orbit-line orbit-line--soft" cx="280" cy="280" rx="232" ry="150" transform="rotate(26 280 280)" />
+            <circle class="orbit-point" cx="52" cy="338" r="3" />
+            <circle class="orbit-point orbit-point--soft" cx="474" cy="216" r="2" />
+          </svg>
+
+          <div class="globe-sphere">
+            <div id="ui-home-globe" class="globe-mount" aria-hidden="true"></div>
+            <span class="globe-highlight" aria-hidden="true"></span>
+          </div>
+
+          <div class="globe-tags" aria-hidden="true">
+            <div class="globe-tag globe-tag--edit">
+              <span class="globe-avatar" id="ui-globe-avatar"></span>
+              <span>Mara is editing <strong>analysis.ipynb</strong></span>
+            </div>
+            <div class="globe-tag globe-tag--presence">
+              <span class="tag-dots"><i></i><i></i><i></i></span>
+              <span><strong>3</strong> teammates online</span>
+            </div>
+            <div class="globe-tag globe-tag--cursor">
+              <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg>
+              <span>Theo's cursor · <strong>row 42</strong></span>
+            </div>
+            <div class="globe-tag globe-tag--comment">
+              <svg class="icon icon--xs"><use href="#i-message"/></svg>
+              <span>2 comments on <strong>survey.parquet</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="section section--alt" id="pricing">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Pricing</div>
+          <h2 class="section-title">Start free. Bring a project.</h2>
+          <p class="section-desc">The full workspace, 5 GB of storage, and 20 agent requests a day — no credit card.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-value"><span class="counter" data-target="5">5</span><span class="stat-suffix"> GB</span></div><p>Storage per account</p></div>
+          <div class="stat"><div class="stat-value"><span class="counter" data-target="20">20</span></div><p>Agent requests every day</p></div>
+          <div class="stat"><div class="stat-value"><span class="counter" data-target="100">100</span><span class="stat-suffix">+</span></div><p>Formats detected inline</p></div>
+          <div class="stat"><div class="stat-value"><span class="counter" data-target="50">50</span></div><p>Extra requests by referral</p></div>
+        </div>
+
+        <div class="plan-cards" id="ui-plan-cards"></div>
+        <div class="referral-note"><svg class="icon icon--xs"><use href="#i-users"/></svg> Refer a friend and get <strong>+50 agent requests</strong>, one time, when they create an account with your link. <a href="#get-started">Get your link <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a></div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section" id="get-started">
+      <div class="container">
+        <div class="cta-box">
+          <h2>Give your research a place to live.</h2>
+          <p>Start with 5 GB, a lab, local search, and 20 agent requests a day. Bring the project — we'll keep it together.</p>
+          <div class="cta-actions">
+            <a href="#signup" class="btn btn--primary btn--lg" data-open-auth="create">Create free workspace</a>
+            <a href="about.html#contact" class="btn btn--ghost btn--lg">Talk to us</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#top" class="brand" aria-label="Spindle home">
+            <span class="brand-mark">
+              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="brand-name">spindle</span>
+          </a>
+          <p>One place for all your research.</p>
+          <div class="socials" id="ui-socials"></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col"><h4>Product</h4><a href="platform.html">Platform overview</a><a href="index.html#files">Files</a><a href="lab.html">Lab</a><a href="index.html#search">Search</a><a href="automations.html">Automations</a><a href="infrastructure.html">Infrastructure</a><a href="pricing.html">Pricing</a></div>
+          <div class="footer-col"><h4>Workspace</h4><a href="index.html#integrations">Integrations</a><a href="agent.html">Agent</a><a href="index.html#chat">Team chat</a><a href="collaboration.html">Collaboration</a><a href="index.html#get-started">Get started</a></div>
+          <div class="footer-col"><h4>Resources</h4><a href="docs.html">Documentation</a><a href="docs.html#quickstart">Quickstart</a><a href="docs.html#guides">Guides</a><a href="changelog.html">Changelog</a></div>
+          <div class="footer-col"><h4>Company</h4><a href="about.html">About</a><a href="about.html#contact">Contact</a><a href="https://github.com/" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Spindle Labs. Built for curious people.</span>
+        <span class="system-status"><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+  <script type="module" src="/src/nav.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

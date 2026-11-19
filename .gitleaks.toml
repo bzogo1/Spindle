@@ -1,0 +1,17 @@
+title = "Spindle secret scanning"
+
+[extend]
+useDefault = true
+
+# The example file lists variable names with empty values, and legacy/ is
+# vendored reference material that is not part of the production build.
+[allowlist]
+description = "Templates and vendored reference material"
+paths = [
+  '''^\.env\.example$''',
+  '''^legacy/''',
+  '''^public/''',
+  '''^\.next/''',
+  '''^node_modules/''',
+  '''^\.node_modules\.original/''',
+]

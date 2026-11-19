@@ -1,0 +1,51 @@
+---
+title: Working with the agent
+description: Hand the agent a task, review the diff, and keep the changes that belong in the project.
+eyebrow: Autonomy
+section: Using Spindle
+order: 5
+updated: 2026-11-19
+---
+
+## What the agent does
+
+The agent reads the project, edits files in place, moves and reorganizes them, runs the lab, and keeps going through a multi-step task. Every change arrives as a diff you can review, approve, or throw away.
+
+It has the same access to the project that you do: the file tree, notebooks, notes, sources, and recent activity. That is what lets it finish the work instead of describing it.
+
+## What it can change
+
+- Edit datasets, notebooks, scripts, spreadsheets, and notes where they live.
+- Create folders, move files, rename exports, and repair the paths that pointed at them.
+- Run a script or notebook cell and feed the result into the next step.
+- Leave a summary and a run log in the project when the task is done.
+
+It is scoped to the project it was invoked in and cannot reach the rest of the workspace.
+
+## How a request runs
+
+<Steps>
+  <Step title="Understand the request.">
+    It reads the file tree, notes, and recent activity to work out what you are asking for.
+  </Step>
+  <Step title="Write a plan.">
+    The task becomes concrete steps: which files open, which commands run, what changes.
+  </Step>
+  <Step title="Act, then check.">
+    It executes each step, re-reads the result, and retries when something does not line up.
+  </Step>
+  <Step title="Report back.">
+    A summary, a diff, and a run log stay in the project for the next person.
+  </Step>
+</Steps>
+
+## Requests and review
+
+One task is one request, however many steps it takes. Opening a diff, approving it, or rolling it back is free, and a retry inside the same task does not start a new one.
+
+The free plan includes 20 agent requests a day. Refer another person and 50 extra requests are added once; those never expire and are spent after your daily requests run out.
+
+<Note>
+  See [pricing](/pricing) for the current allowance, or read more about the agent on the [agent
+  page](/agent).
+</Note>

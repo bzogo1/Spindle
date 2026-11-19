@@ -1,0 +1,104 @@
+name: Deploy staging
+
+# Staging is the rehearsal host from ADR 0001 §5.3. Every push to main is
+# deployed there; production promotion stays a separate, manual step (DEV-10).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: https://staging.spindle.app
+
+    env:
+      STAGING_HOST: ${{ secrets.STAGING_HOST }}
+      STAGING_USER: ${{ secrets.STAGING_USER }}
+      STAGING_URL: ${{ vars.STAGING_URL || 'https://staging.spindle.app' }}
+      STAGING_APP_IMAGE: ${{ vars.STAGING_APP_IMAGE }}
+      STAGING_WORKER_IMAGE: ${{ vars.STAGING_WORKER_IMAGE }}
+      STAGING_ROOT: /srv/spindle-staging
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deployment configuration
+        run: |
+          set -euo pipefail
+          for name in STAGING_HOST STAGING_USER STAGING_APP_IMAGE STAGING_WORKER_IMAGE; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::${name} is not configured for the staging environment."
+              exit 1
+            fi
+          done
+
+      - name: Configure SSH
+        env:
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${STAGING_SSH_KEY}" || -z "${STAGING_KNOWN_HOSTS}" ]]; then
+            echo "::error::STAGING_SSH_KEY and STAGING_KNOWN_HOSTS are required."
+            exit 1
+          fi
+          umask 077
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "${STAGING_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 0600 ~/.ssh/id_ed25519
+          printf '%s\n' "${STAGING_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+
+      - name: Upload stack definition
+        run: |
+          set -euo pipefail
+          ssh "${STAGING_USER}@${STAGING_HOST}" \
+            "install -d -m 0755 '${STAGING_ROOT}' '${STAGING_ROOT}/cloudflared'"
+          scp infra/origin/compose.yaml \
+            "${STAGING_USER}@${STAGING_HOST}:${STAGING_ROOT}/compose.yaml"
+          scp infra/staging/cloudflared/config.yml \
+            "${STAGING_USER}@${STAGING_HOST}:${STAGING_ROOT}/cloudflared/config.yml"
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          APP_IMAGE="${STAGING_APP_IMAGE}:${GITHUB_SHA}"
+          WORKER_IMAGE="${STAGING_WORKER_IMAGE}:${GITHUB_SHA}"
+
+          ssh "${STAGING_USER}@${STAGING_HOST}" bash -s -- "${APP_IMAGE}" "${WORKER_IMAGE}" <<'EOF'
+          set -euo pipefail
+          export SPINDLE_APP_IMAGE="$1"
+          export SPINDLE_WORKER_IMAGE="$2"
+          cd /srv/spindle-staging
+
+          if [[ ! -f host.env ]]; then
+            echo "Missing /srv/spindle-staging/host.env on the staging host." >&2
+            exit 1
+          fi
+
+          docker compose --env-file host.env pull app worker
+          docker compose --env-file host.env up -d --remove-orphans --wait
+          docker compose --env-file host.env ps
+          EOF
+
+      - name: Smoke test staging
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 10 --retry-delay 3 --retry-all-errors \
+            "${STAGING_URL}/" > /dev/null
+          echo "Staging responded at ${STAGING_URL}." >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed ${STAGING_APP_IMAGE}:${GITHUB_SHA}." >> "$GITHUB_STEP_SUMMARY"

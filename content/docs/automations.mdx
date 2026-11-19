@@ -1,0 +1,28 @@
+---
+title: Automations
+description: Plain-language, visual, or cron automations that live with the project.
+eyebrow: Routines
+section: Using Spindle
+order: 7
+updated: 2026-11-19
+---
+
+## Describe the routine
+
+Describe a repeated step in plain language or write a cron job yourself. Either way, the automation lives with the project it serves and can update files, notes, or results.
+
+## A weekly example
+
+<DocCode
+  title="CRON"
+  meta="WEEKLY"
+  language="cron"
+  footerLeft="PROJECT-SCOPED"
+  footerRight="EDITABLE"
+  code={`0 7 * * 1  refresh /data/tides.csv
+             && summarize changes to project-log.md`}
+/>
+
+## Review the output
+
+Automations write their results back into the project, so the next run has the same context as the last one. A failed run leaves its log and the files it touched in place, which makes a quiet Monday morning fixable without guessing what happened.

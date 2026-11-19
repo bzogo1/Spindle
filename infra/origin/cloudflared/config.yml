@@ -1,0 +1,31 @@
+# Ingress for the production tunnel. The tunnel UUID is passed on the
+# cloudflared command line from CLOUDFLARE_TUNNEL_ID; credentials are mounted
+# from the host secret store at /etc/cloudflared/credentials.json.
+#
+# Only these two hostnames exist. Anything else is a 404 at the edge.
+
+credentials-file: /etc/cloudflared/credentials.json
+no-autoupdate: true
+protocol: quic
+
+ingress:
+  - hostname: app.spindle.app
+    # The connector and the app share the internal `spindle` network.
+    service: http://app:8080
+    originRequest:
+      connectTimeout: 10s
+      # SSE and long agent runs must not be cut by an idle origin connection.
+      tcpKeepAlive: 30s
+
+  - hostname: lab.spindle.app
+    # The lab proxy joins `spindle` and `spindle-lab` and upgrades WebSockets
+    # for notebook, terminal, and dev-server sessions. Session containers live
+    # on spindle-lab and are never published.
+    service: http://lab-proxy:7000
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+      # WebSocket frames must pass through without buffering.
+      disableChunkedEncoding: false
+
+  - service: http_status:404

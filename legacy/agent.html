@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f0e" />
+  <title>Agent — Spindle</title>
+  <meta name="description" content="Spindle's agent reads your project, edits files in place, moves and reorganizes them, and runs multi-step tasks autonomously — with 20 requests a day, plus 50 never-expiring requests when you refer someone." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="agent.css" />
+</head>
+<body class="agent-page">
+
+  <!-- Icon sprite -->
+  <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3.2-6.5L4 12z"/><path d="M10.8 13.5L20 4"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4V5z"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V6z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6L4.8 18a2 2 0 001.7 3h11a2 2 0 001.7-3L14 9V3M7.5 15h9"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8V4z"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 00-14.3-4.8L4 8M4 4v4h4M4 13a8 8 0 0014.3 4.8L20 16M20 20v-4h-4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></symbol>
+    <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="7" r="2"/><path d="M6 7v10M18 9a6 6 0 01-6 6H6"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.4-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 015 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7 1 .7 2v3c0 .3.2.6.7.5A10.2 10.2 0 0022 12.3C22 6.6 17.5 2 12 2z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-x-social" viewBox="0 0 24 24"><path d="M17.5 3h3.2l-7 8 8.2 10h-6.4l-5-6.1L4.5 21H1.3l7.5-8.6L1 3h6.6l4.5 5.6L17.5 3zm-1.1 16h1.8L7.6 4.9H5.7L16.4 19z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-discord" viewBox="0 0 24 24"><path d="M19.5 5.6A17 17 0 0015.4 4l-.5 1a15 15 0 00-4.8 0l-.5-1a17 17 0 00-4.1 1.6C2.6 9.3 1.9 13 2.2 16.6a17 17 0 005.2 2.6l1.1-1.8c-.6-.2-1.2-.5-1.7-.9l.4-.3c3.4 1.6 7.1 1.6 10.5 0l.4.3c-.5.4-1.1.7-1.7.9l1.1 1.8a17 17 0 005.2-2.6c.4-4.2-.7-7.8-2.9-11zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z" fill="currentColor" stroke="none"/></symbol>
+  </svg>
+
+  <!-- Header -->
+  <header class="site-header" id="header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="Spindle home">
+        <span class="brand-mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-name">spindle</span>
+      </a>
+
+      <div class="nav-desktop-slot" id="ui-main-nav">
+        <nav class="nav-fallback" aria-label="Main navigation">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </nav>
+      </div>
+
+      <div class="header-actions">
+        <div id="ui-signin"></div>
+        <a href="#get-started" class="btn btn--primary btn--sm">Start free</a>
+        <button class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobileNav">
+          <svg class="icon icon--open"><use href="#i-menu"/></svg>
+          <svg class="icon icon--close"><use href="#i-close"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation">
+      <div id="ui-mobile-nav">
+        <div class="nav-fallback-mobile">
+          <a href="platform.html">Product</a>
+          <a href="solutions.html">Solutions</a>
+          <a href="pricing.html">Pricing</a>
+          <a href="docs.html">Resources</a>
+          <a href="about.html">Company</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- ============================ HERO ============================ -->
+    <section class="agent-hero">
+      <div class="agent-hero-grid-bg" aria-hidden="true"></div>
+      <div class="agent-hero-glow" aria-hidden="true"></div>
+
+      <div class="container agent-hero-inner">
+        <div class="agent-hero-copy" data-reveal>
+          <div class="agent-kicker"><i aria-hidden="true"></i> AGENT · INCLUDED ON THE FREE PLAN</div>
+          <h1>An agent that<br /><span>works the project.</span></h1>
+          <p class="agent-subtitle">
+            It reads your files, edits them in place, moves them where they belong, and keeps going
+            until the task is finished. Every change arrives as a diff you can review, approve, or throw away.
+          </p>
+          <div class="agent-hero-actions">
+            <a href="index.html#get-started" class="btn btn--primary btn--lg">Start with 20 requests a day <svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            <a href="#capabilities" class="btn btn--ghost btn--lg">See what it can do</a>
+          </div>
+          <div class="agent-hero-foot">
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Edits files, not just chat</span>
+            <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Autonomous multi-step runs</span>
+          </div>
+        </div>
+
+        <div class="agent-hero-visual" data-reveal data-reveal-delay="100">
+          <div class="visual-halo" aria-hidden="true"></div>
+          <div class="product-window agent-window agent-window--hero">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg> Agent · coastal-resilience</span>
+              <span class="window-bar-status"><i></i> 14 / 20 left</span>
+            </div>
+            <div class="agent-body">
+              <div class="agent-prompt-label">REQUEST</div>
+              <div class="agent-prompt" id="agentPrompt">Move the 2026 field data into /data/2026, rename the exports, and fix every notebook path.</div>
+              <div class="agent-suggestions" role="group" aria-label="Example agent requests">
+                <button class="suggestion is-active" data-agent-example="moveFiles">Reorganize files</button>
+                <button class="suggestion" data-agent-example="refactor">Refactor a pipeline</button>
+                <button class="suggestion" data-agent-example="spreadsheet">Edit a spreadsheet</button>
+              </div>
+              <div class="agent-trace" id="agentTrace">
+                <div class="trace-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Scan 34 files and 2 notebooks for references</span><time>0.5s</time></div>
+                <div class="trace-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Create <strong>/data/2026</strong> and move 12 files into it</span><time>1.6s</time></div>
+                <div class="trace-row is-running"><span class="trace-icon"><span class="trace-pulse"></span></span><span>Rewriting 8 paths in <strong>analysis.ipynb</strong></span><time>2.9s</time></div>
+                <div class="trace-row"><span class="trace-icon trace-icon--empty"></span><span>Report the changes to the project log</span><time>—</time></div>
+              </div>
+              <div class="agent-diff"><span><i class="diff-add"></i> 12 files moved</span><span><i class="diff-del"></i> 8 paths repaired</span><span class="agent-diff-note">Nothing applied until you review</span></div>
+            </div>
+            <div class="agent-run-foot">
+              <span class="mono">RUNNING · 00:12</span>
+              <span>Step 3 of 4 · working autonomously</span>
+            </div>
+          </div>
+
+          <div class="floating-note agent-float" aria-hidden="true">
+            <span class="note-icon"><svg class="icon icon--xs"><use href="#i-sparkle"/></svg></span>
+            <span><strong>+50 requests</strong><small>for each referral · never expire</small></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= CAPABILITIES ======================= -->
+    <section class="section" id="capabilities">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">What it can do</div>
+          <h2 class="section-title">More than a chat window.</h2>
+          <p class="section-desc">The agent has the same access to the project that you do: the file tree, the notebooks, the lab, and the notes. That is what lets it finish the work instead of describing it.</p>
+        </div>
+
+        <div class="agent-cap-grid">
+          <article class="agent-cap" data-reveal>
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-code"/></svg></span>
+            <h3>Edit files in place</h3>
+            <p>Open a CSV, a notebook, a script, or a note and change it where it lives — no copy-paste round trip, no lost formatting, no final_v7.</p>
+            <span class="agent-cap-meta">CSV · XLSX · IPYNB · MD</span>
+          </article>
+
+          <article class="agent-cap" data-reveal data-reveal-delay="60">
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-folder"/></svg></span>
+            <h3>Move and reorganize</h3>
+            <p>Create folders, move files, rename exports, and repair the notebook paths and references that pointed at them.</p>
+            <span class="agent-cap-meta">MOVE · RENAME · REPOINT</span>
+          </article>
+
+          <article class="agent-cap" data-reveal data-reveal-delay="120">
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-bolt"/></svg></span>
+            <h3>Work autonomously</h3>
+            <p>Give it an outcome, not a checklist. It plans the steps, runs them in order, checks its own output, and continues without you.</p>
+            <span class="agent-cap-meta">PLAN · ACT · VERIFY</span>
+          </article>
+
+          <article class="agent-cap" data-reveal>
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-search"/></svg></span>
+            <h3>Read the whole project</h3>
+            <p>File tree, notes, sources, and recent project activity are all in scope, so it stops guessing where things live.</p>
+            <span class="agent-cap-meta">PROJECT CONTEXT</span>
+          </article>
+
+          <article class="agent-cap" data-reveal data-reveal-delay="60">
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-flask"/></svg></span>
+            <h3>Run the lab</h3>
+            <p>Execute a script or a notebook cell, read the result, and feed it into the next step of the task — then show you what ran.</p>
+            <span class="agent-cap-meta">PYTHON · R · SHELL</span>
+          </article>
+
+          <article class="agent-cap" data-reveal data-reveal-delay="120">
+            <span class="agent-cap-icon"><svg class="icon"><use href="#i-shield"/></svg></span>
+            <h3>Stop for review</h3>
+            <p>Every change lands as a diff. Approve it, adjust it, or roll it back — nothing is applied behind your back.</p>
+            <span class="agent-cap-meta">DIFF · APPROVE · UNDO</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== EDIT & MOVE ======================= -->
+    <section class="section section--alt" id="organize">
+      <div class="container">
+        <div class="agent-split">
+          <div class="agent-split-copy" data-reveal>
+            <div class="eyebrow">Files, not screenshots</div>
+            <h2 class="section-title">It edits files. It moves them around.</h2>
+            <p class="section-desc">This is not a chatbot telling you what you could do. The agent works inside the project: opens the file, makes the change, puts it back, and tells you exactly what moved.</p>
+            <ul class="feature-list">
+              <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Edits in place</strong><small>Keeps the format, encoding, and column order of the original.</small></span></li>
+              <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>Moves without breaking links</strong><small>Renames an export and updates every notebook that referenced it.</small></span></li>
+              <li><span class="feature-check"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span><strong>A real file tree</strong><small>New folders, archived versions, cleaned duplicates — in the project you already have.</small></span></li>
+            </ul>
+            <a href="#requests" class="text-link">See what a request covers <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></a>
+          </div>
+
+          <div class="product-window agent-tree-window" data-reveal data-reveal-delay="100">
+            <div class="window-bar">
+              <div class="traffic-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+              <span class="window-bar-title"><svg class="icon icon--xs"><use href="#i-folder"/></svg> coastal-resilience / files</span>
+              <span class="window-bar-status"><i></i> 12 files moved</span>
+            </div>
+            <div class="agent-tree-body">
+              <div class="agent-tree-col">
+                <span class="agent-tree-label">BEFORE</span>
+                <div class="agent-file agent-file--folder"><svg class="icon"><use href="#i-chevron-down"/></svg><span>data</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--csv">CSV</span><span>tidal-2026.csv</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--parquet">PQ</span><span>survey.parquet</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--other">GEO</span><span>sites.geojson</span></div>
+                <div class="agent-file agent-file--indent agent-file--moved"><span class="file-ext file-ext--csv">CSV</span><span>export_final_v3.csv</span></div>
+                <div class="agent-file agent-file--indent agent-file--moved"><span class="file-ext file-ext--csv">CSV</span><span>export_final_v2.csv</span></div>
+                <div class="agent-file agent-file--folder"><svg class="icon"><use href="#i-chevron-down"/></svg><span>notebooks</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--ipynb">IPY</span><span>analysis.ipynb</span></div>
+              </div>
+
+              <div class="agent-tree-arrow" aria-hidden="true"><svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></div>
+
+              <div class="agent-tree-col agent-tree-col--after">
+                <span class="agent-tree-label">AFTER</span>
+                <div class="agent-file agent-file--folder"><svg class="icon"><use href="#i-chevron-down"/></svg><span>data</span></div>
+                <div class="agent-file agent-file--indent agent-file--new"><svg class="icon"><use href="#i-folder"/></svg><span>2026</span></div>
+                <div class="agent-file agent-file--indent-2"><span class="file-ext file-ext--csv">CSV</span><span>tidal-2026.csv</span></div>
+                <div class="agent-file agent-file--indent-2"><span class="file-ext file-ext--parquet">PQ</span><span>survey.parquet</span></div>
+                <div class="agent-file agent-file--indent-2"><span class="file-ext file-ext--other">GEO</span><span>sites.geojson</span></div>
+                <div class="agent-file agent-file--folder"><svg class="icon"><use href="#i-chevron-down"/></svg><span>archive</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--csv">CSV</span><span>field-export.csv</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--csv">CSV</span><span>field-export-v2.csv</span></div>
+                <div class="agent-file agent-file--folder"><svg class="icon"><use href="#i-chevron-down"/></svg><span>notebooks</span></div>
+                <div class="agent-file agent-file--indent"><span class="file-ext file-ext--ipynb">IPY</span><span>analysis.ipynb</span></div>
+              </div>
+            </div>
+            <div class="agent-tree-foot"><span>12 files moved</span><span>8 paths repaired</span><span>0 files lost</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= AUTONOMY ======================= -->
+    <section class="section" id="autonomy">
+      <div class="container">
+        <div class="agent-autonomy">
+          <div class="agent-autonomy-copy" data-reveal>
+            <div class="eyebrow">Autonomy</div>
+            <h2 class="section-title">Point it at an outcome. Walk away.</h2>
+            <p class="section-desc">You do not have to babysit the steps. A request becomes a plan, the plan becomes a run, and the run continues across files, folders, and lab sessions until the task is finished.</p>
+            <ol class="agent-steps">
+              <li class="agent-step"><div><strong>Understand the request</strong><p>Reads the file tree, notes, and recent activity to work out what you are actually asking for.</p></div></li>
+              <li class="agent-step"><div><strong>Write a plan</strong><p>Breaks the task into concrete steps: which files open, which commands run, what changes.</p></div></li>
+              <li class="agent-step"><div><strong>Act, then check</strong><p>Executes each step, re-reads the result, and retries when something does not line up.</p></div></li>
+              <li class="agent-step"><div><strong>Report back</strong><p>Leaves a summary, a diff, and a run log in the project so the next person can follow it.</p></div></li>
+            </ol>
+            <div class="agent-run-note">
+              <strong>Long jobs are fine.</strong> Runs live with the project, not in your browser tab. Close the laptop and come back to a finished diff, a paused approval, or a clear failure.
+            </div>
+          </div>
+
+          <div class="product-window agent-run-card" data-reveal data-reveal-delay="100">
+            <div class="agent-run-head">
+              <div>
+                <span class="panel-kicker">ACTIVE RUN · 00:42</span>
+                <h3>Tidy the 2026 field season</h3>
+              </div>
+              <span class="status-pill"><i></i> Autonomous</span>
+            </div>
+            <div class="agent-run-body">
+              <div class="agent-run-progress" role="progressbar" aria-label="Run progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="72"><span></span></div>
+              <div class="agent-run-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Moved 12 files into <strong>/data/2026</strong></span><span class="run-state">DONE</span></div>
+              <div class="agent-run-row is-done"><span class="trace-icon"><svg class="icon icon--xs"><use href="#i-check"/></svg></span><span>Renamed <strong>export_final_v3.csv</strong> → field-export.csv</span><span class="run-state">DONE</span></div>
+              <div class="agent-run-row is-live"><span class="trace-icon"><span class="trace-pulse"></span></span><span>Rewriting paths in <strong>analysis.ipynb</strong></span><span class="run-state">LIVE</span></div>
+              <div class="agent-run-row is-paused"><span class="trace-icon trace-icon--empty"></span><span>Run the notebook once to confirm</span><span class="run-state">QUEUED</span></div>
+            </div>
+            <div class="agent-run-footer">
+              <span>Self-checks passed · 2 / 2</span>
+              <span class="status-pill status-pill--tiny"><i></i> Review before apply</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================== REQUESTS & REFERRALS =================== -->
+    <section class="section section--alt" id="requests">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Requests</div>
+          <h2 class="section-title">20 requests a day. 50 more when you refer someone.</h2>
+          <p class="section-desc">Every plan includes agent requests. Spend them on whole tasks — the edits, the moves, the lab run, and the summary at the end.</p>
+        </div>
+
+        <div class="agent-allowance-grid">
+          <div class="allowance-card allowance-card--daily" data-reveal>
+            <div class="eyebrow">Every day</div>
+            <div class="allowance-big">
+              <span class="num">20</span>
+              <span class="unit">AGENT REQUESTS<br />PER DAY</span>
+            </div>
+            <h3>Included on the free plan</h3>
+            <p>Twenty requests arrive with every day, on the same plan that gives you 5 GB of storage. One request covers one task, from your first sentence to the finished diff — however many steps it takes.</p>
+            <span class="allowance-tag">NO CARD · NO TRIAL</span>
+          </div>
+
+          <div class="allowance-card allowance-card--referral" data-reveal data-reveal-delay="80">
+            <div class="eyebrow">One time</div>
+            <div class="allowance-big">
+              <span class="num">+50</span>
+              <span class="unit">EXTRA REQUESTS<br />FOR A REFERRAL</span>
+            </div>
+            <h3>Refer a new user</h3>
+            <p>Send someone your link. When they create an account with it, 50 extra requests are added to your plan, one time.</p>
+            <p>Unlike the daily twenty, these do not expire. They sit in your balance until a week gets busy.</p>
+            <span class="allowance-tag"><svg class="icon icon--xs"><use href="#i-clock"/></svg> NEVER EXPIRE</span>
+          </div>
+        </div>
+
+        <div class="request-rules">
+          <article class="request-rule">
+            <span>01</span>
+            <h3>One task, one request</h3>
+            <p>A request is one instruction you hand the agent. A ten-step refactor is still a single request.</p>
+          </article>
+          <article class="request-rule">
+            <span>02</span>
+            <h3>Reviewing is free</h3>
+            <p>Opening a diff, approving it, or rolling it back never spends a request. Only new tasks do.</p>
+          </article>
+          <article class="request-rule">
+            <span>03</span>
+            <h3>Bonus first, then daily</h3>
+            <p>Referral requests are used after the day's twenty run out, so your balance carries forward untouched.</p>
+          </article>
+        </div>
+
+        <ol class="referral-steps">
+          <li class="referral-step"><div><strong>Share your link</strong><small>Every account gets one in the referral panel.</small></div></li>
+          <li class="referral-step"><div><strong>They create an account</strong><small>The bonus applies the first time a new user joins with your link.</small></div></li>
+          <li class="referral-step"><div><strong>50 requests land</strong><small>Added once, never expire, shown next to your daily balance.</small></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ======================== EXAMPLES ======================== -->
+    <section class="section" id="examples">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">In practice</div>
+          <h2 class="section-title">Things people hand to the agent.</h2>
+          <p class="section-desc">Edits, moves, and follow-through across the project — not just a paragraph of advice about it.</p>
+        </div>
+
+        <div class="agent-use-grid">
+          <article class="agent-use-card" data-reveal>
+            <div class="agent-use-head"><span class="agent-use-icon"><svg class="icon icon--sm"><use href="#i-folder"/></svg></span><h3>Tidy a field season</h3></div>
+            <p class="agent-use-prompt">Move everything from the 2026 survey into data/2026, rename the exports consistently, and fix the notebook paths.</p>
+            <span class="agent-use-result"><svg class="icon"><use href="#i-check"/></svg> 12 files moved · 8 paths repaired</span>
+          </article>
+
+          <article class="agent-use-card" data-reveal data-reveal-delay="60">
+            <div class="agent-use-head"><span class="agent-use-icon"><svg class="icon icon--sm"><use href="#i-grid"/></svg></span><h3>Edit a spreadsheet</h3></div>
+            <p class="agent-use-prompt">Normalize the site names in results.xlsx and add the salinity column from tidal-2026.csv.</p>
+            <span class="agent-use-result"><svg class="icon"><use href="#i-check"/></svg> 3 sheets edited · review copy saved</span>
+          </article>
+
+          <article class="agent-use-card" data-reveal data-reveal-delay="120">
+            <div class="agent-use-head"><span class="agent-use-icon"><svg class="icon icon--sm"><use href="#i-code"/></svg></span><h3>Refactor a pipeline</h3></div>
+            <p class="agent-use-prompt">Split the cleaning logic out of analysis.ipynb into clean_data.py and update results.csv with the new columns.</p>
+            <span class="agent-use-result"><svg class="icon"><use href="#i-check"/></svg> +84 lines · −19 lines</span>
+          </article>
+
+          <article class="agent-use-card" data-reveal data-reveal-delay="180">
+            <div class="agent-use-head"><span class="agent-use-icon"><svg class="icon icon--sm"><use href="#i-sparkle"/></svg></span><h3>Summarize sources</h3></div>
+            <p class="agent-use-prompt">Read the 6 newest papers in /sources and draft a literature note with a citation for each claim.</p>
+            <span class="agent-use-result"><svg class="icon"><use href="#i-check"/></svg> literature-note.md · 6 citations</span>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= GUARDRAILS ======================= -->
+    <section class="section section--alt" id="control">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Control</div>
+          <h2 class="section-title">Autonomous does not mean unsupervised.</h2>
+          <p class="section-desc">The agent gets room to finish the job, not permission to do whatever it likes. These limits are always on.</p>
+        </div>
+
+        <div class="agent-guard-grid">
+          <article class="agent-guard" data-reveal>
+            <span class="agent-guard-icon"><svg class="icon icon--sm"><use href="#i-eye"/></svg></span>
+            <h3>Every change is a diff</h3>
+            <p>Inspect the exact lines before they land. Approve, adjust, or discard the whole run.</p>
+          </article>
+          <article class="agent-guard" data-reveal data-reveal-delay="60">
+            <span class="agent-guard-icon"><svg class="icon icon--sm"><use href="#i-clock"/></svg></span>
+            <h3>History you can rewind</h3>
+            <p>Each run keeps its inputs, file changes, and output. Restore an earlier version in one click.</p>
+          </article>
+          <article class="agent-guard" data-reveal data-reveal-delay="120">
+            <span class="agent-guard-icon"><svg class="icon icon--sm"><use href="#i-lock"/></svg></span>
+            <h3>Scoped to one project</h3>
+            <p>It sees the project it was invoked in, and nothing else in your workspace.</p>
+          </article>
+          <article class="agent-guard" data-reveal data-reveal-delay="180">
+            <span class="agent-guard-icon"><svg class="icon icon--sm"><use href="#i-shield"/></svg></span>
+            <h3>Approval gates</h3>
+            <p>Overwrites, folder-wide moves, and anything destructive pause for a yes before they run.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== FAQ ========================== -->
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-head">
+          <div class="eyebrow">Questions</div>
+          <h2 class="section-title">The practical details.</h2>
+        </div>
+
+        <div class="agent-faq">
+          <details open>
+            <summary>What can the agent actually change? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>Files inside the project: datasets, notebooks, scripts, spreadsheets, and notes. It can edit them in place, create folders, move and rename files, and update the references that pointed at them. It cannot reach outside the project it was invoked in.</p>
+          </details>
+          <details>
+            <summary>How autonomous is it, really? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>A single request can carry a multi-step task: read the project, write a plan, edit or move files, run the lab, check the result, and report back. It keeps going without you between steps, and pauses at approval gates rather than guessing.</p>
+          </details>
+          <details>
+            <summary>What counts against my 20 requests? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>One task is one request, however many steps it takes. Reviewing a diff, approving it, or rolling it back is free. A retry inside the same task does not start a new request either.</p>
+          </details>
+          <details>
+            <summary>Do the daily 20 carry over? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>Each day brings a fresh twenty. Unused daily requests do not accumulate — which is why the referral bonus is kept separate. Those 50 are added once and never expire.</p>
+          </details>
+          <details>
+            <summary>How do referral requests work? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>Share your link from the referral panel. When a new user creates an account with it, 50 requests are added to your plan one time. They never expire and are spent after your daily requests run out.</p>
+          </details>
+          <details>
+            <summary>Does it work in a shared project? <svg class="icon icon--xs"><use href="#i-plus"/></svg></summary>
+            <p>Yes. A run is attributed to whoever started it, and the diff and run log stay in the project. Teammates can review the same changes, and the history makes it clear what moved and why.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== CTA ========================== -->
+    <section class="cta-section" id="get-started">
+      <div class="container">
+        <div class="cta-box agent-cta">
+          <div class="cta-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="eyebrow">READY WHEN YOU ARE</div>
+          <h2>Hand it the boring half of the project.</h2>
+          <p>Start free with 20 agent requests a day — or refer a colleague and keep 50 more in reserve, without an expiry date.</p>
+          <div class="cta-actions">
+            <a href="index.html#get-started" class="btn btn--primary btn--lg">Create free workspace <svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            <a href="pricing.html" class="btn btn--ghost btn--lg">See the pricing</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="index.html" class="brand" aria-label="Spindle home">
+            <span class="brand-mark">
+              <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <path d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+                <circle cx="8" cy="22" r="2.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="brand-name">spindle</span>
+          </a>
+          <p>One place for all your research.</p>
+          <div class="socials" id="ui-socials"></div>
+        </div>
+
+        <div class="footer-links">
+          <div class="footer-col"><h4>Product</h4><a href="platform.html">Platform overview</a><a href="index.html#integrations">Integrations</a><a href="automations.html">Automations</a><a href="lab.html">The Lab</a><a href="infrastructure.html">Infrastructure</a><a href="index.html#search">Search</a><a href="index.html#files">Files</a></div>
+          <div class="footer-col"><h4>Workspace</h4><a href="agent.html" aria-current="page">Agent</a><a href="collaboration.html">Collaboration</a><a href="pricing.html">Free plan</a><a href="#get-started">Get started</a></div>
+          <div class="footer-col"><h4>Resources</h4><a href="https://nym.com/" target="_blank" rel="noopener noreferrer">Nym Mixnet ↗</a><a href="https://searxng.org/" target="_blank" rel="noopener noreferrer">SearXNG ↗</a><a href="changelog.html">Changelog</a><a href="index.html#docs">Documentation</a></div>
+          <div class="footer-col"><h4>Legal</h4><a href="index.html#privacy">Privacy</a><a href="index.html#terms">Terms</a><a href="index.html#security">Security</a></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Spindle Labs. Built for curious people.</span>
+        <span class="system-status"><i></i> All systems operational</span>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+  <script type="module" src="/src/nav.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
