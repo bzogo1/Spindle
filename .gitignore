@@ -13,8 +13,8 @@ src/generated/prisma/
 .env.*
 !.env.example
 
-# Local agent credentials (never commit a provider token)
-.agents/mcp.json
+# Local agent config and credentials (never commit provider tokens)
+.agents/
 
 # Build/test artifacts
 test-results/
