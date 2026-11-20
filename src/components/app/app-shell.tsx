@@ -161,6 +161,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="app-sidebar-nav" aria-label="App navigation">
           <NavList />
         </nav>
+
+        {/* User footer: avatar menu pinned to the bottom of the sidebar. */}
+        <div className="app-sidebar-footer">
+          <UserMenu />
+        </div>
       </aside>
 
       <div className="app-body-col">
@@ -187,6 +192,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <nav aria-label="App navigation">
               <NavList onNavigate={() => setDrawerOpen(false)} />
             </nav>
+            {/* Same user footer as the desktop sidebar, for mobile parity. */}
+            <div className="app-drawer-footer">
+              <UserMenu />
+            </div>
           </MobileNavDrawer>
 
           <span className="app-topbar-title">{pageTitle(pathname)}</span>
@@ -197,7 +206,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NotificationBell />
             <MessagesBell />
             <ThemeToggle />
-            <UserMenu />
           </div>
         </header>
 

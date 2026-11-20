@@ -210,6 +210,19 @@
   margin-top: 8px;
 }
 
+/* User footer pinned to the bottom of the sidebar (avatar + account menu). */
+.app-sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--app-border);
+}
+
+.app-sidebar-footer .app-account-trigger,
+.app-drawer-footer .app-account-trigger {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .app-nav-list {
   list-style: none;
   margin: 0;
@@ -278,6 +291,17 @@
 
 .app-shell.is-collapsed .app-sidebar-head {
   justify-content: center;
+}
+
+/* Collapsed rail: the footer keeps only the avatar, centered like the nav. */
+.app-shell.is-collapsed .app-sidebar-footer .app-account-name,
+.app-shell.is-collapsed .app-sidebar-footer .app-workspace-caret {
+  display: none;
+}
+
+.app-shell.is-collapsed .app-sidebar-footer .app-account-trigger {
+  justify-content: center;
+  padding: 7px 0;
 }
 
 /* ---------- Top bar ---------- */
@@ -667,6 +691,13 @@
 .app-drawer .app-nav-link {
   padding: 11px 10px;
   font-size: 15px;
+}
+
+/* Same user footer as the desktop sidebar, at the bottom of the drawer. */
+.app-drawer-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--app-border);
 }
 
 .app-search-dialog {
@@ -1284,7 +1315,7 @@
   }
 
   .app-topbar-title,
-  .app-account-name,
+  .app-topbar .app-account-name,
   .app-search-label,
   .app-search-kbd {
     display: none;
