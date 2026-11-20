@@ -34,7 +34,13 @@ const PUBLIC_ROUTES = [
   "/reset-password",
 ] as const
 
-const APP_ROUTES = ["/dashboard", "/projects", "/dashboard/usage", "/app/settings"] as const
+const APP_ROUTES = [
+  "/dashboard",
+  "/projects",
+  "/dashboard/usage",
+  "/dashboard/members",
+  "/app/settings",
+] as const
 
 test.describe("mobile viewport — public routes", () => {
   for (const path of PUBLIC_ROUTES) {

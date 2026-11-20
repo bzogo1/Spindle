@@ -1268,6 +1268,7 @@ export function TeamMembersScreen() {
             selectable={canSelectMembers}
             selectedIds={selectedMemberIds}
             onSelectionChange={setSelectedMemberIds}
+            stickyFirstColumn
             searchable
             searchPlaceholder="Search members…"
             loading={!ready}

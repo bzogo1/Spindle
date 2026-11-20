@@ -46,7 +46,13 @@ const PUBLIC_ROUTES = [
 const AUTH_ROUTES = ["/reset-password"] as const
 
 /** `(app)` shell routes; guarded by the mock-session cookie under NEXT_PUBLIC_MOCK_AUTH=1. */
-const APP_ROUTES = ["/dashboard", "/projects", "/dashboard/usage", "/app/settings"] as const
+const APP_ROUTES = [
+  "/dashboard",
+  "/projects",
+  "/dashboard/usage",
+  "/dashboard/members",
+  "/app/settings",
+] as const
 
 /**
  * Pre-decides cookie consent so the marketing consent banner never mounts —

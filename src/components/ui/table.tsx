@@ -162,6 +162,12 @@ export interface DataTableProps<T> {
   overscan?: number
 
   stickyHeader?: boolean
+  /**
+   * Pin the first column (and the selection checkbox column, when
+   * `selectable`) to the left edge while the table scrolls horizontally on
+   * narrow viewports. Assumes the table sits on the card surface.
+   */
+  stickyFirstColumn?: boolean
   loading?: boolean
   /** Number of skeleton rows shown while `loading`. Defaults to 5. */
   loadingRows?: number
@@ -182,6 +188,17 @@ const alignClass: Record<NonNullable<DataTableColumn<unknown>["align"]>, string>
   center: "text-center",
   right: "text-right",
 }
+
+/**
+ * Classes that pin a cell to the left edge of the table's horizontal scroll
+ * container (mobile responsive pass). `bg-card` keeps scrolled columns from
+ * showing through the pinned cell; the `group-*` utilities mirror the row's
+ * hover/selected background (TableRow is given `group` when this is active)
+ * so the pinned cell tracks the rest of the row. The inset shadow draws the
+ * separator between the pinned column and the scrolling columns.
+ */
+const stickyCellClass =
+  "sticky z-[1] bg-card shadow-[inset_-1px_0_0_0_var(--color-border)] group-hover:bg-muted/50 group-data-[state=selected]:bg-muted"
 
 function nextSortState(current: SortState | null, key: string): SortState | null {
   if (!current || current.key !== key) return { key, direction: "asc" }
@@ -262,6 +279,7 @@ function DataTable<T>({
   virtualHeight = 480,
   overscan = 8,
   stickyHeader = false,
+  stickyFirstColumn = false,
   loading = false,
   loadingRows = 5,
   emptyState,
@@ -421,6 +439,30 @@ function DataTable<T>({
 
   const headSticky = stickyHeader || virtualize
 
+  /* --------------------- sticky first column (mobile) --------------------- */
+  // Pinning is applied by cloning the first column definition with the sticky
+  // classes merged in, so sort/filter logic keeps using the untouched
+  // `columns` array. When rows are selectable the checkbox column pins at
+  // left-0 and the first data column offsets by its fixed w-10 (2.5rem)
+  // width; otherwise the first data column pins at left-0.
+  const selectSticky = stickyFirstColumn ? cn(stickyCellClass, "left-0") : undefined
+  const firstColLeft = selectable ? "left-10" : "left-0"
+  const tableColumns = React.useMemo(
+    () =>
+      stickyFirstColumn
+        ? columns.map((col, index) =>
+            index === 0
+              ? {
+                  ...col,
+                  className: cn(col.className, stickyCellClass, firstColLeft),
+                  headClassName: cn(col.headClassName, stickyCellClass, firstColLeft),
+                }
+              : col,
+          )
+        : columns,
+    [columns, stickyFirstColumn, selectable, firstColLeft],
+  )
+
   /* -------------------------------- render -------------------------------- */
   return (
     <div data-slot="data-table" className={cn("flex flex-col gap-3", className)}>
@@ -460,7 +502,11 @@ function DataTable<T>({
               <TableRow>
                 {selectable && (
                   <TableHead
-                    className={cn("w-10", headSticky && "bg-background sticky top-0 z-10")}
+                    className={cn(
+                      "w-10",
+                      headSticky && "bg-background sticky top-0 z-10",
+                      selectSticky,
+                    )}
                   >
                     <Checkbox
                       checked={selectAllState}
@@ -469,7 +515,7 @@ function DataTable<T>({
                     />
                   </TableHead>
                 )}
-                {columns.map((col) =>
+                {tableColumns.map((col) =>
                   col.sortValue ? (
                     <SortableHead
                       key={col.id}
@@ -508,7 +554,7 @@ function DataTable<T>({
                         <div className="bg-muted size-4 animate-pulse rounded" />
                       </TableCell>
                     )}
-                    {columns.map((col) => (
+                    {tableColumns.map((col) => (
                       <TableCell key={col.id} className={col.className}>
                         <div className="bg-muted h-4 w-3/4 animate-pulse rounded" />
                       </TableCell>
@@ -530,7 +576,7 @@ function DataTable<T>({
                       key={id}
                       data-state={selected.includes(id) ? "selected" : undefined}
                       tabIndex={onRowClick ? 0 : undefined}
-                      className={cn(onRowClick && "cursor-pointer")}
+                      className={cn(onRowClick && "cursor-pointer", stickyFirstColumn && "group")}
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                       onKeyDown={
                         onRowClick
@@ -544,7 +590,10 @@ function DataTable<T>({
                       }
                     >
                       {selectable && (
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          onClick={(e) => e.stopPropagation()}
+                          className={selectSticky}
+                        >
                           <Checkbox
                             checked={selected.includes(id)}
                             onCheckedChange={() => toggleRow(id)}
@@ -552,7 +601,7 @@ function DataTable<T>({
                           />
                         </TableCell>
                       )}
-                      {columns.map((col) => (
+                      {tableColumns.map((col) => (
                         <TableCell
                           key={col.id}
                           className={cn(alignClass[col.align ?? "left"], col.className)}
@@ -579,7 +628,11 @@ function DataTable<T>({
               <TableRow>
                 {selectable && (
                   <TableHead
-                    className={cn("w-10", headSticky && "bg-background sticky top-0 z-10")}
+                    className={cn(
+                      "w-10",
+                      headSticky && "bg-background sticky top-0 z-10",
+                      selectSticky,
+                    )}
                   >
                     <Checkbox
                       checked={selectAllState}
@@ -588,7 +641,7 @@ function DataTable<T>({
                     />
                   </TableHead>
                 )}
-                {columns.map((col) =>
+                {tableColumns.map((col) =>
                   col.sortValue ? (
                     <SortableHead
                       key={col.id}
@@ -622,7 +675,7 @@ function DataTable<T>({
                         <div className="bg-muted size-4 animate-pulse rounded" />
                       </TableCell>
                     )}
-                    {columns.map((col) => (
+                    {tableColumns.map((col) => (
                       <TableCell key={col.id} className={col.className}>
                         <div className="bg-muted h-4 w-3/4 animate-pulse rounded" />
                       </TableCell>
@@ -644,7 +697,7 @@ function DataTable<T>({
                       key={id}
                       data-state={selected.includes(id) ? "selected" : undefined}
                       tabIndex={onRowClick ? 0 : undefined}
-                      className={cn(onRowClick && "cursor-pointer")}
+                      className={cn(onRowClick && "cursor-pointer", stickyFirstColumn && "group")}
                       onClick={onRowClick ? () => onRowClick(row) : undefined}
                       onKeyDown={
                         onRowClick
@@ -658,7 +711,10 @@ function DataTable<T>({
                       }
                     >
                       {selectable && (
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell
+                          onClick={(e) => e.stopPropagation()}
+                          className={selectSticky}
+                        >
                           <Checkbox
                             checked={selected.includes(id)}
                             onCheckedChange={() => toggleRow(id)}
@@ -666,7 +722,7 @@ function DataTable<T>({
                           />
                         </TableCell>
                       )}
-                      {columns.map((col) => (
+                      {tableColumns.map((col) => (
                         <TableCell
                           key={col.id}
                           className={cn(alignClass[col.align ?? "left"], col.className)}

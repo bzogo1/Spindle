@@ -283,3 +283,34 @@ describe("DataTable empty state and search", () => {
     expect(screen.queryByText("Alice")).not.toBeInTheDocument()
   })
 })
+
+describe("DataTable stickyFirstColumn", () => {
+  it("pins the first column and leaves the rest scrollable", () => {
+    const { container } = setup({ stickyFirstColumn: true })
+
+    const headCells = container.querySelectorAll("thead [data-slot='table-head']")
+    expect(headCells[0].className).toContain("sticky")
+    expect(headCells[0].className).toContain("left-0")
+    expect(headCells[1].className).not.toContain("sticky")
+
+    const bodyCells = container.querySelectorAll("tbody [data-slot='table-cell']")
+    expect(bodyCells[0].className).toContain("sticky")
+    expect(bodyCells[1].className).not.toContain("sticky")
+  })
+
+  it("offsets the first data column past the pinned selection column", () => {
+    const { container } = setup({ stickyFirstColumn: true, selectable: true })
+
+    const headCells = container.querySelectorAll("thead [data-slot='table-head']")
+    // Checkbox column pins at the scroll edge…
+    expect(headCells[0].className).toContain("left-0")
+    // …and the first data column pins just past its fixed w-10 width.
+    expect(headCells[1].className).toContain("left-10")
+  })
+
+  it("does not pin columns by default", () => {
+    const { container } = setup()
+    const headCells = container.querySelectorAll("thead [data-slot='table-head']")
+    expect(headCells[0].className).not.toContain("sticky")
+  })
+})

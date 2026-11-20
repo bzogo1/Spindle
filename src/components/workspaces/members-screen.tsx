@@ -488,6 +488,7 @@ export function WorkspaceMembersScreen({ workspaceId }: { workspaceId: string })
           data={members}
           columns={columns}
           getRowId={(member) => member.id}
+          stickyFirstColumn
           searchable
           searchPlaceholder="Search members…"
           pagination={members.length > 10}
