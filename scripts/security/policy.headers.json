@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "description": "Security headers audit policy for scripts/security/headers-audit.mjs. Profiles mirror the two runtime modes of src/lib/security-headers.ts: `next dev` (development, no HSTS) and `next start` (production, HSTS on).",
+  "profiles": {
+    "development": {
+      "description": "next dev / non-production. HSTS is intentionally absent; the safe CSP subset is enforced and the full policy is report-only.",
+      "requiredHeaders": [
+        {
+          "name": "Content-Security-Policy",
+          "severity": "error",
+          "match": { "type": "contains", "value": "frame-ancestors 'self'" },
+          "description": "Safe CSP subset must be enforced on every response."
+        },
+        {
+          "name": "Content-Security-Policy-Report-Only",
+          "severity": "error",
+          "match": { "type": "contains", "value": "default-src 'self'" },
+          "description": "Fuller policy must ship as report-only outside CSP_ENFORCE."
+        },
+        {
+          "name": "X-Content-Type-Options",
+          "severity": "error",
+          "match": { "type": "equals", "value": "nosniff" }
+        },
+        {
+          "name": "X-Frame-Options",
+          "severity": "error",
+          "match": { "type": "equals", "value": "SAMEORIGIN" }
+        },
+        {
+          "name": "Referrer-Policy",
+          "severity": "error",
+          "match": { "type": "equals", "value": "strict-origin-when-cross-origin" }
+        },
+        {
+          "name": "Permissions-Policy",
+          "severity": "error",
+          "match": { "type": "contains", "value": "camera=()" }
+        }
+      ],
+      "optionalHeaders": [
+        {
+          "name": "Strict-Transport-Security",
+          "severity": "warn",
+          "match": { "type": "regex", "value": "max-age=(\\d+)" },
+          "description": "HSTS is production-only; presence in dev is unexpected but not exploitable."
+        }
+      ],
+      "csp": {
+        "enforcedHeader": "Content-Security-Policy",
+        "reportOnlyHeader": "Content-Security-Policy-Report-Only",
+        "coverage": "report-only",
+        "requireDirectives": [
+          "default-src",
+          "script-src",
+          "style-src",
+          "font-src",
+          "img-src",
+          "media-src",
+          "connect-src",
+          "worker-src",
+          "manifest-src",
+          "frame-src",
+          "frame-ancestors",
+          "base-uri",
+          "form-action",
+          "object-src"
+        ],
+        "forbidSources": ["'unsafe-eval'"],
+        "frameAncestors": "'self'",
+        "note": "In development the enforced CSP is intentionally a safe subset (frame-ancestors/base-uri/object-src); directive coverage is therefore checked against the report-only header."
+      }
+    },
+    "production": {
+      "description": "next start / NODE_ENV=production. HSTS is required; CSP_ENFORCE=1 promotes the full policy to the enforced header and drops the report-only duplicate.",
+      "requiredHeaders": [
+        {
+          "name": "Content-Security-Policy",
+          "severity": "error",
+          "match": { "type": "contains", "value": "frame-ancestors 'self'" },
+          "description": "CSP must be enforced on every response."
+        },
+        {
+          "name": "Content-Security-Policy-Report-Only",
+          "severity": "warn",
+          "match": { "type": "contains", "value": "default-src 'self'" },
+          "description": "Absent when CSP_ENFORCE=1 (full policy enforced directly) — expected, not a failure."
+        },
+        {
+          "name": "Strict-Transport-Security",
+          "severity": "error",
+          "match": { "type": "regex", "value": "max-age=(\\d{8,})" },
+          "description": "HSTS must be present in production with a max-age of at least 8 digits (~115 days)."
+        },
+        {
+          "name": "X-Content-Type-Options",
+          "severity": "error",
+          "match": { "type": "equals", "value": "nosniff" }
+        },
+        {
+          "name": "X-Frame-Options",
+          "severity": "error",
+          "match": { "type": "equals", "value": "SAMEORIGIN" }
+        },
+        {
+          "name": "Referrer-Policy",
+          "severity": "error",
+          "match": { "type": "equals", "value": "strict-origin-when-cross-origin" }
+        },
+        {
+          "name": "Permissions-Policy",
+          "severity": "error",
+          "match": { "type": "contains", "value": "camera=()" }
+        }
+      ],
+      "optionalHeaders": [],
+      "csp": {
+        "enforcedHeader": "Content-Security-Policy",
+        "reportOnlyHeader": "Content-Security-Policy-Report-Only",
+        "coverage": "auto",
+        "requireDirectives": [
+          "default-src",
+          "script-src",
+          "style-src",
+          "font-src",
+          "img-src",
+          "media-src",
+          "connect-src",
+          "worker-src",
+          "manifest-src",
+          "frame-src",
+          "frame-ancestors",
+          "base-uri",
+          "form-action",
+          "object-src"
+        ],
+        "forbidSources": ["'unsafe-eval'"],
+        "frameAncestors": "'self'",
+        "note": "coverage=auto prefers the report-only header when present (safe-subset mode) and falls back to the enforced header (CSP_ENFORCE=1 full-policy mode); either way the full directive set must be covered."
+      }
+    }
+  }
+}

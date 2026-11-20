@@ -1,0 +1,57 @@
+{
+  "$comment": "Alert routing config for scripts/alerts/escalate.mjs. Maps each alert source to an escalation policy in docs/alerts/policies.json. `sources.<name>.defaultPolicy` applies when no rule/event entry matches; `rules` maps a rule/alert id (from the source's own report) to a policy name — use \"*\" as a per-source wildcard. A rule value may also be an object {\"policy\": \"...\", \"bySeverity\": {\"critical\": \"...\", \"warning\": \"...\"}} to pick a policy by the alert's firing severity. `sources.<name>.events` is used by the deploy source: it maps notify.ts event names to a policy, \"__resolve__\" (auto-resolve an open incident, e.g. 'succeeded'), or \"__ignore__\" (no incident, e.g. 'started'). Severity values: 'critical' | 'warning' | 'info' ('error' is normalized to 'critical'). See docs/alerts/escalation-policies.md for the event contract.",
+  "version": 1,
+  "defaults": {
+    "policyBySeverity": {
+      "critical": "generic-critical",
+      "warning": "generic-warning",
+      "error": "generic-critical",
+      "info": null
+    }
+  },
+  "sources": {
+    "db-monitor": {
+      "description": "scripts/db/monitoring/check.mjs report (type 'database-monitoring'). Each entry in report.alerts with status warning|critical|error is a firing alert; status 'ok' resolves the incident. 'skipped' is ignored.",
+      "reportType": "database-monitoring",
+      "defaultPolicy": "db-warning",
+      "rules": {
+        "connection-pool-saturation": "db-critical",
+        "disk-usage": "db-critical",
+        "failed-migrations": "db-critical",
+        "backup-staleness": "db-critical",
+        "idle-in-transaction-sessions": "db-warning",
+        "long-running-queries": "db-warning",
+        "replication-lag": "db-warning",
+        "dead-tuple-ratio": "db-warning"
+      }
+    },
+    "deploy": {
+      "description": "scripts/deploy/notify.ts DeployNotification payloads ({event, environment, revision, url, error, timestamp, ci?}). 'failed' and 'rolled-back' open an incident keyed deploy:<environment>; 'succeeded' resolves it; 'started' is ignored.",
+      "defaultPolicy": "deploy-warning",
+      "events": {
+        "failed": "deploy-critical",
+        "rolled-back": "deploy-critical",
+        "succeeded": "__resolve__",
+        "started": "__ignore__"
+      }
+    },
+    "lighthouse": {
+      "description": "Performance-budget breaches. Emit normalized alerts, e.g. {\"source\":\"lighthouse\",\"alerts\":[{\"id\":\"<url>:<assertion>\",\"severity\":\"warning|critical\",\"status\":\"firing|resolved\",\"message\":\"...\"}]}. Typically produced by wrapping scripts/lighthouse/summarize.mjs --check output in CI.",
+      "defaultPolicy": "perf-warning",
+      "rules": {
+        "*": { "policy": "perf-warning", "bySeverity": { "critical": "perf-critical" } }
+      }
+    },
+    "secrets": {
+      "description": "Secret-store validation and repo secret scans (scripts/secrets/check.ts, scripts/secrets/scan.mjs, rotation drills). Emit normalized alerts with stable ids such as 'secret-store-validation' or 'repo-secret-scan'.",
+      "defaultPolicy": "secrets-warning",
+      "rules": {
+        "secret-store-validation": "secrets-critical",
+        "repo-secret-scan": "secrets-critical",
+        "rotation-overdue": "secrets-warning",
+        "rotation-drill-failed": "secrets-critical",
+        "*": "secrets-warning"
+      }
+    }
+  }
+}

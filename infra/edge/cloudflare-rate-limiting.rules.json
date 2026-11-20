@@ -1,0 +1,70 @@
+{
+  "$comment": "Cloudflare Rate Limiting rules for app.spindle.app. Apply via dashboard (Security > WAF > Rate limiting rules) or the Rulesets API (http_ratelimit phase). Characteristics: period is the counting window; requests_to_count and mitigation_timeout are per rule. mitigation_timeout 0 = block for the rest of the period; use a short timeout plus counting for sliding-ish behavior. Counting expression examples use ip.src; swap to http.request.headers['cf-connecting-ip'] is implicit — ip.src is already the true client IP at the edge.",
+  "zone": "spindle.app",
+  "rules": [
+    {
+      "id": "rl-per-ip-global",
+      "description": "Per-IP volumetric cap for all app.spindle.app traffic",
+      "expression": "(http.host eq \"app.spindle.app\")",
+      "characteristics": ["ip.src", "cf.colo.id"],
+      "period": 10,
+      "requests_to_count": 300,
+      "mitigation_timeout": 10,
+      "action": "block",
+      "notes": "300 req / 10s per IP per colo is generous for browsers, brutal for scrapers. Colo in characteristics makes limits per-PoP; drop it for a stricter global per-IP cap at higher rule cost."
+    },
+    {
+      "id": "rl-auth-endpoints",
+      "description": "Stricter cap on credential-guessing surfaces",
+      "expression": "(http.host eq \"app.spindle.app\") and (starts_with(http.request.uri.path, \"/api/auth/\"))",
+      "characteristics": ["ip.src"],
+      "period": 60,
+      "requests_to_count": 30,
+      "mitigation_timeout": 60,
+      "action": "block",
+      "notes": "Covers sign-in, magic-link, 2FA verify/resend. App-level limiter in src/lib/rate-limit adds a second, tighter per-route window."
+    },
+    {
+      "id": "rl-public-forms",
+      "description": "Contact/newsletter form submissions",
+      "expression": "(http.host eq \"app.spindle.app\") and (http.request.uri.path in {\"/api/contact\" \"/api/newsletter\"})",
+      "characteristics": ["ip.src"],
+      "period": 600,
+      "requests_to_count": 5,
+      "mitigation_timeout": 600,
+      "action": "managed_challenge",
+      "notes": "managed_challenge instead of block: legitimate users behind CGNAT occasionally trip this; a challenge is cheaper than a support ticket."
+    },
+    {
+      "id": "rl-api-keys",
+      "description": "Placeholder: per-API-key tier once API keys ship",
+      "expression": "(http.host eq \"app.spindle.app\") and (http.request.headers[\"x-api-key\"] ne \"\")",
+      "characteristics": ["http.request.headers[\"x-api-key\"]"],
+      "period": 60,
+      "requests_to_count": 600,
+      "mitigation_timeout": 60,
+      "action": "block",
+      "notes": "Rate Limiting characteristics accept header values, giving a per-key bucket. When keys are authenticated, move the real limit into the app keyed on the verified key id; this rule only stops an unvalidated key header from being sprayed."
+    },
+    {
+      "id": "rl-lab-websocket",
+      "description": "Lab hostname: WebSocket upgrades are long-lived; cap connection churn, not traffic",
+      "expression": "(http.host eq \"lab.spindle.app\") and (http.request.uri.path eq \"/\")",
+      "characteristics": ["ip.src"],
+      "period": 60,
+      "requests_to_count": 120,
+      "mitigation_timeout": 60,
+      "action": "block",
+      "notes": "lab.spindle.app carries notebook/terminal/dev-server WebSockets. Rate-limit rule counts HTTP requests including the upgrade handshake; 120/min per IP is far above human reconnect rates. Do NOT apply a low requests_to_count here — session reconnect storms after a deploy are legitimate."
+    }
+  ],
+  "exemptions": [
+    {
+      "id": "bypass-healthchecks",
+      "description": "Health/ready probes must never be rate limited",
+      "expression": "(http.request.uri.path in {\"/api/health\" \"/api/ready\" \"/healthz\" \"/readyz\"})",
+      "action": "skip",
+      "notes": "Cloudflare rate limiting rules support 'Skip' action with ratelimit products. Alternatively exclude these paths from the rule expressions above. Verify the exact path the compose healthcheck hits (currently GET / on 127.0.0.1:8080, loopback-only — it never traverses the tunnel, so edge rules cannot affect it)."
+    }
+  ]
+}

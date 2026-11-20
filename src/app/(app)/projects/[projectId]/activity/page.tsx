@@ -1,14 +1,20 @@
 import type { Metadata } from "next"
 
 import { ProjectActivityScreen } from "@/components/app/project-activity-screen"
+import { PaneBoundary } from "@/components/app/states/pane-boundary"
 
 export const metadata: Metadata = { title: "Project activity" }
 
-export default async function ProjectActivityPage({
+export default function ProjectActivityPage({
   params,
 }: {
   params: Promise<{ projectId: string }>
 }) {
-  const { projectId } = await params
-  return <ProjectActivityScreen projectId={projectId} />
+  return (
+    <PaneBoundary screen="project">
+      {params.then(({ projectId }) => (
+        <ProjectActivityScreen projectId={projectId} />
+      ))}
+    </PaneBoundary>
+  )
 }

@@ -1,4 +1,6 @@
-import { clientEnv } from "@/lib/env"
+import { siteUrl } from "@/lib/site-url"
+
+export { siteUrl }
 
 export type ChangelogBlock =
   { type: "paragraph"; text: string } | { type: "list"; items: { label: string; text: string }[] }
@@ -79,17 +81,22 @@ export const changelogReleases: ChangelogRelease[] = [
   },
 ]
 
-const fallbackSiteUrl = "https://spindle.app"
-
-/** Public origin used for absolute links in the feed and sharing metadata. */
-export const siteUrl = (clientEnv.NEXT_PUBLIC_SITE_URL ?? fallbackSiteUrl).replace(/\/+$/, "")
+export function getRelease(slug: string) {
+  return changelogReleases.find((release) => release.slug === slug)
+}
 
 export function getReleaseAnchor(release: ChangelogRelease) {
   return `release-${release.slug}`
 }
 
+/** In-app path of the dedicated per-release page. */
+export function getReleasePath(release: ChangelogRelease) {
+  return `/changelog/${release.slug}`
+}
+
+/** Absolute permalink used by the feed and share metadata. */
 export function getReleaseUrl(release: ChangelogRelease) {
-  return `${siteUrl}/changelog#${getReleaseAnchor(release)}`
+  return `${siteUrl}${getReleasePath(release)}`
 }
 
 export function formatReleaseDate(date: string) {

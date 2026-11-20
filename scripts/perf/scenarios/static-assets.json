@@ -1,0 +1,22 @@
+{
+  "name": "static-assets",
+  "description": "Static files served from /public — CDN/cache-hit path. Use this to baseline asset throughput separately from SSR.",
+  "target": "https://staging.spindle.app",
+  "concurrency": 30,
+  "rps": 0,
+  "duration": "45s",
+  "warmupMs": 2000,
+  "timeoutMs": 10000,
+  "headers": {
+    "user-agent": "spindle-load/1.0 (+https://spindle.app)"
+  },
+  "endpoints": [
+    { "path": "/manifest.webmanifest", "weight": 1 },
+    { "path": "/sw.js", "weight": 2 },
+    { "path": "/offline.html", "weight": 1 },
+    { "path": "/favicon.ico", "weight": 2 },
+    { "path": "/icons/icon.svg", "weight": 2 },
+    { "path": "/icons/icon-192.png", "weight": 3 },
+    { "path": "/assets/planet.png", "weight": 2 }
+  ]
+}

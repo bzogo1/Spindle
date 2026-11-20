@@ -1,0 +1,55 @@
+# Example alert rules over the log-derived metrics emitted by
+# scripts/metrics/log-metrics.mjs (see docs/observability/log-based-metrics.md
+# for the full mapping table). Thresholds mirror the suggestions there.
+groups:
+  - name: spindle.request-health
+    rules:
+      - alert: SpindleHighErrorRate
+        expr: |
+          sum(rate(spindle_request_errors_total[5m]))
+            / sum(rate(spindle_requests_total[5m])) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Spindle API error rate above 5% for 10m"
+          description: "Error ratio over api.request log lines is {{ $value | humanizePercentage }}."
+
+      - alert: SpindleEndpoint5xxSpike
+        expr: |
+          sum by (path) (rate(spindle_request_errors_total{status=~"5.."}[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx spike on {{ $labels.path }}"
+          description: "{{ $labels.path }} is returning 5xx at {{ $value }}/s."
+
+      - alert: SpindleSlowEndpointP95
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, path) (rate(spindle_request_duration_ms_bucket[5m]))) > 2000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency above 2s on {{ $labels.path }}"
+          description: "Log-derived p95 for {{ $labels.path }} is {{ $value }}ms."
+
+      - alert: SpindleWorkerJobFailures
+        expr: increase(spindle_worker_job_failures_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker job failures observed"
+          description: "{{ $value }} failed worker.job log lines in the last 15m (job={{ $labels.job }})."
+
+      - alert: SpindleErrorLogFlood
+        expr: sum(rate(spindle_error_log_lines_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Error-level log flood"
+          description: "{{ $value }} error/fatal log lines per second."

@@ -10,13 +10,17 @@ import {
   type ReactNode,
 } from "react"
 import { usePathname } from "next/navigation"
-import { Dialog as DialogPrimitive } from "radix-ui"
+import { Dialog as DialogPrimitive, Switch as SwitchPrimitive } from "radix-ui"
 
 import {
   COOKIE_POLICY_PATH,
   acceptAllChoices,
   consentCategories,
+  consentCategoryLabel,
+  cookieRegistry,
   essentialOnlyChoices,
+  hasPrivacySignal,
+  onConsentChange,
   onOpenCookieSettings,
   readConsent,
   undecidedConsent,
@@ -76,8 +80,18 @@ export function CookieConsent({
   const [draft, setDraft] = useState<ConsentChoices>(essentialOnlyChoices)
 
   useEffect(() => {
-    setConsent(readConsent())
+    const current = readConsent()
+    // A Global Privacy Control / Do Not Track signal is an opt-out of every
+    // optional category: record essential-only consent so the banner stays
+    // away instead of asking again on every page.
+    setConsent(
+      !current.decided && hasPrivacySignal() ? writeConsent(essentialOnlyChoices()) : current,
+    )
   }, [])
+
+  // Keep the banner and dialog in sync with choices written elsewhere in this
+  // tab (settings dialog, tests, future consent-aware code calling writeConsent).
+  useEffect(() => onConsentChange(setConsent), [])
 
   const saveChoices = useCallback((choices: ConsentChoices) => {
     setConsent(writeConsent(choices))
@@ -122,20 +136,20 @@ export function CookieConsent({
             <div className={styles.bannerActions}>
               <button
                 type="button"
-                className={styles.button}
-                onClick={() => saveChoices(essentialOnlyChoices())}
-              >
-                Reject non-essential
-              </button>
-              <button
-                type="button"
                 className={styles.buttonPrimary}
                 onClick={() => saveChoices(acceptAllChoices())}
               >
                 Accept all
               </button>
+              <button
+                type="button"
+                className={styles.button}
+                onClick={() => saveChoices(essentialOnlyChoices())}
+              >
+                Reject non-essential
+              </button>
               <button type="button" className={styles.linkButton} onClick={openSettings}>
-                Cookie settings
+                Customize
               </button>
             </div>
           </div>
@@ -148,7 +162,11 @@ export function CookieConsent({
       <DialogPrimitive.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className={styles.overlay} />
-          <DialogPrimitive.Content className={styles.dialog} data-appearance={appearance}>
+          <DialogPrimitive.Content
+            className={styles.dialog}
+            data-appearance={appearance}
+            aria-modal="true"
+          >
             <DialogPrimitive.Title className={styles.dialogTitle}>
               Cookie settings
             </DialogPrimitive.Title>
@@ -169,35 +187,81 @@ export function CookieConsent({
               <ul className={styles.categories}>
                 {consentCategories.map((category) => {
                   const optional = isOptional(category.id) ? category.id : null
+                  const checked = optional ? draft[optional] : true
+                  const toggle = () => {
+                    if (!optional) return
+                    setDraft((current) => ({ ...current, [optional]: !current[optional] }))
+                  }
 
                   return (
-                    <li key={category.id} className={styles.category}>
-                      <label className={styles.categoryLabel}>
-                        <input
-                          type="checkbox"
-                          className={styles.checkbox}
-                          checked={optional ? draft[optional] : true}
-                          disabled={optional === null}
-                          onChange={(event) => {
-                            if (!optional) return
-                            const checked = event.target.checked
-                            setDraft((current) => ({ ...current, [optional]: checked }))
-                          }}
-                        />
-                        <span className={styles.categoryBody}>
-                          <span className={styles.categoryHeading}>
-                            {category.label}
-                            <span className={styles.categoryBadge}>
-                              {category.required ? "Always on" : "Optional"}
-                            </span>
+                    <li
+                      key={category.id}
+                      className={styles.category}
+                      // The whole row toggles the switch; the switch itself
+                      // stops propagation so one click never flips it twice.
+                      onClick={optional ? toggle : undefined}
+                    >
+                      <SwitchPrimitive.Root
+                        className={styles.switch}
+                        checked={checked}
+                        disabled={optional === null}
+                        onCheckedChange={toggle}
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label={category.label}
+                      >
+                        <SwitchPrimitive.Thumb className={styles.switchThumb} />
+                      </SwitchPrimitive.Root>
+                      <span className={styles.categoryBody}>
+                        <span className={styles.categoryHeading}>
+                          {category.label}
+                          <span className={styles.categoryBadge}>
+                            {category.required ? "Always on" : "Optional"}
                           </span>
-                          <span className={styles.categoryText}>{category.description}</span>
                         </span>
-                      </label>
+                        <span className={styles.categoryText}>{category.description}</span>
+                      </span>
                     </li>
                   )
                 })}
               </ul>
+
+              <div className={styles.policy}>
+                <h3 className={styles.policyTitle}>Cookies and storage we use</h3>
+                <div className={styles.policyScroll}>
+                  <table className={styles.policyTable}>
+                    <thead>
+                      <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Purpose</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Lifetime</th>
+                        <th scope="col">Type</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {consentCategories.flatMap((category) =>
+                        cookieRegistry
+                          .filter((record) => record.category === category.id)
+                          .map((record) => (
+                            <tr key={record.key}>
+                              <td className={styles.policyKey}>
+                                <code>{record.key}</code>
+                              </td>
+                              <td>{record.purpose}</td>
+                              <td>{consentCategoryLabel(record.category)}</td>
+                              <td>{record.lifetime}</td>
+                              <td>{record.storage}</td>
+                            </tr>
+                          )),
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className={styles.policyNote}>
+                  Generated from the same registry the banner uses — a key is listed here before it
+                  can be written.
+                </p>
+              </div>
 
               <div className={styles.dialogActions}>
                 <DialogPrimitive.Close asChild>

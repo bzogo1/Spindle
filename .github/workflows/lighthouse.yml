@@ -1,0 +1,117 @@
+name: Lighthouse CI
+
+# Runs Lighthouse against a production build of the marketing pages and
+# enforces the budgets in lighthouserc.json (LCP, CLS, TBT hard-fail;
+# category scores warn). Runs on PRs that can affect the audited pages, on
+# main pushes, and on demand. See docs/performance/lighthouse-ci.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "content/**"
+      - "next.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - "lighthouserc.json"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+# A new push to the same branch supersedes the run in progress, so reviewers
+# get results for the latest commit instead of waiting on stale jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://spindle.app
+      PORT: 3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Lighthouse needs a Chrome binary; playwright's chromium is not on
+      # chrome-launcher's default search path.
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      # chrome-launcher honours CHROME_PATH; export the resolved binary so a
+      # non-default install location cannot silently fall back to a missing
+      # browser.
+      - name: Resolve Chrome path
+        run: |
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          if [ -z "$CHROME_BIN" ]; then
+            echo "No Chrome/Chromium binary found on PATH." >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME_BIN" >> "$GITHUB_ENV"
+          echo "Using $CHROME_BIN"
+
+      - name: Build
+        run: npm run build
+
+      # Each `run:` step gets its own shell, so the server must outlive this
+      # step: nohup + pidfile, killed in the cleanup step (always runs).
+      - name: Start production server
+        run: |
+          nohup npm start > .next-server.log 2>&1 &
+          echo $! > .next-server.pid
+
+          for attempt in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/ > /dev/null; then
+              echo "Server ready after ${attempt}s"
+              exit 0
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Server did not become ready in time. Last log lines:" >&2
+              tail -50 .next-server.log >&2 || true
+              exit 1
+            fi
+            sleep 1
+          done
+
+      - name: Run Lighthouse CI
+        run: npx lhci autorun
+
+      # Keep the HTML reports and assertion results even when assertions
+      # fail — they are the fastest way to see which audit regressed.
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Stop production server
+        if: always()
+        run: |
+          if [ -f .next-server.pid ]; then
+            kill "$(cat .next-server.pid)" 2>/dev/null || true
+          fi

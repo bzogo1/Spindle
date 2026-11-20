@@ -123,7 +123,13 @@ html:has(.lab-page) {
   margin: 0 0 24px;
 }
 .lab-gradient-text {
-  background: linear-gradient(96deg, #c8f083 8%, #a9e3a3 42%, #e3f7bf 68%, #c8f083 100%);
+  background: linear-gradient(
+    96deg,
+    var(--accent) 8%,
+    var(--accent-hover) 42%,
+    var(--accent-hover) 68%,
+    var(--accent) 100%
+  );
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -145,8 +151,8 @@ html:has(.lab-page) {
 }
 .lab-hero-actions .btn {
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
 }
 .lab-hero-actions .btn:hover {
   transform: translateY(-2px);
@@ -184,8 +190,12 @@ html:has(.lab-page) {
 }
 .stage-halo {
   position: absolute;
-  width: 420px;
-  height: 420px;
+  /* Cap at the stage's own width: a fixed 420px halo overflows narrow
+     viewports and inflates document scrollWidth. aspect-ratio keeps the
+     glow circular when the cap kicks in. */
+  width: min(420px, 100%);
+  height: auto;
+  aspect-ratio: 1;
   border-radius: 50%;
   z-index: -1;
   background: radial-gradient(circle, rgba(200, 240, 131, 0.1), transparent 68%);
@@ -220,7 +230,7 @@ html:has(.lab-page) {
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+  box-shadow: var(--shadow-glow-md);
 }
 .stage-orbit--three {
   width: 600px;
@@ -298,7 +308,7 @@ html:has(.lab-page) {
   font-family: var(--mono);
   font-size: 10.5px;
   line-height: 1.85;
-  color: #dbe2d8;
+  color: var(--text-muted);
   white-space: pre-wrap;
 }
 .stage-code-foot {
@@ -331,7 +341,7 @@ html:has(.lab-page) {
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--border-strong);
   background: rgba(20, 24, 21, 0.93);
   backdrop-filter: blur(10px);
@@ -446,13 +456,13 @@ html:has(.lab-page) {
   color: var(--text-dim);
   white-space: nowrap;
   transition:
-    color 0.2s,
-    background 0.2s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 .lab-tool-link span {
   font-family: var(--mono);
   font-size: 9px;
-  color: rgba(200, 240, 131, 0.55);
+  color: var(--accent);
 }
 .lab-tool-link:hover {
   color: var(--text);
@@ -610,7 +620,7 @@ html:has(.lab-page) {
   margin-top: 26px;
   padding: 16px 18px;
   border: 1px solid var(--accent-line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: linear-gradient(140deg, rgba(200, 240, 131, 0.06), rgba(200, 240, 131, 0.015));
 }
 .lab-tech-note--bright {
@@ -663,8 +673,8 @@ html:has(.lab-page) {
   font-size: 11.5px;
   font-weight: 500;
   transition:
-    background 0.18s,
-    transform 0.18s;
+    background var(--transition-normal),
+    transform var(--transition-normal);
 }
 .lab-run-btn:hover {
   background: rgba(200, 240, 131, 0.15);
@@ -709,7 +719,7 @@ html:has(.lab-page) {
   bottom: 0;
   width: 2px;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+  box-shadow: var(--shadow-glow-md);
 }
 .py-plot {
   position: relative;
@@ -748,7 +758,7 @@ html:has(.lab-page) {
   font-family: var(--mono);
   font-size: 10.5px;
   line-height: 1.95;
-  color: #dbe2d8;
+  color: var(--text-muted);
   overflow: hidden;
 }
 .r-line {
@@ -845,9 +855,9 @@ html:has(.lab-page) {
   background: transparent;
   color: var(--text-dim);
   transition:
-    background 0.18s,
-    color 0.18s,
-    border-color 0.18s;
+    background var(--transition-normal),
+    color var(--transition-normal),
+    border-color var(--transition-normal);
 }
 .runner-item:hover {
   background: rgba(255, 255, 255, 0.035);
@@ -881,7 +891,7 @@ html:has(.lab-page) {
 }
 .runner-item.is-active i {
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: var(--shadow-glow-sm);
 }
 .runner-main {
   padding: 14px 16px;
@@ -910,7 +920,7 @@ html:has(.lab-page) {
   height: 100%;
   width: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #86b96d, var(--accent), #e0f9b3);
+  background: linear-gradient(90deg, var(--accent), var(--accent), var(--accent-hover));
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.2s linear;
@@ -991,7 +1001,7 @@ html:has(.lab-page) {
   font-family: var(--mono);
   font-size: 10.5px;
   line-height: 1.95;
-  color: #dbe2d8;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow-x: auto;
 }
@@ -1001,7 +1011,7 @@ html:has(.lab-page) {
 .sql-num {
   display: inline-block;
   width: 26px;
-  color: #4d5a50;
+  color: var(--text-dim);
   user-select: none;
 }
 .sql-result {
@@ -1111,21 +1121,21 @@ html:has(.lab-page) {
   width: 152px;
   padding: 10px 12px;
   border-radius: 3px;
-  color: #20261f;
+  color: var(--ui-primary-foreground);
   font-size: 10px;
   line-height: 1.5;
   box-shadow: 0 12px 26px -14px rgba(0, 0, 0, 0.9);
   cursor: grab;
   user-select: none;
   touch-action: none;
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--transition-normal);
 }
 .canvas-note:active {
   cursor: grabbing;
   box-shadow: 0 18px 36px -12px rgba(0, 0, 0, 0.95);
 }
 .canvas-note:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 3px;
 }
 .canvas-note strong {
@@ -1136,14 +1146,14 @@ html:has(.lab-page) {
 .canvas-note--a {
   left: 8%;
   top: 12%;
-  background: #d9f2a8;
+  background: var(--accent-hover);
   transform: rotate(-3deg);
   animation: note-float-a 8s ease-in-out infinite;
 }
 .canvas-note--b {
   right: 8%;
   bottom: 14%;
-  background: #bfe3cb;
+  background: var(--mint);
   transform: rotate(2deg);
   animation: note-float-b 9s ease-in-out infinite;
 }
@@ -1151,7 +1161,7 @@ html:has(.lab-page) {
   left: 36%;
   bottom: 10%;
   width: 120px;
-  background: #ead6ae;
+  background: var(--amber);
   transform: rotate(-1deg);
   animation: note-float-a 10s ease-in-out infinite reverse;
 }
@@ -1163,12 +1173,12 @@ html:has(.lab-page) {
   height: 8px;
   margin-left: -4px;
   border-radius: 50%;
-  background: #6a8a58;
+  background: var(--mint);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 .note-sketch {
   font-family: var(--mono);
-  color: #6c5b3d;
+  color: var(--amber);
 }
 .canvas-shape {
   position: absolute;
@@ -1212,20 +1222,20 @@ html:has(.lab-page) {
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 9px;
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   background: currentColor;
 }
 .canvas-cursor span::first-line {
-  color: #11160f;
+  color: var(--ui-primary-foreground);
 }
 .canvas-cursor--one {
-  color: #c8f083;
+  color: var(--accent);
   top: 40%;
   left: 58%;
   animation: cursor-drift-a 11s ease-in-out infinite;
 }
 .canvas-cursor--two {
-  color: #96d8ad;
+  color: var(--mint);
   top: 68%;
   left: 26%;
   animation: cursor-drift-b 13s ease-in-out infinite;
@@ -1272,7 +1282,7 @@ html:has(.lab-page) {
   color: var(--text);
 }
 .expr-index {
-  color: #4d5a50;
+  color: var(--text-dim);
   width: 9px;
 }
 .expr-swatch {
@@ -1282,13 +1292,13 @@ html:has(.lab-page) {
   flex: none;
 }
 .expr-swatch--a {
-  background: #c8f083;
+  background: var(--accent);
 }
 .expr-swatch--b {
-  background: #93c9d5;
+  background: var(--ui-chart-4);
 }
 .expr-swatch--c {
-  background: #e3b67e;
+  background: var(--amber);
 }
 .graph-expr b {
   color: var(--accent);
@@ -1328,7 +1338,7 @@ html:has(.lab-page) {
   height: 12px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #101410;
+  border: 2px solid var(--bg-alt);
   box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.2);
 }
 .graph-slider input::-moz-range-thumb {
@@ -1336,7 +1346,7 @@ html:has(.lab-page) {
   height: 10px;
   border-radius: 50%;
   background: var(--accent);
-  border: 2px solid #101410;
+  border: 2px solid var(--bg-alt);
 }
 .graph-plot {
   position: relative;
@@ -1367,15 +1377,15 @@ html:has(.lab-page) {
   filter: drop-shadow(0 0 5px rgba(200, 240, 131, 0.35));
 }
 .graph-curve--b {
-  stroke: #93c9d5;
+  stroke: var(--ui-chart-4);
   opacity: 0.8;
 }
 .graph-curve--c {
-  stroke: #e3b67e;
+  stroke: var(--amber);
   opacity: 0.75;
 }
 .graph-marker {
-  fill: #e9f9d3;
+  fill: var(--accent-hover);
   stroke: var(--accent);
   stroke-width: 2;
 }
@@ -1408,7 +1418,7 @@ html:has(.lab-page) {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 26px;
   letter-spacing: 0.02em;
-  color: #eaf7d8;
+  color: var(--accent-hover);
 }
 .math-caret {
   height: 22px;
@@ -1426,7 +1436,7 @@ html:has(.lab-page) {
   background: rgba(255, 255, 255, 0.02);
   font-size: 10.5px;
   color: var(--text-dim);
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 .math-example:hover {
   color: var(--text);
@@ -1445,12 +1455,12 @@ html:has(.lab-page) {
   border-radius: 6px;
   border: 1px solid var(--accent);
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   font-size: 11.5px;
   font-weight: 500;
   transition:
-    transform 0.18s,
-    box-shadow 0.18s;
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
 }
 .math-solve:hover {
   transform: translateY(-1px);
@@ -1525,15 +1535,15 @@ html:has(.lab-page) {
   justify-items: center;
   gap: 5px;
   padding: 28px 16px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow: hidden;
   border: 1px dashed rgba(200, 240, 131, 0.35);
   background: rgba(200, 240, 131, 0.025);
   text-align: center;
   cursor: pointer;
   transition:
-    border-color 0.2s,
-    background 0.2s;
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .viz-drop:hover,
 .viz-drop.is-dragover {
@@ -1546,7 +1556,7 @@ html:has(.lab-page) {
   display: grid;
   place-items: center;
   margin-bottom: 4px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--accent-line);
   background: var(--accent-soft);
   color: var(--accent);
@@ -1582,7 +1592,7 @@ html:has(.lab-page) {
   background: transparent;
   font-size: 10px;
   color: var(--text-dim);
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 .viz-samples button:hover {
   color: var(--accent);
@@ -1642,21 +1652,21 @@ html:has(.lab-page) {
   font-family: var(--mono);
   font-size: 10px;
   line-height: 1.8;
-  color: #dbe2d8;
+  color: var(--text-muted);
   white-space: pre-wrap;
 }
 .sql-kw {
-  color: #dcb984;
+  color: var(--amber);
 }
 .sql-str {
-  color: #b9dd92;
+  color: var(--accent-hover);
 }
 .sql-com {
-  color: #667369;
+  color: var(--text-dim);
   font-style: italic;
 }
 .sql-numtoken {
-  color: #93c9d5;
+  color: var(--ui-chart-4);
 }
 .viz-chart {
   display: flex;
@@ -1737,7 +1747,7 @@ html:has(.lab-page) {
 @keyframes kicker-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.12);
+    box-shadow: var(--shadow-pulse-ring);
   }
   50% {
     box-shadow: 0 0 0 7px rgba(200, 240, 131, 0);
@@ -2152,4 +2162,234 @@ html:has(.lab-page) {
   .lab-dither {
     opacity: 0.55;
   }
+}
+
+/* ==========================================================================
+   LIGHT THEME — surfaces that were hardcoded dark. Inner text already uses
+   the theme tokens, so only the opaque panel backgrounds need remapping.
+   ========================================================================== */
+:root:not(.dark) .stage-window {
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+}
+:root:not(.dark) .stage-float {
+  background: rgba(255, 255, 255, 0.94);
+}
+:root:not(.dark) .lab-toolbar-wrap {
+  background: rgba(246, 247, 245, 0.88);
+}
+:root:not(.dark) .lab-cta-box {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+/* R plot mock ink was tuned for dark surfaces: near-white grid, pale-green
+   trend/dots. Darken them so the chart stays readable on light panels. */
+:root:not(.dark) .r-grid {
+  stroke: rgba(15, 25, 18, 0.14);
+}
+:root:not(.dark) .r-trend {
+  stroke: rgba(63, 100, 24, 0.6);
+}
+:root:not(.dark) .r-dots circle {
+  fill: #3f6418;
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — inset "well" panels inside the demo windows were
+   painted with black-alpha fills tuned for dark surfaces. On the light
+   window surface they read as muddy patches and wash out muted text, so
+   remap them to a subtle dark-ink tint.
+   ========================================================================== */
+:root:not(.dark) .lab-demo-toolbar,
+:root:not(.dark) .lab-notebook,
+:root:not(.dark) .r-console,
+:root:not(.dark) .runner-list,
+:root:not(.dark) .runner-logs,
+:root:not(.dark) .sql-editor,
+:root:not(.dark) .canvas-toolbar,
+:root:not(.dark) .graph-expressions,
+:root:not(.dark) .graph-plot,
+:root:not(.dark) .math-body,
+:root:not(.dark) .math-result,
+:root:not(.dark) .viz-body,
+:root:not(.dark) .viz-preview {
+  background: rgba(15, 25, 18, 0.045);
+}
+:root:not(.dark) .stage-rail {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Canvas dot-grid board: dark tint + white dots → light tint + ink dots. */
+:root:not(.dark) .canvas-board {
+  background-color: rgba(15, 25, 18, 0.03);
+  background-image: radial-gradient(rgba(15, 25, 18, 0.16) 0.7px, transparent 0.8px);
+}
+:root:not(.dark) .canvas-lines path {
+  stroke: rgba(63, 100, 24, 0.6);
+}
+:root:not(.dark) .canvas-lines ellipse {
+  stroke: rgba(138, 90, 30, 0.55);
+}
+/* Sticky-note ink: the amber note keeps a light fill in light mode, so it
+   needs dark text instead of the shared near-white note ink. */
+:root:not(.dark) .canvas-note--c {
+  color: #241a08;
+}
+
+/* Graph mock chrome tuned for dark surfaces. */
+:root:not(.dark) .graph-slider input {
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0 var(--fill, 45%),
+    rgba(15, 25, 18, 0.12) var(--fill, 45%) 100%
+  );
+}
+:root:not(.dark) .graph-grid path {
+  stroke: rgba(15, 25, 18, 0.1);
+}
+:root:not(.dark) .graph-axis {
+  stroke: rgba(15, 25, 18, 0.28);
+}
+:root:not(.dark) .viz-bar {
+  background: linear-gradient(to top, rgba(63, 100, 24, 0.22), var(--accent));
+}
+:root:not(.dark) .viz-table > span {
+  border-right-color: var(--border);
+}
+:root:not(.dark) .viz-table > span.viz-th {
+  background: rgba(15, 25, 18, 0.05);
+}
+:root:not(.dark) .math-steps > div {
+  border-top-color: var(--border);
+}
+
+/* Small dark-theme ink that fails contrast on light surfaces. */
+:root:not(.dark) .lab-tool-link span {
+  color: rgba(63, 100, 24, 0.8);
+}
+:root:not(.dark) .stage-window {
+  border-color: rgba(63, 100, 24, 0.3);
+}
+:root:not(.dark) .stage-orbit--three {
+  border-color: var(--border);
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — white-alpha fills and pale-accent glows, rings,
+   dashes and tints tuned for dark surfaces.
+   ========================================================================== */
+:root:not(.dark) .lab-page {
+  background:
+    radial-gradient(ellipse 80% 46% at 50% -10%, rgba(63, 100, 24, 0.06), transparent 70%),
+    var(--bg);
+}
+:root:not(.dark) .lab-hero-wash {
+  background:
+    radial-gradient(ellipse 42% 34% at 12% 24%, rgba(63, 100, 24, 0.05), transparent 75%),
+    radial-gradient(ellipse 40% 50% at 88% 90%, rgba(47, 125, 107, 0.04), transparent 72%);
+}
+:root:not(.dark) .lab-grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 25, 18, 0.05) 1px, transparent 1px);
+}
+:root:not(.dark) .lab-kicker-dot {
+  box-shadow: 0 0 0 4px rgba(63, 100, 24, 0.12);
+}
+:root:not(.dark) .stage-halo {
+  background: radial-gradient(circle, rgba(63, 100, 24, 0.1), transparent 68%);
+}
+:root:not(.dark) .stage-orbit {
+  border-color: rgba(63, 100, 24, 0.18);
+}
+:root:not(.dark) .stage-orbit--two {
+  border-color: rgba(47, 125, 79, 0.18);
+}
+:root:not(.dark) .stage-window {
+  box-shadow:
+    0 40px 90px -40px rgba(15, 25, 18, 0.28),
+    0 0 0 1px rgba(15, 25, 18, 0.05) inset;
+}
+:root:not(.dark) .stage-window .window-bar {
+  background: rgba(63, 100, 24, 0.04);
+}
+:root:not(.dark) .stage-rail-item.is-active {
+  box-shadow: 0 0 18px -6px rgba(63, 100, 24, 0.4);
+}
+:root:not(.dark) .float-dot {
+  box-shadow: 0 0 0 4px rgba(63, 100, 24, 0.1);
+}
+:root:not(.dark) .lab-tool-link:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .lab-chips span {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .lab-section::before {
+  background: radial-gradient(ellipse 34% 45% at 8% 20%, rgba(63, 100, 24, 0.04), transparent 72%);
+}
+:root:not(.dark) .lab-section--alt::before {
+  background: radial-gradient(
+    ellipse 38% 50% at 92% 30%,
+    rgba(47, 125, 107, 0.04),
+    transparent 72%
+  );
+}
+:root:not(.dark) .lab-tech-note {
+  background: linear-gradient(140deg, rgba(63, 100, 24, 0.05), rgba(63, 100, 24, 0.015));
+}
+:root:not(.dark) .lab-tech-note--bright {
+  background: linear-gradient(140deg, rgba(63, 100, 24, 0.07), rgba(63, 100, 24, 0.02));
+}
+:root:not(.dark) .lab-run-btn:hover {
+  background: rgba(63, 100, 24, 0.12);
+}
+:root:not(.dark) .py-cell.is-running {
+  background: rgba(63, 100, 24, 0.06);
+}
+:root:not(.dark) .r-plot {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .runner-item:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .runner-progress {
+  background: rgba(15, 25, 18, 0.12);
+}
+:root:not(.dark) .sql-table > span {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .graph-expr.is-active {
+  background: rgba(15, 25, 18, 0.05);
+}
+:root:not(.dark) .graph-slider input::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(63, 100, 24, 0.2);
+}
+:root:not(.dark) .graph-slider input::-moz-range-thumb {
+  box-shadow: 0 0 0 3px rgba(63, 100, 24, 0.2);
+}
+:root:not(.dark) .graph-curve--a {
+  filter: drop-shadow(0 0 5px rgba(63, 100, 24, 0.3));
+}
+:root:not(.dark) .math-input {
+  background: rgba(63, 100, 24, 0.05);
+}
+:root:not(.dark) .math-example {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .math-solve:hover {
+  box-shadow: 0 10px 24px -12px rgba(63, 100, 24, 0.4);
+}
+:root:not(.dark) .viz-drop {
+  border-color: rgba(63, 100, 24, 0.4);
+  background: rgba(63, 100, 24, 0.03);
+}
+:root:not(.dark) .viz-drop:hover,
+:root:not(.dark) .viz-drop.is-dragover {
+  background: rgba(63, 100, 24, 0.06);
+}
+:root:not(.dark) .viz-scan {
+  background: linear-gradient(90deg, transparent, rgba(63, 100, 24, 0.1), transparent);
+}
+:root:not(.dark) .canvas-shape span {
+  border-color: rgba(63, 100, 24, 0.4);
 }

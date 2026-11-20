@@ -184,7 +184,7 @@ ${checkList(["A single file tree for the whole project", "Lab sessions open on t
             <span class="duo-badge duo-badge--amber">LOCAL BY DEFAULT</span>
             <h3>Keep it close</h3>
             <p>The useful parts of the workspace run alongside your data.</p>
-${checkList(["SearXNG hosted with your workspace", "Optional anonymity routed through Nym", "No advertising profile built from searches", "Storage you can archive on your own terms"])}
+${checkList(["SearXNG hosted with your workspace", "Optional anonymity (Nym Mixnet routing planned)", "No advertising profile built from searches", "Storage you can archive on your own terms"])}
           </div>
         </div>
       </div>
@@ -228,7 +228,7 @@ ${audience("labs", "For research labs", "Shared notebooks, one source of truth."
 ${audience("teams", "For research teams", "Channels, roles, and presence in the project.", "Give a distributed team a single place to coordinate the work and talk about it.", {
   title: "Talk where the work happens",
   body: "Team chat is part of the workspace, not another app to keep open.",
-  items: ["Channels scoped to each project", "Presence indicators and shared context", "Optional anonymous mode routed through Nym", "Notes and links kept beside the conversation"],
+  items: ["Channels scoped to each project", "Presence indicators and shared context", "Optional anonymous mode (Nym Mixnet routing planned)", "Notes and links kept beside the conversation"],
 }, {
   title: "Coordinate without ceremony",
   body: "Recurring work lives with the project it belongs to.",

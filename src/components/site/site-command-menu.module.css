@@ -1,0 +1,281 @@
+/* Site command menu (⌘K). Self-contained tokens, mirroring the cookie
+   consent module so it works under both the site and changelog themes. */
+
+.trigger,
+.dialog {
+  --scm-bg: #ffffff;
+  --scm-fg: #1a201b;
+  --scm-muted: #5d6960;
+  --scm-border: rgba(15, 25, 18, 0.14);
+  --scm-accent: #4c7a1f;
+  --scm-accent-soft: rgba(76, 122, 31, 0.12);
+  --scm-overlay: rgba(15, 25, 18, 0.4);
+  --scm-shadow: 0 24px 60px rgba(15, 25, 18, 0.18);
+  --scm-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+:global(.dark) .trigger,
+:global(.dark) .dialog {
+  --scm-bg: #141715;
+  --scm-fg: #e9ede8;
+  --scm-muted: #9aa49c;
+  --scm-border: rgba(255, 255, 255, 0.14);
+  --scm-accent: #c8f083;
+  --scm-accent-soft: rgba(200, 240, 131, 0.14);
+  --scm-overlay: rgba(0, 0, 0, 0.55);
+  --scm-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--scm-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--scm-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.trigger:hover {
+  color: var(--scm-fg);
+  border-color: var(--scm-accent);
+}
+
+.triggerIcon {
+  width: 15px;
+  height: 15px;
+}
+
+.triggerLabel {
+  color: var(--scm-fg);
+}
+
+.kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--scm-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--scm-muted);
+  font-family: var(--scm-mono);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--scm-overlay);
+  animation: scm-fade 120ms ease-out;
+}
+
+.dialog {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  z-index: 81;
+  width: min(640px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  max-height: min(560px, 76vh);
+  border: 1px solid var(--scm-border);
+  border-radius: 14px;
+  background: var(--scm-bg);
+  color: var(--scm-fg);
+  box-shadow: var(--scm-shadow);
+  overflow: hidden;
+  animation: scm-pop 140ms ease-out;
+}
+
+@keyframes scm-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes scm-pop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--scm-border);
+}
+
+.inputIcon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: var(--scm-muted);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--scm-fg);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--scm-muted);
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.group + .group {
+  margin-top: 6px;
+}
+
+.groupLabel {
+  padding: 6px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--scm-muted);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.itemActive {
+  background: var(--scm-accent-soft);
+}
+
+.itemActive .itemLabel {
+  color: var(--scm-accent);
+}
+
+.itemIcon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--scm-accent-soft);
+  color: var(--scm-accent);
+}
+
+.itemIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itemLabel {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemHint {
+  font-size: 12px;
+  color: var(--scm-muted);
+}
+
+.empty {
+  padding: 24px 16px;
+  margin: 0;
+  text-align: center;
+  color: var(--scm-muted);
+  font-size: 14px;
+}
+
+.footer {
+  display: flex;
+  gap: 16px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--scm-border);
+  font-size: 11px;
+  color: var(--scm-muted);
+}
+
+.footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Mobile-nav "Search site" button — mirrors the `.nav-mobile a` chrome,
+   which only matches anchors, so the button needs its own rules. */
+:global(.nav-mobile) .mobileSearch {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  color: var(--text-muted);
+  text-align: left;
+  cursor: pointer;
+}
+:global(.nav-mobile) .mobileSearch svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-dim);
+}
+:global(.nav-mobile) .mobileSearch:hover {
+  color: var(--text);
+}
+
+/* On small screens there is no ⌘K — drop the hint from the trigger. */
+@media (max-width: 860px) {
+  .trigger .kbd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .dialog {
+    animation: none;
+  }
+}

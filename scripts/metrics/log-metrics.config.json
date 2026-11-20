@@ -1,0 +1,42 @@
+{
+  "$comment": "Metric definitions for scripts/metrics/log-metrics.mjs. Each entry: name (Prometheus-compatible), description/help, type counter|gauge|histogram, match (array of {field, op, value} clauses over JSON fields — dot paths like 'error.type' allowed; ops: eq, ne, gt, gte, lt, lte, in, exists), groupBy (fields promoted to labels), value (numeric field for histogram/gauge), buckets (histogram upper bounds). See docs/observability/log-based-metrics.md.",
+  "version": 1,
+  "requestEvent": "api.request",
+  "metrics": [
+    {
+      "name": "spindle_log_lines_total",
+      "description": "Total parsed JSON log lines by level",
+      "type": "counter",
+      "match": [{ "field": "level", "op": "exists" }],
+      "groupBy": ["level"]
+    },
+    {
+      "name": "spindle_error_log_lines_total",
+      "description": "Log lines at error/fatal level (all events, not just requests)",
+      "type": "counter",
+      "match": [{ "field": "level", "op": "in", "value": ["error", "fatal"] }],
+      "groupBy": ["service"]
+    },
+    {
+      "name": "spindle_db_query_duration_ms",
+      "description": "Database query duration from db.query log lines",
+      "type": "histogram",
+      "match": [
+        { "field": "event", "op": "eq", "value": "db.query" },
+        { "field": "durationMs", "op": "exists" }
+      ],
+      "value": "durationMs",
+      "buckets": [1, 5, 10, 25, 50, 100, 250, 500, 1000]
+    },
+    {
+      "name": "spindle_worker_job_failures_total",
+      "description": "Failed background worker jobs (event=worker.job with level error/fatal)",
+      "type": "counter",
+      "match": [
+        { "field": "event", "op": "eq", "value": "worker.job" },
+        { "field": "level", "op": "in", "value": ["error", "fatal"] }
+      ],
+      "groupBy": ["job"]
+    }
+  ]
+}

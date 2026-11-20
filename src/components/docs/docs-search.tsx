@@ -5,6 +5,8 @@ import type { FocusEvent, KeyboardEvent } from "react"
 import { useRouter } from "next/navigation"
 
 import { DOC_GUIDE_SUMMARIES, searchDocs, tokenizeQuery } from "@/lib/docs-search"
+import { recordSearchQuery, searchSuggestions } from "@/lib/search/suggestions"
+import type { SearchItem } from "@/lib/search"
 
 type SearchOption = {
   targetId: string
@@ -109,6 +111,28 @@ export function DocsSearch({
       .map((entry) => entry.guide)
   }, [trimmed])
 
+  // "Did you mean" spelling corrections derived from guide titles — only
+  // computed while the empty state is visible.
+  const suggestionItems = useMemo<SearchItem[]>(
+    () =>
+      DOC_GUIDE_SUMMARIES.map((guide) => ({
+        id: `doc-guide:${guide.id}`,
+        title: guide.title,
+        subtitle: guide.description,
+        group: "Docs",
+        type: "doc",
+        section: "Guides",
+      })),
+    [],
+  )
+  const didYouMean = useMemo(
+    () =>
+      open && trimmed && !hasResults
+        ? searchSuggestions(trimmed, { items: suggestionItems }).didYouMean
+        : [],
+    [open, trimmed, hasResults, suggestionItems],
+  )
+
   // Read ?q= after hydration so the static HTML stays identical.
   useEffect(() => {
     const url = new URL(window.location.href)
@@ -154,6 +178,9 @@ export function DocsSearch({
 
   function selectOption(option: SearchOption) {
     setOpen(false)
+    // Feed the local query log so trending/related suggestions learn from
+    // real usage. Local only — nothing leaves the browser.
+    recordSearchQuery(query)
 
     const sectionId = option.href.split("#")[1]
     const target = sectionId ? document.getElementById(sectionId) : null
@@ -283,7 +310,7 @@ export function DocsSearch({
               id={optionId(index)}
               role="option"
               aria-selected={index === active}
-              className={`doc-search-option${index === active ? " is-active" : ""}`}
+              className={`doc-search-option${index === active ? "is-active" : ""}`}
               onMouseDown={(event) => event.preventDefault()}
               onMouseEnter={() => setActive(index)}
               onClick={() => selectOption(option)}
@@ -311,6 +338,28 @@ export function DocsSearch({
           <p>
             No matches for <strong>{trimmed}</strong>.
           </p>
+          {didYouMean.length > 0 ? (
+            <p className="doc-search-didyoumean">
+              Did you mean:{" "}
+              {didYouMean.map((suggestion, index) => (
+                <span key={suggestion.suggestion}>
+                  {index > 0 ? ", " : ""}
+                  <button
+                    type="button"
+                    className="doc-search-didyoumean-link"
+                    onClick={() => {
+                      setQuery(suggestion.suggestion)
+                      setOpen(true)
+                      inputRef.current?.focus()
+                    }}
+                  >
+                    {suggestion.suggestion}
+                  </button>
+                </span>
+              ))}
+              ?
+            </p>
+          ) : null}
           <p>Try one of these guides instead:</p>
           <div className="doc-search-empty-links">
             {closestGuides.map((guide) => (

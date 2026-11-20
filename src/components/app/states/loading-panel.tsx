@@ -24,7 +24,7 @@ function PanelSkeleton({ variant, lines }: { variant: LoadingPanelVariant; lines
 
   if (variant === "panel") {
     return (
-      <div className="grid gap-4 rounded-xl border bg-card p-5">
+      <div className="bg-card grid gap-4 rounded-xl border p-5">
         <Skeleton className="h-4 w-36" />
         <SkeletonText lines={lines} />
       </div>

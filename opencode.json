@@ -1,9 +1,14 @@
 {
+  "$schema": "https://app.kilo.ai/config.json",
   "mcp": {
     "servers": {
       "linear": {
         "type": "remote",
         "url": "https://mcp.linear.app/mcp"
+      },
+      "sentry": {
+        "type": "remote",
+        "url": "https://mcp.sentry.dev/mcp"
       }
     }
   }

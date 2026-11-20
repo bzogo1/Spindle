@@ -1,0 +1,16 @@
+# Fixture tunnel config: valid hostname rules but NO catch-all 404, so the
+# cloudflared check must report a FAIL. Also routes to a port the fixture
+# compose service does not expose.
+
+credentials-file: /etc/cloudflared/credentials.json
+no-autoupdate: true
+protocol: quic
+
+ingress:
+  - hostname: app.fixture.test
+    service: http://app:9999
+    originRequest:
+      connectTimeout: 10s
+
+  - hostname: lab.fixture.test
+    service: http://lab-proxy:7000

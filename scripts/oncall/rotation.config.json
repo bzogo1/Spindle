@@ -1,0 +1,33 @@
+{
+  "$comment": "On-call rotation config for scripts/oncall/rotation.mjs. Replace the placeholder members with real names/handles before relying on the generated schedule. See docs/oncall/README.md. Weeks run Monday 00:00 UTC → Monday 00:00 UTC; startDate must be a Monday.",
+  "service": "spindle-production",
+  "startDate": "2026-02-02",
+  "weeks": 12,
+  "timezoneNote": "Europe/Kyiv",
+  "members": [
+    {
+      "name": "Alex Petrov",
+      "handle": "@alex",
+      "email": "alex@example.invalid"
+    },
+    {
+      "name": "Maria Kovalenko",
+      "handle": "@maria",
+      "email": "maria@example.invalid"
+    },
+    {
+      "name": "Sam Ivanov",
+      "handle": "@sam",
+      "email": "sam@example.invalid"
+    }
+  ],
+  "rotation": {
+    "pattern": "weekly",
+    "l1Offset": 0,
+    "l2Offset": 1
+  },
+  "escalationLead": {
+    "name": "Engineering Lead (placeholder)",
+    "handle": "@eng-lead"
+  }
+}

@@ -1,0 +1,47 @@
+name: SBOM
+
+# Generates a CycloneDX software bill of materials from package-lock.json.
+# Runs on every push to main and weekly so the inventory stays current even
+# when dependencies change via Dependabot or manual bumps.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Generate CycloneDX SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # The generator is dependency-free; --validate enforces the required
+      # CycloneDX fields (bomFormat, specVersion, components[]) before upload.
+      - name: Generate SBOM
+        run: node scripts/sbom/generate.mjs --output sbom.cdx.json --validate
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.cdx.json
+          retention-days: 90

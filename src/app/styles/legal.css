@@ -85,14 +85,14 @@
   font-size: 12.5px;
   font-weight: 500;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    color 0.18s;
+    background var(--transition-normal),
+    border-color var(--transition-normal),
+    color var(--transition-normal);
 }
 .legal-download-action:hover {
   border-color: var(--accent);
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
 }
 
 .legal-body {
@@ -128,7 +128,7 @@
   font-size: 12.5px;
   line-height: 1.45;
   color: var(--text-dim);
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 .legal-toc a:hover {
   color: var(--accent);
@@ -404,5 +404,63 @@
   .legal-version-link,
   .legal-version-current {
     grid-column: 1;
+  }
+}
+
+/* ==========================================================================
+   LIGHT THEME — the translucent-white fills above are dark-theme tints; on a
+   light surface they disappear, so remap them to the surface token.
+   ========================================================================== */
+:root:not(.dark) .legal-download,
+:root:not(.dark) .legal-table thead th {
+  background: var(--surface-2);
+}
+
+/* ==========================================================================
+   PRINT — legal documents are meant to be saved/printed. Strip site chrome
+   and interactive controls, collapse the TOC layout to a single column, and
+   keep headings/tables from breaking awkwardly across pages.
+   ========================================================================== */
+@media print {
+  .site-header,
+  .site-footer,
+  .legal-toc,
+  .skip-link,
+  .btn,
+  .legal-download-action,
+  .legal-version-link {
+    display: none !important;
+  }
+
+  .legal-layout {
+    display: block;
+  }
+  .legal-content {
+    max-width: none;
+  }
+  .legal-summary,
+  .legal-download,
+  .legal-contact,
+  .legal-version-list {
+    break-inside: avoid;
+  }
+  .legal-block {
+    break-inside: auto;
+  }
+  .legal-block h2,
+  .legal-block h3,
+  .legal-summary h2 {
+    break-after: avoid;
+  }
+  .legal-table-wrap {
+    overflow: visible;
+  }
+  .legal-table {
+    min-width: 0;
+    font-size: 11px;
+  }
+  .legal-block a {
+    color: inherit;
+    text-decoration: underline;
   }
 }

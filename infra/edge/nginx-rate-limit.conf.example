@@ -1,0 +1,59 @@
+# nginx rate-limit fallback for the origin — REFERENCE ONLY.
+#
+# Today nothing public terminates at nginx: cloudflared forwards directly to
+# the Next.js container (`http://app:8080`) over the compose network, and the
+# app's only published port is 127.0.0.1:8080. If a reverse proxy is ever
+# added in front of the app container (e.g. for mTLS, header rewriting, or a
+# non-Cloudflare ingress), drop this snippet into its http block.
+#
+# nginx limiting is per-worker-process unless the zone uses shared memory —
+# `limit_req_zone` IS shared across workers, which is what makes this a real
+# fallback rather than N× the configured rate (N = worker_processes).
+
+# --- http block -------------------------------------------------------------
+
+# Real client IP. Cloudflare sets CF-Connecting-IP on every proxied request.
+# Trust ONLY the immediate upstream (cloudflared, an internal compose address)
+# via set_real_ip_from; otherwise clients can spoof X-Forwarded-For.
+#
+#   set_real_ip_from 172.16.0.0/12;   # compose network range — adjust to yours
+#   set_real_ip_from 10.0.0.0/8;
+#   real_ip_header   CF-Connecting-IP;
+#
+# After that, $binary_remote_addr is the true client IP for limit_req_zone.
+
+# Shared-memory zones. 10 MB ≈ 160k keys at ~64 bytes each.
+# Per-route limits are expressed per location block, not per zone.
+limit_req_zone $binary_remote_addr zone=spindle_per_ip:10m rate=30r/s;
+limit_req_zone $binary_remote_addr zone=spindle_auth:10m  rate=1r/s;
+
+# Server block sketch:
+#
+#   server {
+#       listen 8080;
+#
+#       # Global per-IP cap.
+#       location / {
+#           limit_req zone=spindle_per_ip burst=60 nodelay;
+#           limit_req_status 429;
+#           add_header Retry-After 1 always;
+#           proxy_pass http://app:8080;
+#           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#           proxy_set_header CF-Connecting-IP $http_cf_connecting_ip;
+#       }
+#
+#       # Auth surfaces: stricter, smaller burst.
+#       location /api/auth/ {
+#           limit_req zone=spindle_auth burst=10 nodelay;
+#           limit_req_status 429;
+#           proxy_pass http://app:8080;
+#       }
+#
+#       # Health/readiness: NO limit_req — probes must never be throttled.
+#       location = /api/health { proxy_pass http://app:8080; }
+#       location = /api/ready   { proxy_pass http://app:8080; }
+#   }
+#
+# Note: nginx limit_req is a leaky-bucket (rate + burst), not sliding window.
+# It is a coarse volumetric safety net; the app's sliding-window limiter in
+# src/lib/rate-limit/ remains the precise per-route control.

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "_comment": "Bundle-size budgets enforced by scripts/bundle-size/monitor.mjs. All sizes are KiB of gzip-compressed bytes. `total.maxJsCssKb` caps every .js/.css file under .next/static (initial + lazy chunks). Route budgets cap each route's first-load JS+CSS; a route not listed in `routes` falls back to `defaultRoute`. `maxCssKb` only applies where per-route CSS is measurable (webpack app-build-manifest); Turbopack route stats only attribute .js chunks, so CSS is enforced globally there. Values are ceil(baseline * 1.25), matching scripts/check-client-bundle.mjs baselines (2026-11-20): global JS+CSS 914.2 KB gzip, worst-route initial JS+CSS 449.3 KB gzip, worst-route CSS 34.3 KB gzip. Revisit after major dependency or routing changes.",
+  "units": "KiB gzip",
+  "total": {
+    "maxJsCssKb": 1143
+  },
+  "defaultRoute": {
+    "maxJsCssKb": 562,
+    "maxCssKb": 43
+  },
+  "routes": {
+    "/": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/docs": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/docs/[slug]": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/collaboration": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/pricing": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/contact": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/referral": { "maxJsCssKb": 562, "maxCssKb": 43 },
+    "/sign-in": { "maxJsCssKb": 420, "maxCssKb": 43 },
+    "/sign-up": { "maxJsCssKb": 420, "maxCssKb": 43 },
+    "/app": { "maxJsCssKb": 700, "maxCssKb": 43 },
+    "/app/*": { "maxJsCssKb": 700, "maxCssKb": 43 }
+  },
+  "regression": {
+    "percent": 5,
+    "_comment": "Warn (do not fail) when a route or the total grows by more than this percent versus the previous history snapshot."
+  }
+}

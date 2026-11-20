@@ -1,0 +1,287 @@
+{
+  "$comment": "Escalation policy definitions for scripts/alerts/escalate.mjs. Dependency-free JSON — edit by hand, no build step. Each policy is an ordered chain of levels (L1 on-call -> L2 -> L3). Semantics: when an incident is triggered, level 1 is notified immediately. If the incident is not acknowledged within that level's `ackTimeoutMinutes`, the next level is notified, and so on. `ackSlaMinutes` is the promised acknowledgement time shown to responders (should be <= ackTimeoutMinutes). After the final level's ackTimeoutMinutes elapses, the engine either re-notifies the final level every `repeatIntervalMinutes` (if set) or marks the incident 'exhausted' and stays silent until ack/resolve. `notify.webhook` (default true) controls whether the engine POSTs the escalation payload to ALERT_NOTIFY_WEBHOOK_URL / --webhook; `notify.email`/`notify.pager` are documentation hints for the receiving system, not delivered by this script. Routing from alert sources/rule ids to policy names lives in docs/alerts/routing.json.",
+  "version": 1,
+  "defaults": {
+    "ackTimeoutMinutes": 15,
+    "ackSlaMinutes": 15,
+    "notify": { "webhook": true },
+    "repeatIntervalMinutes": null
+  },
+  "policies": {
+    "db-critical": {
+      "title": "Database monitor — critical",
+      "description": "Critical database-monitoring rule firing (connection pool saturation, disk usage, failed migrations, backup staleness) or a monitor 'error' status. Data-loss/corruption class — page fast.",
+      "runbookPrefix": "docs/runbooks/database-monitoring.md",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 10,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "secondary on-call / DB owner",
+          "role": "secondary on-call engineer or database owner",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 15,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L3",
+          "name": "engineering manager",
+          "role": "engineering manager / incident commander",
+          "ackTimeoutMinutes": 30,
+          "ackSlaMinutes": 30,
+          "repeatIntervalMinutes": 60,
+          "notify": { "webhook": true, "email": true, "page": true }
+        }
+      ]
+    },
+    "db-warning": {
+      "title": "Database monitor — warning",
+      "description": "Warning-severity database-monitoring rule (idle-in-transaction, long queries, replication lag, dead tuples). Degraded state, not yet user-facing.",
+      "runbookPrefix": "docs/runbooks/database-monitoring.md",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 30,
+          "ackSlaMinutes": 20,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "secondary on-call",
+          "role": "secondary on-call engineer",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L3",
+          "name": "engineering manager",
+          "role": "engineering manager",
+          "ackTimeoutMinutes": 120,
+          "ackSlaMinutes": 120,
+          "repeatIntervalMinutes": 240,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    },
+    "deploy-critical": {
+      "title": "Deploy — failed / rolled back",
+      "description": "A production (or staging) deploy reported 'failed' or 'rolled-back' via scripts/deploy/notify.ts. The site may be down or on a bad revision.",
+      "runbookPrefix": "docs/runbooks/rollback.md",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "release on-call",
+          "role": "on-call engineer owning the release pipeline",
+          "ackTimeoutMinutes": 10,
+          "ackSlaMinutes": 10,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "release owner",
+          "role": "release owner / secondary on-call",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 15,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L3",
+          "name": "engineering manager",
+          "role": "engineering manager",
+          "ackTimeoutMinutes": 30,
+          "ackSlaMinutes": 30,
+          "repeatIntervalMinutes": 60,
+          "notify": { "webhook": true, "email": true, "page": true }
+        }
+      ]
+    },
+    "deploy-warning": {
+      "title": "Deploy — attention",
+      "description": "Non-fatal deploy signal routed here when a deployment reports something noteworthy that is not a hard failure (e.g. a started event used as a heartbeat in custom pipelines).",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true }
+        },
+        {
+          "level": "L2",
+          "name": "secondary on-call",
+          "role": "secondary on-call engineer",
+          "ackTimeoutMinutes": 240,
+          "ackSlaMinutes": 240,
+          "repeatIntervalMinutes": 480,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    },
+    "perf-critical": {
+      "title": "Performance budget — critical breach",
+      "description": "Lighthouse budget assertion failed at 'error' level (scripts/lighthouse/summarize.mjs --check). User-facing performance regression.",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 15,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "frontend owner",
+          "role": "frontend/performance owner",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L3",
+          "name": "engineering manager",
+          "role": "engineering manager",
+          "ackTimeoutMinutes": 120,
+          "ackSlaMinutes": 120,
+          "repeatIntervalMinutes": 240,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    },
+    "perf-warning": {
+      "title": "Performance budget — warning breach",
+      "description": "Lighthouse budget assertion failed at 'warn' level. Regression is real but not yet release-blocking.",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true }
+        },
+        {
+          "level": "L2",
+          "name": "frontend owner",
+          "role": "frontend/performance owner",
+          "ackTimeoutMinutes": 240,
+          "ackSlaMinutes": 240,
+          "repeatIntervalMinutes": 480,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    },
+    "secrets-critical": {
+      "title": "Secrets — critical",
+      "description": "Possible secret exposure or failed secret-store validation (scripts/secrets scan/check/rotation). Treat as a security incident until proven otherwise.",
+      "runbookPrefix": "docs/runbooks/secrets-rotation.md",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "security on-call",
+          "role": "security on-call responder",
+          "ackTimeoutMinutes": 5,
+          "ackSlaMinutes": 5,
+          "notify": { "webhook": true, "email": true, "page": true }
+        },
+        {
+          "level": "L2",
+          "name": "security lead",
+          "role": "security lead",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 15,
+          "notify": { "webhook": true, "email": true, "page": true }
+        },
+        {
+          "level": "L3",
+          "name": "CISO / exec on-call",
+          "role": "CISO or designated executive",
+          "ackTimeoutMinutes": 30,
+          "ackSlaMinutes": 30,
+          "repeatIntervalMinutes": 60,
+          "notify": { "webhook": true, "email": true, "page": true }
+        }
+      ]
+    },
+    "secrets-warning": {
+      "title": "Secrets — warning",
+      "description": "Secret hygiene finding that is not an active exposure (e.g. rotation overdue, missing non-production variable).",
+      "runbookPrefix": "docs/runbooks/secrets-rotation.md",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "security on-call",
+          "role": "security on-call responder",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "security lead",
+          "role": "security lead",
+          "ackTimeoutMinutes": 240,
+          "ackSlaMinutes": 240,
+          "repeatIntervalMinutes": 480,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    },
+    "generic-critical": {
+      "title": "Unclassified alert — critical",
+      "description": "Catch-all for critical-severity events from sources with no more specific routing.",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 15,
+          "ackSlaMinutes": 15,
+          "notify": { "webhook": true, "email": true }
+        },
+        {
+          "level": "L2",
+          "name": "secondary on-call",
+          "role": "secondary on-call engineer",
+          "ackTimeoutMinutes": 30,
+          "ackSlaMinutes": 30,
+          "repeatIntervalMinutes": 60,
+          "notify": { "webhook": true, "email": true, "page": true }
+        }
+      ]
+    },
+    "generic-warning": {
+      "title": "Unclassified alert — warning",
+      "description": "Catch-all for warning-severity events from sources with no more specific routing.",
+      "chain": [
+        {
+          "level": "L1",
+          "name": "primary on-call",
+          "role": "on-call engineer (primary)",
+          "ackTimeoutMinutes": 60,
+          "ackSlaMinutes": 60,
+          "notify": { "webhook": true }
+        },
+        {
+          "level": "L2",
+          "name": "secondary on-call",
+          "role": "secondary on-call engineer",
+          "ackTimeoutMinutes": 240,
+          "ackSlaMinutes": 240,
+          "repeatIntervalMinutes": 480,
+          "notify": { "webhook": true, "email": true }
+        }
+      ]
+    }
+  }
+}

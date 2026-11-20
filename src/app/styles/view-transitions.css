@@ -1,0 +1,90 @@
+/* View Transitions API styles (React <ViewTransition> + Next.js 16).
+   Only imported by the `(app)` route group. Every rule is inert in browsers
+   without support — unknown ::view-transition pseudo-elements are ignored. */
+
+/* Keep the page interactive while a transition runs: the ::view-transition
+   overlay captures pointer events by default. Named participants (shared
+   elements) are still hit-test-skipped for the transition's duration, so keep
+   transitions short. */
+::view-transition {
+  pointer-events: none;
+}
+
+/* The browser's default root crossfade would animate every navigation,
+   including ones that didn't opt in. Suppress it so only named
+   <ViewTransition> participants animate. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Shared element morph (e.g. project card -> project header). */
+::view-transition-group(.morph) {
+  animation-duration: 400ms;
+}
+::view-transition-image-pair(.morph) {
+  animation-name: vt-via-blur;
+}
+@keyframes vt-via-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
+
+/* Directional page slides, driven by `nav-forward` / `nav-back` transition
+   types (see PageTransition in components/view-transitions). */
+::view-transition-old(.nav-forward) {
+  --vt-slide-offset: -60px;
+  animation:
+    150ms ease-in both vt-fade reverse,
+    400ms ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --vt-slide-offset: 60px;
+  animation:
+    210ms ease-out 150ms both vt-fade,
+    400ms ease-in-out both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --vt-slide-offset: 60px;
+  animation:
+    150ms ease-in both vt-fade reverse,
+    400ms ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --vt-slide-offset: -60px;
+  animation:
+    210ms ease-out 150ms both vt-fade,
+    400ms ease-in-out both vt-slide;
+}
+
+@keyframes vt-fade {
+  from {
+    filter: blur(3px);
+    opacity: 0;
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+  }
+}
+@keyframes vt-slide {
+  from {
+    translate: var(--vt-slide-offset);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+/* Motion sensitivity: positional slides are the strongest trigger, so drop
+   all view-transition animation under reduced motion. Content then swaps
+   instantly, matching the non-supporting-browser fallback. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

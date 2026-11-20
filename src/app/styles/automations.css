@@ -17,7 +17,7 @@
 .nav-link.is-active {
   color: var(--text);
   background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
+  box-shadow: var(--shadow-active-inset);
 }
 
 /* ==========================================================================
@@ -83,7 +83,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  box-shadow: var(--shadow-dot-halo);
 }
 
 .auto-kicker i::after {
@@ -116,7 +116,7 @@
 }
 
 .auto-hero-copy h1 span {
-  background: linear-gradient(100deg, var(--accent) 5%, #e6fac4 55%, var(--teal) 100%);
+  background: linear-gradient(100deg, var(--accent) 5%, var(--accent-hover) 55%, var(--teal) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -166,7 +166,7 @@
   inset: -12% -8% -14% -6%;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(200, 240, 131, 0.09), transparent 63%);
+  background: radial-gradient(ellipse at center, var(--accent-soft), transparent 63%);
   filter: blur(22px);
   pointer-events: none;
 }
@@ -222,7 +222,7 @@
   align-items: center;
   padding: 11px 13px;
   border-top: 1px solid rgba(255, 255, 255, 0.035);
-  transition: background 0.18s;
+  transition: background var(--transition-normal);
 }
 
 .run-row:first-child {
@@ -327,7 +327,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: var(--shadow-glow-sm);
   animation: auto-blink 2s ease-in-out infinite;
 }
 
@@ -456,7 +456,7 @@
   position: absolute;
   inset: 4px;
   border-radius: 50%;
-  background: #121512;
+  background: var(--surface);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -547,7 +547,7 @@
   border: 1px solid var(--accent-line);
   border-radius: 9px;
   background: rgba(20, 24, 20, 0.96);
-  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  box-shadow: var(--shadow-float);
   backdrop-filter: blur(10px);
 }
 
@@ -601,7 +601,7 @@
   border: none;
   border-right: 1px solid var(--border);
   color: var(--text);
-  transition: background 0.2s;
+  transition: background var(--transition-normal);
 }
 
 .path-card:first-child {
@@ -628,7 +628,7 @@
   height: 36px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius);
   margin-bottom: 10px;
 }
 
@@ -683,7 +683,7 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--accent);
-  transition: gap 0.18s;
+  transition: gap var(--transition-normal);
 }
 
 .path-card:hover .path-cta {
@@ -730,7 +730,7 @@
   padding: 4px;
   flex: none;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: rgba(0, 0, 0, 0.24);
 }
 
@@ -747,9 +747,9 @@
   font-weight: 500;
   white-space: nowrap;
   transition:
-    background 0.18s,
-    color 0.18s,
-    box-shadow 0.18s;
+    background var(--transition-normal),
+    color var(--transition-normal),
+    box-shadow var(--transition-normal);
 }
 
 .mode-tab:hover {
@@ -757,7 +757,7 @@
   background: rgba(255, 255, 255, 0.03);
 }
 .mode-tab.is-active {
-  color: #141910;
+  color: var(--ui-primary-foreground);
   background: var(--accent);
   box-shadow: 0 2px 12px rgba(200, 240, 131, 0.18);
 }
@@ -769,6 +769,9 @@
   border-color: var(--border-strong);
   box-shadow: 0 40px 100px -46px rgba(0, 0, 0, 0.95);
   position: relative;
+  /* The studio demo spans the full `.container` width, so the ask/builder/
+     cron layouts inside it respond to the window's own width. */
+  container-type: inline-size;
 }
 
 .studio-topbar {
@@ -803,8 +806,8 @@
   color: var(--text-dim);
   font-size: 10.5px;
   transition:
-    color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 
 .reset-btn:hover {
@@ -1022,9 +1025,9 @@
   color: var(--text-dim);
   font-size: 11px;
   transition:
-    color 0.18s,
-    border-color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 
 .chat-suggestions button:hover {
@@ -1040,16 +1043,16 @@
   margin: 0 20px 20px;
   padding: 7px 7px 7px 13px;
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: rgba(0, 0, 0, 0.25);
   transition:
-    border-color 0.18s,
-    box-shadow 0.18s;
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
 }
 
 .chat-form:focus-within {
   border-color: var(--accent-line);
-  box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.05);
+  box-shadow: var(--focus-halo);
 }
 .chat-form-icon {
   width: 15px;
@@ -1081,10 +1084,10 @@
   border: none;
   border-radius: 6px;
   background: var(--accent);
-  color: #141910;
+  color: var(--ui-primary-foreground);
   transition:
-    background 0.18s,
-    transform 0.18s;
+    background var(--transition-normal),
+    transform var(--transition-normal);
 }
 
 .send-btn:hover {
@@ -1273,15 +1276,15 @@
   color: var(--text-dim);
   font-size: 12px;
   transition:
-    background 0.18s,
-    color 0.18s;
+    background var(--transition-normal),
+    color var(--transition-normal);
 }
 .builder-block .seg:hover {
   color: var(--text);
 }
 .builder-block .seg.is-active {
   background: var(--accent);
-  color: #141910;
+  color: var(--ui-primary-foreground);
 }
 
 .builder-fields {
@@ -1315,8 +1318,8 @@
   min-height: 35px;
   outline: none;
   transition:
-    border-color 0.18s,
-    box-shadow 0.18s;
+    border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
 }
 
 .field select {
@@ -1329,12 +1332,11 @@
 .field input:focus,
 .field select:focus {
   border-color: var(--accent-line);
-  box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.05);
+  box-shadow: var(--focus-halo);
 }
 .field input[type="time"] {
   font-family: var(--mono);
   font-size: 12px;
-  color-scheme: dark;
   min-width: 116px;
 }
 
@@ -1355,7 +1357,7 @@
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-dim);
   font-size: 11px;
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 
 .day:hover {
@@ -1385,8 +1387,8 @@
   background: rgba(255, 255, 255, 0.012);
   cursor: pointer;
   transition:
-    border-color 0.18s,
-    background 0.18s;
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 
 .option:hover {
@@ -1404,7 +1406,7 @@
   height: 1px;
 }
 .option input:focus-visible + .option-box {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -1418,13 +1420,13 @@
   border: 1px solid var(--border-strong);
   border-radius: 4px;
   color: transparent;
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 
 .option.checked .option-box {
   background: var(--accent);
   border-color: var(--accent);
-  color: #141910;
+  color: var(--ui-primary-foreground);
 }
 .option-box .icon {
   width: 11px;
@@ -1463,7 +1465,7 @@
   background: rgba(255, 255, 255, 0.015);
   color: var(--text-muted);
   font-size: 11.5px;
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 
 .channel:hover {
@@ -1627,8 +1629,8 @@
   font-family: var(--mono);
   font-size: 10.5px;
   transition:
-    color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 
 .code-tab:hover {
@@ -1648,7 +1650,7 @@
   background: transparent;
   color: var(--text-dim);
   font-size: 10.5px;
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 
 .copy-btn:hover {
@@ -1681,16 +1683,16 @@
   font-size: 12px;
   outline: none;
   transition:
-    box-shadow 0.18s,
-    border-color 0.18s;
+    box-shadow var(--transition-normal),
+    border-color var(--transition-normal);
 }
 
 .cron-input:focus {
-  box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.07);
+  box-shadow: var(--focus-halo);
 }
 .cron-input.is-invalid {
   border-color: rgba(226, 145, 113, 0.6);
-  color: #e8a58f;
+  color: var(--ui-destructive);
 }
 
 .cron-command {
@@ -1707,7 +1709,7 @@
   font-family: var(--mono);
   font-size: 11.5px;
   line-height: 1.85;
-  color: #dbe2d8;
+  color: var(--text-muted);
   tab-size: 2;
 }
 
@@ -1733,7 +1735,7 @@
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: 10px;
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 
 .cron-presets button:hover,
@@ -1809,7 +1811,7 @@
   color: var(--teal);
 }
 .validation.is-error {
-  color: #e8a58f;
+  color: var(--ui-destructive);
 }
 
 .terminal-card {
@@ -1835,16 +1837,16 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #3d443e;
+  background: var(--surface-3);
 }
 .terminal-head i:first-child {
-  background: #a56458;
+  background: var(--ui-destructive);
 }
 .terminal-head i:nth-child(2) {
-  background: #a88955;
+  background: var(--amber);
 }
 .terminal-head i:last-child {
-  background: #6a9a71;
+  background: var(--mint);
 }
 .terminal-head .mono {
   font-size: 9px;
@@ -1893,9 +1895,9 @@
   border-radius: 10px;
   background: var(--panel);
   transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.2s;
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    transform var(--transition-normal);
 }
 
 .guard-card:hover {
@@ -1909,7 +1911,7 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius);
   color: var(--accent);
   background: var(--accent-soft);
   border: 1px solid var(--accent-line);
@@ -2023,6 +2025,9 @@
 .rhythm-visual {
   position: relative;
   min-width: 0;
+  /* .rhythm-glow bleeds ~12% past each side; clip it here so the decorative
+     halo can't push document scrollWidth past the viewport on phones. */
+  overflow: hidden;
 }
 .rhythm-glow {
   position: absolute;
@@ -2133,7 +2138,7 @@
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-muted);
   font-size: 10.5px;
-  transition: all 0.18s;
+  transition: all var(--transition-normal);
 }
 .digest-actions button:first-child {
   color: var(--accent);
@@ -2255,6 +2260,12 @@
   .rhythm-grid {
     gap: 44px;
   }
+}
+
+/* Studio window internals: the demo is a full-width `.container` child, so its
+   panes collapse on the window's own width. Breakpoints track the old viewport
+   ones minus the container's horizontal padding (~50px). */
+@container (max-width: 1050px) {
   .ask-layout,
   .builder-layout,
   .cron-layout {
@@ -2313,6 +2324,24 @@
     border-bottom: none;
   }
 
+  .guard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .rhythm-grid {
+    grid-template-columns: 1fr;
+    gap: 50px;
+  }
+  .rhythm-copy {
+    max-width: 640px;
+  }
+  .rhythm-visual {
+    max-width: 640px;
+  }
+}
+
+/* Studio window stacked layout: panes lose their side borders and the builder
+   side panel reflows, all based on the window's own width. */
+@container (max-width: 850px) {
   .ask-layout,
   .builder-layout,
   .cron-layout {
@@ -2340,20 +2369,6 @@
   .builder-side .toast {
     grid-column: 1 / -1;
     margin-top: 0;
-  }
-
-  .guard-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .rhythm-grid {
-    grid-template-columns: 1fr;
-    gap: 50px;
-  }
-  .rhythm-copy {
-    max-width: 640px;
-  }
-  .rhythm-visual {
-    max-width: 640px;
   }
 }
 
@@ -2414,33 +2429,8 @@
     padding: 9px 8px;
   }
 
-  .studio-panel {
-    min-height: 0;
-  }
-  .chat-side .chat-head {
-    padding: 9px 14px;
-  }
-  .chat-head-tag {
-    display: none;
-  }
-  .chat-thread {
-    padding: 16px 14px;
-  }
-  .chat-form {
-    margin: 0 14px 16px;
-  }
-  .option-grid {
-    grid-template-columns: 1fr;
-  }
-  .builder-side {
-    display: flex;
-  }
   .cron-fields {
     grid-template-columns: repeat(5, 1fr);
-  }
-  .code-block {
-    padding: 16px;
-    font-size: 10.5px;
   }
 
   .guard-grid {
@@ -2472,6 +2462,48 @@
   .header-actions > .btn {
     display: none;
   }
+  .run-row {
+    grid-template-columns: 38px 26px minmax(0, 1fr);
+  }
+  .run-result {
+    display: none;
+  }
+  .dialog {
+    margin: 12px;
+  }
+}
+
+/* Narrow studio window: single-column option grid, builder side panel back to
+   a column, tighter chat/code chrome. */
+@container (max-width: 650px) {
+  .studio-panel {
+    min-height: 0;
+  }
+  .chat-side .chat-head {
+    padding: 9px 14px;
+  }
+  .chat-head-tag {
+    display: none;
+  }
+  .chat-thread {
+    padding: 16px 14px;
+  }
+  .chat-form {
+    margin: 0 14px 16px;
+  }
+  .option-grid {
+    grid-template-columns: 1fr;
+  }
+  .builder-side {
+    display: flex;
+  }
+  .code-block {
+    padding: 16px;
+    font-size: 10.5px;
+  }
+}
+
+@container (max-width: 400px) {
   .builder-fields {
     flex-direction: column;
   }
@@ -2481,20 +2513,100 @@
   .builder-buttons .btn {
     width: 100%;
   }
-  .run-row {
-    grid-template-columns: 38px 26px minmax(0, 1fr);
-  }
-  .run-result {
-    display: none;
-  }
   .cron-input {
     width: 102px;
   }
   .cron-command {
     width: 100%;
   }
-  .dialog {
-    margin: 12px;
+}
+
+/* Fallback for engines without container-query support (Safari < 16): the
+   @container rules above are dropped, so reproduce them as viewport media. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 1100px) {
+    .ask-layout,
+    .builder-layout,
+    .cron-layout {
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.85fr);
+    }
+    .chat-suggestions {
+      display: none;
+    }
+  }
+  @media (max-width: 900px) {
+    .ask-layout,
+    .builder-layout,
+    .cron-layout {
+      grid-template-columns: 1fr;
+    }
+    .chat-side,
+    .builder-form,
+    .cron-editor {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+    .chat-thread {
+      max-height: 300px;
+    }
+    .draft-side,
+    .builder-side,
+    .cron-side {
+      padding: 22px;
+    }
+    .builder-side {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+    }
+    .builder-side .toast {
+      grid-column: 1 / -1;
+      margin-top: 0;
+    }
+  }
+  @media (max-width: 700px) {
+    .studio-panel {
+      min-height: 0;
+    }
+    .chat-side .chat-head {
+      padding: 9px 14px;
+    }
+    .chat-head-tag {
+      display: none;
+    }
+    .chat-thread {
+      padding: 16px 14px;
+    }
+    .chat-form {
+      margin: 0 14px 16px;
+    }
+    .option-grid {
+      grid-template-columns: 1fr;
+    }
+    .builder-side {
+      display: flex;
+    }
+    .code-block {
+      padding: 16px;
+      font-size: 10.5px;
+    }
+  }
+  @media (max-width: 440px) {
+    .builder-fields {
+      flex-direction: column;
+    }
+    .builder-buttons {
+      flex-direction: column-reverse;
+    }
+    .builder-buttons .btn {
+      width: 100%;
+    }
+    .cron-input {
+      width: 102px;
+    }
+    .cron-command {
+      width: 100%;
+    }
   }
 }
 
@@ -2508,4 +2620,229 @@
   .guard-card:hover {
     transform: none;
   }
+}
+
+/* ==========================================================================
+   Light-theme counterparts for the tokens above (see :root:not(.dark) in
+   styles.css / index.css — light is the default when <html> lacks .dark).
+   ========================================================================== */
+:root:not(.dark) {
+  --teal: #2f7d6b;
+  --teal-soft: rgba(47, 125, 107, 0.11);
+  --amber-soft: rgba(138, 90, 30, 0.12);
+  --panel: rgba(15, 25, 18, 0.04);
+  --panel-hover: rgba(15, 25, 18, 0.07);
+}
+
+/* ==========================================================================
+   LIGHT THEME — surfaces that were hardcoded dark. Inner text already uses
+   the theme tokens, so only the opaque panel backgrounds need remapping.
+   ========================================================================== */
+:root:not(.dark) .auto-window {
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+}
+:root:not(.dark) .floating-note {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* ==========================================================================
+   LIGHT THEME — hardcoded black fills on controls and inner panels. These sit
+   inside .auto-window (now a light gradient), where rgba(0,0,0,x) reads as a
+   muddy dark patch behind light-theme text.
+   ========================================================================== */
+:root:not(.dark) .auto-hero-grid-bg {
+  background-image:
+    linear-gradient(rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 25, 18, 0.05) 1px, transparent 1px);
+}
+
+/* Tab/segmented tracks: dark "well" becomes a light recessed track. */
+:root:not(.dark) .mode-tabs,
+:root:not(.dark) .builder-block .segmented {
+  background: var(--surface-3);
+}
+
+/* Editable controls: dark inset fill becomes a clean field surface. */
+:root:not(.dark) .field input,
+:root:not(.dark) .field select,
+:root:not(.dark) .chat-form,
+:root:not(.dark) .cron-input,
+:root:not(.dark) .cron-field,
+:root:not(.dark) .digest-stat span {
+  background: var(--surface);
+}
+
+/* Recessed inner panels inside the demo window. */
+:root:not(.dark) .run-list,
+:root:not(.dark) .clock-strip,
+:root:not(.dark) .chat-side,
+:root:not(.dark) .draft-preview,
+:root:not(.dark) .flow-card,
+:root:not(.dark) .next-card,
+:root:not(.dark) .cron-editor,
+:root:not(.dark) .terminal-card {
+  background: var(--panel);
+}
+
+/* Hairline separators that were white-alpha (invisible on light surfaces). */
+:root:not(.dark) .run-row {
+  border-top-color: var(--border);
+}
+:root:not(.dark) .run-row:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Hover washes that were white-alpha — invisible on light surfaces. */
+:root:not(.dark) .mode-tab:hover,
+:root:not(.dark) .reset-btn:hover,
+:root:not(.dark) .code-tab:hover,
+:root:not(.dark) .digest-actions button:hover {
+  background: var(--panel-hover);
+}
+:root:not(.dark) .path-card:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Digest window chrome: pale-green hairlines tuned for dark surfaces. */
+:root:not(.dark) .digest-window {
+  border-color: var(--border-strong);
+}
+:root:not(.dark) .digest-body {
+  background: linear-gradient(160deg, rgba(63, 100, 24, 0.04), transparent 50%);
+}
+:root:not(.dark) .auto-window::before {
+  background: linear-gradient(140deg, rgba(63, 100, 24, 0.05), transparent 30%);
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — white-alpha lines/fills, pale-accent glows, rings
+   and status tints tuned for dark surfaces; they vanish or wash out on
+   light panels.
+   ========================================================================== */
+
+/* Connector pipes between pipeline cards: the 1px line and arrowhead were
+   white-alpha and are invisible on light surfaces. */
+:root:not(.dark) .pipe-ico {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .pipe-connector {
+  background: rgba(15, 25, 18, 0.22);
+}
+:root:not(.dark) .pipe-connector::after {
+  border-left-color: rgba(15, 25, 18, 0.4);
+  border-top-color: rgba(15, 25, 18, 0.4);
+}
+:root:not(.dark) .pipe-connector span {
+  box-shadow: 0 0 8px rgba(63, 100, 24, 0.5);
+}
+
+/* Clock mock: conic progress ring, inner disc ring and mini bar chart. */
+:root:not(.dark) .clock-ring {
+  background: conic-gradient(from 0deg, rgba(63, 100, 24, 0.22) 0 71deg, transparent 71deg 360deg);
+}
+:root:not(.dark) .clock-ring::after {
+  border-color: rgba(15, 25, 18, 0.12);
+}
+:root:not(.dark) .clock-bars i {
+  background: rgba(15, 25, 18, 0.16);
+}
+:root:not(.dark) .clock-bars i.is-hot {
+  box-shadow: 0 0 8px rgba(63, 100, 24, 0.5);
+}
+
+/* Hero glow and window chrome: pale-green tints → light accent tints. */
+:root:not(.dark) .auto-hero-glow {
+  background:
+    radial-gradient(ellipse at 60% 40%, rgba(63, 100, 24, 0.09), transparent 62%),
+    radial-gradient(ellipse at 20% 70%, rgba(47, 125, 107, 0.05), transparent 55%);
+}
+:root:not(.dark) .auto-window {
+  border-color: rgba(63, 100, 24, 0.22);
+  box-shadow:
+    0 44px 110px -44px rgba(15, 25, 18, 0.3),
+    0 0 0 1px rgba(63, 100, 24, 0.06);
+}
+:root:not(.dark) .pipeline-card {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(63, 100, 24, 0.05), transparent 70%),
+    rgba(63, 100, 24, 0.02);
+}
+:root:not(.dark) .pipeline-card-head {
+  border-bottom-color: rgba(63, 100, 24, 0.14);
+}
+:root:not(.dark) .run-icon--amber,
+:root:not(.dark) .path-icon--amber {
+  border-color: rgba(138, 90, 30, 0.3);
+}
+:root:not(.dark) .run-icon--teal {
+  border-color: rgba(47, 125, 107, 0.28);
+}
+:root:not(.dark) .path-icon--teal {
+  border-color: rgba(47, 125, 107, 0.3);
+}
+:root:not(.dark) .builder-side {
+  background: linear-gradient(160deg, rgba(47, 125, 107, 0.04), transparent 45%);
+}
+:root:not(.dark) .plain-card {
+  border-color: rgba(47, 125, 107, 0.22);
+  background: rgba(47, 125, 107, 0.04);
+}
+:root:not(.dark) .studio-section::before {
+  background: radial-gradient(ellipse at 50% 0%, rgba(63, 100, 24, 0.05), transparent 68%);
+}
+:root:not(.dark) .mode-tab.is-active {
+  box-shadow: 0 2px 12px rgba(63, 100, 24, 0.2);
+}
+:root:not(.dark) .studio-topbar-right .status-pill.is-live i {
+  box-shadow: 0 0 9px rgba(63, 100, 24, 0.6);
+}
+:root:not(.dark) .rhythm-glow {
+  background: radial-gradient(ellipse at 50% 50%, rgba(63, 100, 24, 0.07), transparent 65%);
+}
+:root:not(.dark) .cta-orbit span {
+  border-color: rgba(63, 100, 24, 0.2);
+}
+
+/* Draft/chat mock accents and remaining white-alpha fills. */
+:root:not(.dark) .bubble--draft {
+  background: rgba(63, 100, 24, 0.05);
+  border-color: rgba(63, 100, 24, 0.18);
+}
+:root:not(.dark) .draft-schedule {
+  border-top-color: rgba(63, 100, 24, 0.14);
+}
+:root:not(.dark) .draft-side {
+  background: linear-gradient(160deg, rgba(63, 100, 24, 0.04), transparent 45%);
+}
+:root:not(.dark) .option.checked {
+  background: rgba(63, 100, 24, 0.05);
+}
+:root:not(.dark) .crontab-line {
+  background: rgba(63, 100, 24, 0.05);
+}
+:root:not(.dark) .cron-human {
+  background: radial-gradient(ellipse at 0% 0%, rgba(63, 100, 24, 0.06), transparent 70%);
+}
+:root:not(.dark) .bubble {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .chat-side .chat-head {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .chat-suggestions button,
+:root:not(.dark) .cron-presets button,
+:root:not(.dark) .digest-actions button {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .day {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .option {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .channel {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .flow-card li {
+  border-top-color: var(--border);
 }

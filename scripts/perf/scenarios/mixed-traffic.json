@@ -1,0 +1,30 @@
+{
+  "name": "mixed-traffic",
+  "description": "Realistic mix: mostly anonymous page views, some session/profile API reads, a trickle of public form posts and static assets. Closest single scenario to production-shaped traffic.",
+  "target": "https://staging.spindle.app",
+  "concurrency": 25,
+  "rps": 50,
+  "duration": "120s",
+  "rampSec": 15,
+  "warmupMs": 5000,
+  "timeoutMs": 15000,
+  "headers": {
+    "user-agent": "spindle-load/1.0 (+https://spindle.app)"
+  },
+  "endpoints": [
+    { "path": "/", "weight": 4 },
+    { "path": "/pricing", "weight": 1 },
+    { "path": "/docs", "weight": 1 },
+    { "path": "/api/auth/session", "weight": 2, "expect": [200] },
+    { "path": "/api/profile", "weight": 1, "expect": [200, 401] },
+    { "path": "/icons/icon.svg", "weight": 1 },
+    {
+      "path": "/api/newsletter",
+      "method": "POST",
+      "weight": 1,
+      "expect": [200, 201],
+      "headers": { "content-type": "application/json" },
+      "body": { "email": "load-test@example.com", "source": "load-test", "consent": true }
+    }
+  ]
+}

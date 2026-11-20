@@ -1,0 +1,15 @@
+{
+  "id": "evt_test_invalid1",
+  "type": "newsletter.subscribed",
+  "apiVersion": "2025-01",
+  "created": "2026-11-20T05:12:50.494Z",
+  "livemode": false,
+  "idempotencyKey": "idem_invalid_fixture_1",
+  "data": {
+    "object": {
+      "email": "grace@example.com",
+      "source": "footer",
+      "consent": false
+    }
+  }
+}

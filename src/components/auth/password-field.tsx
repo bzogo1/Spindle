@@ -84,6 +84,9 @@ export function PasswordField({
           {error}
         </p>
       ) : null}
+      {/* Portal target for <PasswordStrengthMeter inputId={id} />; `contents`
+          keeps the empty slot out of the .ui-field grid layout. */}
+      <div id={`${id}-strength-slot`} className="contents" />
       {footer}
     </div>
   )

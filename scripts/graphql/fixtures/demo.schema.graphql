@@ -1,0 +1,62 @@
+# Minimal GraphQL schema for validate-schema.mjs --demo
+# Covers: schema block, scalars, object/interface/union/enum/input types,
+# directives with locations, and an operation type mapping.
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+"""
+A unique identifier.
+"""
+scalar ID
+
+scalar DateTime
+
+directive @auth(requires: Role = USER) on FIELD_DEFINITION | OBJECT
+
+enum Role {
+  USER
+  ADMIN
+}
+
+interface Node {
+  id: ID!
+}
+
+type User implements Node {
+  id: ID!
+  email: String!
+  role: Role!
+  createdAt: DateTime!
+  posts: [Post!]!
+}
+
+type Post implements Node {
+  id: ID!
+  title: String!
+  author: User!
+  tags: [String!]
+}
+
+type Query {
+  node(id: ID!): Node
+  user(id: ID!): User @auth(requires: ADMIN)
+  posts(first: Int = 20): [Post!]!
+}
+
+type Mutation {
+  createPost(title: String!, tagIds: [ID!]): Post!
+}
+
+union SearchResult = User | Post
+
+input PostFilter {
+  titleContains: String
+  tagIds: [ID!]
+  publishedAfter: DateTime
+}
+
+extend type Query {
+  search(filter: PostFilter): [SearchResult!]!
+}

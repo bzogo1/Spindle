@@ -19,30 +19,20 @@
 
   --background: oklch(100% 0 0);
   --foreground: oklch(14.5% 0 0);
-  --card: oklch(100% 0 0);
-  --card-foreground: oklch(14.5% 0 0);
-  --popover: oklch(100% 0 0);
-  --popover-foreground: oklch(14.5% 0 0);
   --primary: oklch(20.5% 0 0);
   --primary-foreground: oklch(98.5% 0 0);
-  --secondary: oklch(97% 0 0);
-  --secondary-foreground: oklch(20.5% 0 0);
   --muted: oklch(97% 0 0);
   --muted-foreground: oklch(55.6% 0 0);
   --accent: oklch(97% 0 0);
   --accent-foreground: oklch(20.5% 0 0);
-  --destructive: oklch(57.7% 0.245 27.325);
   --border: oklch(92.2% 0 0);
-  --input: oklch(92.2% 0 0);
   --ring: oklch(70.8% 0 0);
 
-  --fd-background: #f5f5f5;
+  /* focus ring shared by the page's interactive elements */
+  --focus-ring: 2px solid var(--ring);
+
   --fd-foreground: #0a0a0a;
-  --fd-card: #f1f1f1;
-  --fd-muted: #f5f5f5;
   --fd-muted-foreground: #737373;
-  --fd-accent: #d1d1d180;
-  --fd-secondary: #ededed;
   --fd-border: #9e9e9e33;
 
   /* Fumadocs-style aliases used by the copied prose styles. */
@@ -52,30 +42,17 @@
 .dark {
   --background: oklch(14.5% 0 0);
   --foreground: oklch(98.5% 0 0);
-  --card: oklch(20.5% 0 0);
-  --card-foreground: oklch(98.5% 0 0);
-  --popover: oklch(20.5% 0 0);
-  --popover-foreground: oklch(98.5% 0 0);
   --primary: oklch(92.2% 0 0);
   --primary-foreground: oklch(20.5% 0 0);
-  --secondary: oklch(26.9% 0 0);
-  --secondary-foreground: oklch(98.5% 0 0);
   --muted: oklch(26.9% 0 0);
   --muted-foreground: oklch(70.8% 0 0);
   --accent: oklch(26.9% 0 0);
   --accent-foreground: oklch(98.5% 0 0);
-  --destructive: oklch(70.4% 0.191 22.216);
   --border: oklch(100% 0 0 / 0.1);
-  --input: oklch(100% 0 0 / 0.15);
   --ring: oklch(55.6% 0 0);
 
-  --fd-background: #121212;
   --fd-foreground: #ebebeb;
-  --fd-card: #191919;
-  --fd-muted: #212121;
   --fd-muted-foreground: #b3b3b3cc;
-  --fd-accent: #6868684d;
-  --fd-secondary: #212121;
   --fd-border: #6663;
 }
 
@@ -109,6 +86,20 @@ button {
   font: inherit;
 }
 
+/* Keyboard focus indicator for links, buttons, and prose anchors.
+   Matches the existing .cl-state-btn / .cl-theme-toggle focus rings. */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Text selection highlight. `--ring`/`--foreground` flip with `.dark`, so
+   the selection stays legible in both themes. */
+::selection {
+  background: color-mix(in srgb, var(--ring) 30%, transparent);
+  color: var(--foreground);
+}
+
 .cl-sr-only {
   position: absolute;
   width: 1px;
@@ -119,6 +110,39 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Skip link: first focusable element in the layout, visually hidden until
+   keyboard focus reveals it. */
+.skip-link {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--foreground);
+  color: var(--background);
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.skip-link:focus-visible {
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
 }
 
 .cl-page {
@@ -151,6 +175,16 @@ button {
   letter-spacing: -0.025em;
 }
 
+.cl-topbar-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cl-topbar-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .cl-theme-toggle {
   position: relative;
   display: inline-flex;
@@ -167,8 +201,8 @@ button {
   box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   cursor: pointer;
   transition:
-    background-color 0.15s,
-    color 0.15s;
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .cl-theme-toggle:hover {
@@ -177,7 +211,7 @@ button {
 }
 
 .cl-theme-toggle:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -189,13 +223,13 @@ button {
 
 .cl-icon-sun {
   transform: rotate(0) scale(1);
-  transition: transform 0.15s;
+  transition: transform var(--transition-fast);
 }
 
 .cl-icon-moon {
   position: absolute;
   transform: rotate(90deg) scale(0);
-  transition: transform 0.15s;
+  transition: transform var(--transition-fast);
 }
 
 .dark .cl-icon-sun {
@@ -303,6 +337,47 @@ button {
   text-wrap: balance;
 }
 
+.cl-release-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cl-release-link:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.cl-permalink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.cl-permalink a,
+.cl-copy-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cl-permalink a:hover,
+.cl-copy-link:hover {
+  color: var(--fd-foreground);
+}
+
+.cl-permalink-sep {
+  user-select: none;
+}
+
 .cl-tags {
   display: flex;
   flex-wrap: wrap;
@@ -360,6 +435,20 @@ button {
 .cl-prose strong {
   color: var(--fd-foreground);
   font-weight: 500;
+}
+
+/* Inline links inside release prose follow the changelog convention: no
+   decoration at rest, underline on hover/focus (matches .cl-release-link). */
+.cl-prose a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.cl-prose a:hover,
+.cl-prose a:focus-visible {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .cl-media {
@@ -505,9 +594,9 @@ button {
   text-decoration: none;
   cursor: pointer;
   transition:
-    background-color 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .cl-state-btn:hover {
@@ -564,7 +653,7 @@ button {
 
 .cl-state-btn:focus-visible,
 .cl-state-copy:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -574,5 +663,20 @@ button {
   .cl-icon-moon,
   .cl-state-btn {
     transition: none;
+  }
+}
+
+/* This layout does not load styles.css or ui.css, so the global
+   reduced-motion guard has to live here as well. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

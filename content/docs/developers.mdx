@@ -1,0 +1,32 @@
+---
+title: Developer portal
+description: Build apps on Spindle — authentication, scoped permissions, app analytics, review, and the API playground.
+eyebrow: Developers
+section: Platform
+order: 6
+updated: 2026-12-01
+---
+
+## What's inside
+
+The developer portal at `/developers` covers everything needed to build an app on Spindle: how authentication works, which scopes your app can request, how submissions are reviewed, and a playground that talks to the real API.
+
+## Authentication
+
+Apps authenticate the same way users do: the `POST /api/auth/signin` (or signup/OAuth/passwordless) response sets an httpOnly `spindle_at` session cookie, and the browser sends it automatically on every same-origin request. There are no API keys or bearer tokens — `Authorization: Bearer` headers are not verified. State-changing routes also reject cross-origin requests, so mutations must come from this origin (or carry a matching `Origin`/`Referer`). Third-party sign-in goes through the OAuth routes under `/api/auth/oauth/*`. Two-factor endpoints live under `/api/auth/2fa/*`, and passwordless sign-in uses `/api/auth/passwordless/*`.
+
+## Permissions and scopes
+
+Apps request scopes such as `files:read` or `analytics:write`. A grant can be restricted to specific roles and can carry an expiry. Wildcard grants like `files:*` cover a scope family, and `*` covers everything — both are flagged during review. See the permissions page for the full catalog and the role matrix.
+
+## Analytics
+
+`initAppAnalytics(appId)` gives your app a client with `track(name, properties)`, `getStats()`, and `listEvents()`. Events persist to localStorage (capped at 1,000) and aggregate into per-name counts with first and last timestamps.
+
+## Review
+
+Every submitted app passes a checklist with four categories — security, permissions scope, UX, and performance. Required criteria must pass for approval; optional criteria are advisory. The review page includes a live checklist you can click through.
+
+## API playground
+
+`/developers/playground` sends real requests against the same-origin `/api` routes. Pick an endpoint or build a custom request, set path params, query, headers, and a JSON body, then inspect the status, headers, and pretty-printed JSON response. Authenticated endpoints use your session cookie automatically — sign in first in another tab; the optional bearer field only adds an `Authorization` header for custom use. Calls are kept in a local history.

@@ -1,0 +1,39 @@
+name: Supply chain
+
+# Audits the repository's software supply chain: GitHub Actions pinning,
+# dependency specifiers, lockfile presence, container image pinning, and npm
+# lifecycle-script exposure. The checker is dependency-free node so it runs
+# before `npm ci` on a fresh checkout.
+#
+# Warnings (mutable action tags, range deps, unpinned image tags) are
+# reported as workflow annotations but do not fail the build; error-severity
+# findings (missing/corrupt lockfile, non-registry dependencies) do.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly sweep so drift introduced outside PRs (e.g. manual edits to
+    # compose files or workflows) is still surfaced.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Supply-chain audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run supply-chain checks
+        run: node scripts/security/supply-chain/check.mjs --ci

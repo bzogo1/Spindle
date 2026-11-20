@@ -1,0 +1,19 @@
+{
+  "$comment": "License policy for scripts/licenses/check.mjs. Entries ending in '*' match by prefix. See docs/security/license-compliance.md.",
+  "allowed": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "MPL-2.0",
+    "BlueOak-1.0.0",
+    "0BSD",
+    "Unlicense",
+    "CC0-1.0",
+    "PSF-2.0",
+    "CC-BY-4.0"
+  ],
+  "denied": ["GPL-*", "AGPL-*", "SSPL-*", "BUSL-*", "Commons-Clause", "CC-BY-NC-*", "CC-BY-ND-*"],
+  "review": ["LGPL-*", "EPL-*", "CDDL-*", "WTFPL", "Python-*", "FSL-*", "CC-BY-SA-*", "Artistic-*"]
+}

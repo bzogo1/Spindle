@@ -14,7 +14,7 @@ export function Skeleton({ className, animated = true, ...props }: SkeletonProps
     <div
       aria-hidden="true"
       data-slot="skeleton"
-      className={cn("rounded-md bg-muted", animated && "animate-pulse", className)}
+      className={cn("bg-muted rounded-md", animated && "animate-pulse", className)}
       {...props}
     />
   )
@@ -44,13 +44,87 @@ export function SkeletonCard({
   ...props
 }: ComponentProps<"div"> & { children?: ReactNode }) {
   return (
-    <div className={cn("grid gap-4 rounded-xl border bg-card p-5", className)} {...props}>
+    <div className={cn("bg-card grid gap-4 rounded-xl border p-5", className)} {...props}>
       {children ?? (
         <>
           <Skeleton className="h-4 w-1/3" />
           <SkeletonText lines={3} />
         </>
       )}
+    </div>
+  )
+}
+
+/** Placeholder mirroring `.app-project-card`: icon + badge, title, description,
+ *  2×2 meta grid, member avatars, and quick-action links. */
+export function ProjectCardSkeleton({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="project-card-skeleton"
+      className={cn("bg-card grid content-start gap-2.5 rounded-[14px] border p-4", className)}
+      {...props}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <Skeleton className="size-[34px] rounded-[9px]" />
+        <Skeleton className="h-5 w-16 rounded-full" />
+      </div>
+      <Skeleton className="h-4 w-2/3" />
+      <SkeletonText lines={2} lineClassName="w-full" />
+      <div className="mt-auto grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2.5">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="grid gap-1">
+            <Skeleton className="h-2 w-10" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-[22px] w-[22px] rounded-full" />
+        <Skeleton className="h-[22px] w-[22px] rounded-full" />
+        <Skeleton className="ml-1 h-2 w-10" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-7 w-14 rounded-md" />
+        <Skeleton className="h-7 w-14 rounded-md" />
+        <Skeleton className="h-7 w-14 rounded-md" />
+      </div>
+    </div>
+  )
+}
+
+/** Grid of project-card placeholders matching `.app-project-grid`. */
+export function ProjectCardGridSkeleton({
+  count = 6,
+  className,
+  ...props
+}: ComponentProps<"div"> & { count?: number }) {
+  return (
+    <div className={cn("app-project-grid", className)} {...props}>
+      {Array.from({ length: count }, (_, index) => (
+        <ProjectCardSkeleton key={index} />
+      ))}
+    </div>
+  )
+}
+
+export function SkeletonStatCard({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div className={cn("bg-card grid gap-3 rounded-xl border p-5", className)} {...props}>
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="h-7 w-20" />
+      <Skeleton className="h-3 w-32" />
+    </div>
+  )
+}
+
+export function SkeletonListItem({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div className={cn("flex items-start gap-3", className)} {...props}>
+      <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+      <div className="grid min-w-0 flex-1 gap-2">
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-1/3" />
+      </div>
     </div>
   )
 }
@@ -117,23 +191,53 @@ function DashboardSkeleton() {
       <PageHeaderSkeleton />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, index) => (
-          <SkeletonCard key={index} className="gap-3 py-5">
-            <Skeleton className="h-3 w-24" />
-            <Skeleton className="h-7 w-20" />
-            <Skeleton className="h-3 w-32" />
-          </SkeletonCard>
+          <SkeletonStatCard key={index} />
         ))}
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <SkeletonCard>
-          <Skeleton className="h-4 w-40" />
-          <SkeletonText lines={6} />
+        <SkeletonCard className="gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="grid gap-2">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3 w-44" />
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-9 w-40" />
+              <Skeleton className="h-9 w-32" />
+            </div>
+          </div>
+          <ProjectCardGridSkeleton count={4} />
         </SkeletonCard>
-        <SkeletonCard>
-          <Skeleton className="h-4 w-32" />
-          <SkeletonText lines={5} />
-        </SkeletonCard>
+        <div className="grid content-start gap-4">
+          <SkeletonCard className="gap-3">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-3 w-48" />
+            <div className="grid gap-3 pt-1">
+              {Array.from({ length: 4 }, (_, index) => (
+                <SkeletonListItem key={index} />
+              ))}
+            </div>
+          </SkeletonCard>
+          <SkeletonCard className="gap-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-2 w-full rounded-full" />
+            <SkeletonText lines={2} lineClassName="w-full" />
+          </SkeletonCard>
+        </div>
       </div>
+    </div>
+  )
+}
+
+function ProjectsSkeleton() {
+  return (
+    <div className="grid gap-6">
+      <PageHeaderSkeleton />
+      <div className="flex flex-wrap gap-2">
+        <Skeleton className="h-9 w-64 max-w-full" />
+        <Skeleton className="h-9 w-36" />
+      </div>
+      <ProjectCardGridSkeleton count={6} />
     </div>
   )
 }
@@ -248,6 +352,25 @@ function AgentSkeleton() {
   )
 }
 
+/** Skeleton for simple title + card pages (e.g. the placeholder /app routes). */
+export function SkeletonPage({
+  children,
+  className,
+  ...props
+}: ComponentProps<"div"> & { children?: ReactNode }) {
+  return (
+    <div className={cn("grid gap-6", className)} {...props}>
+      <PageHeaderSkeleton actions={false} />
+      {children ?? (
+        <SkeletonCard>
+          <Skeleton className="h-5 w-44" />
+          <SkeletonText lines={4} />
+        </SkeletonCard>
+      )}
+    </div>
+  )
+}
+
 function SettingsSkeleton() {
   return (
     <div className="grid max-w-3xl gap-6">
@@ -271,6 +394,7 @@ function SettingsSkeleton() {
 
 const screenSkeletons: Record<AppScreenKey, () => ReactNode> = {
   dashboard: DashboardSkeleton,
+  projects: ProjectsSkeleton,
   project: ProjectSkeleton,
   files: () => <FilesSkeleton />,
   filesTree: () => <FilesSkeleton tree />,

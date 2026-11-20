@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0d0f0e" />
   <title>Collaboration — Spindle</title>
-  <meta name="description" content="Chat in project channels, edit the same document with live cursors, and manage roles and permissions — all at blazingly fast sync speeds. Anonymous messages route through the Nym Mixnet." />
+  <meta name="description" content="Chat in project channels, edit the same document with live cursors, and manage roles and permissions — all at blazingly fast sync speeds. Nym Mixnet routing for anonymous messages is on the roadmap." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -101,7 +101,7 @@
           </div>
           <div class="collab-hero-meta">
             <span><svg class="icon icon--xs"><use href="#i-bolt"/></svg> CRDTsync engine</span>
-            <span><svg class="icon icon--xs"><use href="#i-shield"/></svg> Optional Nym anonymity</span>
+            <span><svg class="icon icon--xs"><use href="#i-shield"/></svg> Optional Nym anonymity (planned)</span>
             <span><svg class="icon icon--xs"><use href="#i-check"/></svg> Roles built in</span>
           </div>
         </div>
@@ -142,7 +142,7 @@
         <div class="speed-strip" data-reveal>
           <div class="speed-stat"><strong>38<span>ms</span></strong><small>p95 keystroke delivery</small></div>
           <div class="speed-stat"><strong>CRDT</strong><small>conflict-free merges</small></div>
-          <div class="speed-stat"><strong>5-hop</strong><small>Nym Mixnet when anonymous</small></div>
+          <div class="speed-stat"><strong>5-hop</strong><small>Nym Mixnet planned for anonymous</small></div>
           <div class="speed-stat"><strong>0</strong><small><span class="mono">final_v3</span> copies</small></div>
         </div>
       </div>
@@ -222,7 +222,7 @@ doc.getText(<span class="tok-str">'field-notes'</span>).observe((event) =&gt; {
         <div class="section-head">
           <div class="eyebrow">02 / Team chat</div>
           <h2 id="chat-title" class="section-title">Talk where the work happens.</h2>
-          <p class="section-desc">Channels feel like Discord or Slack, but they live inside the project — next to the files, decisions, and people they're about. And when the conversation is sensitive, Anonymous mode routes it through the Nym Mixnet.</p>
+          <p class="section-desc">Channels feel like Discord or Slack, but they live inside the project — next to the files, decisions, and people they're about. And when the conversation is sensitive, Anonymous mode is designed to route it through the Nym Mixnet once that integration ships.</p>
         </div>
 
         <div class="chat-grid">
@@ -255,7 +255,7 @@ doc.getText(<span class="tok-str">'field-notes'</span>).observe((event) =&gt; {
                     <div class="chat-msg"><span class="chat-avatar chat-avatar--lime">MR</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Mara</strong><time>09:14</time></div><p>New survey batch is in <code>/data</code>. The viewer detected it as Parquet right away.</p></div></div>
                     <div class="chat-msg"><span class="chat-avatar chat-avatar--mint">TJ</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Theo</strong><time>09:18</time></div><p>Nice. I kicked off the cron refresh and the lab still has the kernel from yesterday.</p></div></div>
                     <div class="chat-msg"><span class="chat-avatar chat-avatar--teal">JL</span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Jules</strong><time>09:21</time></div><p>Adding the site IDs to the shared note now — you'll see my cursor in the second block.</p></div></div>
-                    <div class="chat-msg chat-msg--anon" id="anonMessage" hidden><span class="chat-avatar chat-avatar--anon"><svg class="icon icon--xs"><use href="#i-shield"/></svg></span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Anonymous</strong><time>now</time></div><p>Routing this message through the Nym Mixnet…</p></div></div>
+                    <div class="chat-msg chat-msg--anon" id="anonMessage" hidden><span class="chat-avatar chat-avatar--anon"><svg class="icon icon--xs"><use href="#i-shield"/></svg></span><div class="chat-msg-body"><div class="chat-msg-meta"><strong>Anonymous</strong><time>now</time></div><p>Posting anonymously in this thread…</p></div></div>
                     <div class="chat-typing" id="chatTyping" aria-hidden="true"><span class="chat-avatar chat-avatar--mint">TJ</span><span class="typing-dots"><i></i><i></i><i></i></span><span>Theo is typing</span></div>
                   </div>
                   <form class="chat-composer" id="chatForm">
@@ -277,14 +277,14 @@ doc.getText(<span class="tok-str">'field-notes'</span>).observe((event) =&gt; {
 
             <div class="anon-card" id="anonCard">
               <div class="anon-card-head"><svg class="icon icon--xs"><use href="#i-shield"/></svg> ANONYMOUS MODE</div>
-              <p>Working with confidential sources, whistleblower material, or clinical data? Flip on Anonymous mode. Your identity and the timing pattern of your messages are hidden — even from us.</p>
+              <p>Working with confidential sources, whistleblower material, or clinical data? Flip on Anonymous mode to post under a pseudonymous display name instead of your own — your real identity stays off the thread.</p>
               <button type="button" class="anon-card-action" id="anonExplainToggle">Switch Anonymous mode on <svg class="icon icon--xs"><use href="#i-arrow-right"/></svg></button>
             </div>
 
             <div class="nym-heading">
               <div class="eyebrow">Under the hood</div>
               <h4>How the Nym Mixnet works</h4>
-              <p>Switching on anonymity wraps each message in layers and sends it through a decentralized mixnet instead of a normal project route.</p>
+              <p>Nym Mixnet integration is planned, not yet shipped. Once it lands, anonymity will wrap each message in layers and send it through a decentralized mixnet instead of a normal project route.</p>
             </div>
 
             <ol class="nym-steps">
@@ -295,13 +295,13 @@ doc.getText(<span class="tok-str">'field-notes'</span>).observe((event) =&gt; {
 
             <figure class="nym-figure">
               <img src="assets/nym-mixnet-diagram.png" alt="Nym's Noise Generating Mixnet diagram: a person's laptop sends packets through the Nym protocol and out through exit gateways" loading="lazy" />
-              <figcaption>Your device → the Nym Mixnet → exits. Diagram from <a href="https://nym.com/blog/what-is-a-mixnet" target="_blank" rel="noopener noreferrer">Nym <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a></figcaption>
+              <figcaption>Planned route: your device → the Nym Mixnet → exits. Diagram from <a href="https://nym.com/blog/what-is-a-mixnet" target="_blank" rel="noopener noreferrer">Nym <svg class="icon icon--xs"><use href="#i-arrow-up-right"/></svg></a></figcaption>
             </figure>
 
             <div class="nym-facts">
               <div><svg class="icon icon--xs"><use href="#i-lock"/></svg><span><strong>Metadata protection</strong><small>Hides who is talking, when, and how often — not just the content.</small></span></div>
               <div><svg class="icon icon--xs"><use href="#i-shield"/></svg><span><strong>Open source &amp; audited</strong><small>Nym's code is public and independently reviewed by security firms.</small></span></div>
-              <div><svg class="icon icon--xs"><use href="#i-clock"/></svg><span><strong>Honest tradeoff</strong><small>Anonymous messages take longer: mixing and cover traffic add latency by design.</small></span></div>
+              <div><svg class="icon icon--xs"><use href="#i-clock"/></svg><span><strong>Honest tradeoff</strong><small>Once integrated, anonymous messages will take longer: mixing and cover traffic add latency by design.</small></span></div>
             </div>
           </div>
         </div>

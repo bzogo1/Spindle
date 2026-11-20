@@ -50,19 +50,19 @@ export function ErrorState({
       role="alert"
       data-slot="error-state"
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-xl border border-destructive/30 bg-card/70 px-6 py-12 text-center",
+        "border-destructive/30 bg-card/70 flex flex-col items-center justify-center gap-4 rounded-xl border px-6 py-12 text-center",
         className,
       )}
     >
       <div
         aria-hidden="true"
-        className="grid size-12 place-items-center rounded-full bg-destructive/10 text-destructive"
+        className="bg-destructive/10 text-destructive grid size-12 place-items-center rounded-full"
       >
         <AlertTriangle className="size-5" />
       </div>
       <div className="grid max-w-md gap-2">
         <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        <div className="text-sm leading-6 text-muted-foreground">{message}</div>
+        <div className="text-muted-foreground text-sm leading-6">{message}</div>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
         {onRetry ? (
@@ -74,11 +74,11 @@ export function ErrorState({
           <SupportLink href={supportHref}>{supportLabel}</SupportLink>
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         {reference ? (
           <>
             {appStateCopy.error.referenceLabel}{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
+            <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-[11px]">
               {reference}
             </code>
           </>

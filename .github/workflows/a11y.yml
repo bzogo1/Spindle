@@ -1,0 +1,145 @@
+name: Accessibility
+
+# axe-core accessibility audits that complement the marketing-route gate in
+# ci.yml (`npm run test:e2e:a11y` → e2e/a11y.spec.ts) and the app-shell gate
+# in the mock-auth e2e job (`e2e/app-a11y.spec.ts`).
+#
+# Two execution modes, mirroring the existing split:
+#   1. Public routes (extended site/auth pages, 404, skip links, landmarks)
+#      run against a production build — they need no mock auth.
+#   2. Authenticated `(app)` routes run against the mock-auth dev server
+#      (NEXT_PUBLIC_MOCK_AUTH=1 is a build-time flag the production build
+#      lacks), booted automatically by playwright.config.ts's webServer.
+#
+# Specs live in e2e/a11y/. See docs/audits/accessibility-ci.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "src/**"
+      - "e2e/a11y/**"
+      - "e2e/visual/visual-helpers.ts"
+      - "content/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/a11y.yml"
+  workflow_dispatch:
+
+# A new push to the same branch supersedes the run in progress, so reviewers
+# get results for the latest commit instead of waiting on stale jobs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  a11y-public:
+    name: axe audit — public routes (production build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://spindle.app
+      PORT: 3000
+      # Keep runs deterministic: one retry in CI (set by playwright.config.ts).
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Start production server
+        run: |
+          npm start &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/ > /dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo "Server did not become ready in time." >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # PLAYWRIGHT_BASE_URL points playwright at the production build, so
+          # playwright.config.ts skips its dev-server webServer. These specs
+          # only touch public routes.
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 \
+            npx playwright test e2e/a11y/public-routes.spec.ts e2e/a11y/keyboard.spec.ts
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-public-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  a11y-app:
+    name: axe audit — app shell (mock auth dev server)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://spindle.app
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # PLAYWRIGHT_BASE_URL is intentionally unset: playwright.config.ts boots
+      # its own dev server with NEXT_PUBLIC_MOCK_AUTH=1, which the (app) route
+      # group and the mock-session cookie require. Cold dev compiles make the
+      # first hit on each route slow; the specs allow 90s per test.
+      - name: Run app-shell a11y specs
+        run: npx playwright test e2e/a11y/app-routes.spec.ts
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-app-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore

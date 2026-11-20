@@ -275,7 +275,7 @@
         {
           "sectionId": "collaboration-team-chat",
           "sectionTitle": "Team chat",
-          "text": "Each project has its own channels and threads. Conversations stay next to the files they are about, and a decision made in chat can be linked back to the note or result it changed. Anonymous messages can route through the Nym Mixnet when a team needs that extra layer."
+          "text": "Each project has its own channels and threads. Conversations stay next to the files they are about, and a decision made in chat can be linked back to the note or result it changed. Anonymous messages post under a pseudonymous display name; Nym Mixnet routing is planned for when a team needs that extra layer."
         },
         {
           "sectionId": "collaboration-roles-and-access",
@@ -327,6 +327,79 @@
           "sectionId": "automations-review-the-output",
           "sectionTitle": "Review the output",
           "text": "Automations write their results back into the project, so the next run has the same context as the last one. A failed run leaves its log and the files it touched in place, which makes a quiet Monday morning fixable without guessing what happened."
+        }
+      ]
+    },
+    {
+      "id": "developers",
+      "title": "Developer portal",
+      "description": "Build apps on Spindle — authentication, scoped permissions, app analytics, review, and the API playground.",
+      "eyebrow": "Developers",
+      "section": "Platform",
+      "order": 6,
+      "updated": "2026-12-01",
+      "draft": false,
+      "headings": [
+        {
+          "id": "developers-whats-inside",
+          "title": "What's inside"
+        },
+        {
+          "id": "developers-authentication",
+          "title": "Authentication"
+        },
+        {
+          "id": "developers-permissions-and-scopes",
+          "title": "Permissions and scopes"
+        },
+        {
+          "id": "developers-analytics",
+          "title": "Analytics"
+        },
+        {
+          "id": "developers-review",
+          "title": "Review"
+        },
+        {
+          "id": "developers-api-playground",
+          "title": "API playground"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "developers",
+          "sectionTitle": "Developer portal",
+          "text": "Build apps on Spindle — authentication, scoped permissions, app analytics, review, and the API playground."
+        },
+        {
+          "sectionId": "developers-whats-inside",
+          "sectionTitle": "What's inside",
+          "text": "The developer portal at /developers covers everything needed to build an app on Spindle: how authentication works, which scopes your app can request, how submissions are reviewed, and a playground that talks to the real API."
+        },
+        {
+          "sectionId": "developers-authentication",
+          "sectionTitle": "Authentication",
+          "text": "Apps authenticate the same way users do: the POST /api/auth/signin (or signup/OAuth/passwordless) response sets an httpOnly spindleat session cookie, and the browser sends it automatically on every same-origin request. There are no API keys or bearer tokens — Authorization: Bearer headers are not verified. State-changing routes also reject cross-origin requests, so mutations must come from this origin (or carry a matching Origin/Referer). Third-party sign-in goes through the OAuth routes under /api/auth/oauth/. Two-factor endpoints live under /api/auth/2fa/, and passwordless sign-in uses /api/auth/passwordless/."
+        },
+        {
+          "sectionId": "developers-permissions-and-scopes",
+          "sectionTitle": "Permissions and scopes",
+          "text": "Apps request scopes such as files:read or analytics:write. A grant can be restricted to specific roles and can carry an expiry. Wildcard grants like files: cover a scope family, and covers everything — both are flagged during review. See the permissions page for the full catalog and the role matrix."
+        },
+        {
+          "sectionId": "developers-analytics",
+          "sectionTitle": "Analytics",
+          "text": "initAppAnalytics(appId) gives your app a client with track(name, properties), getStats(), and listEvents(). Events persist to localStorage (capped at 1,000) and aggregate into per-name counts with first and last timestamps."
+        },
+        {
+          "sectionId": "developers-review",
+          "sectionTitle": "Review",
+          "text": "Every submitted app passes a checklist with four categories — security, permissions scope, UX, and performance. Required criteria must pass for approval; optional criteria are advisory. The review page includes a live checklist you can click through."
+        },
+        {
+          "sectionId": "developers-api-playground",
+          "sectionTitle": "API playground",
+          "text": "/developers/playground sends real requests against the same-origin /api routes. Pick an endpoint or build a custom request, set path params, query, headers, and a JSON body, then inspect the status, headers, and pretty-printed JSON response. Authenticated endpoints use your session cookie automatically — sign in first in another tab; the optional bearer field only adds an Authorization header for custom use. Calls are kept in a local history."
         }
       ]
     },

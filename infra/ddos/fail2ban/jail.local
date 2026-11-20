@@ -1,0 +1,28 @@
+# fail2ban jail for sshd — install as /etc/fail2ban/jail.d/spindle.local
+#
+# Only needed if SSH is publicly reachable (see infra/ddos/README.md §4–5).
+# With Tailscale/Cloudflare Access admin access there is no public sshd and
+# this jail simply never matches.
+#
+# Tune bantime upward for repeat offenders; findtime/maxretry control how
+# quickly an IP is banned.
+
+[sshd]
+enabled  = true
+port     = ssh
+logpath  = %(sshd_log)s
+backend  = %(sshd_backend)s
+
+# Ban after 5 failed attempts within 10 minutes; ban for 1 hour.
+maxretry = 5
+findtime = 10m
+bantime  = 1h
+
+# Escalating bans for persistent scanners.
+bantime.increment = true
+bantime.factor    = 2
+bantime.maxtime   = 1w
+
+# Ignore your own management CIDR so a fat-fingered key rotation can't lock
+# you out. Uncomment and set to your CIDR, or remove this line entirely.
+# ignoreip = 127.0.0.1/8 ::1 203.0.113.0/24

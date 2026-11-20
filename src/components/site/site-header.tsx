@@ -1,12 +1,20 @@
-import { AuthDialog } from "@/components/site/auth-dialog"
+"use client"
+
+import { useLanguage } from "@/components/i18n/language-provider"
+import { LanguageSwitcher } from "@/components/i18n/language-switcher"
 import { MainNav, MobileNav } from "@/components/site/site-nav"
+import { SiteSessionMenu } from "@/components/site/site-session-menu"
+import { SiteCommandMenu } from "@/components/site/lazy-site-command-menu"
+import { SiteThemeToggle } from "@/components/site/site-theme-toggle"
 
 /** Shared header: brand, desktop navigation, sign-in, and mobile menu. */
 export function SiteHeader() {
+  const { t } = useLanguage()
+
   return (
     <header className="site-header" id="header">
-      <div className="container header-inner">
-        <a href="/" className="brand" aria-label="Spindle home">
+      <div className="header-inner container">
+        <a href="/" className="brand" aria-label={t("nav.home")}>
           <span className="brand-mark">
             <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <path
@@ -26,14 +34,19 @@ export function SiteHeader() {
         </div>
 
         <div className="header-actions">
-          <AuthDialog />
-          <a href="/#get-started" className="btn btn--primary btn--sm">
-            Start free
+          <SiteCommandMenu />
+          <LanguageSwitcher />
+          <SiteThemeToggle />
+          <SiteSessionMenu />
+          <a href="/sign-up" className="btn btn--primary btn--sm">
+            {t("auth.startFree")}
           </a>
           <button
             className="menu-toggle"
             id="menuToggle"
-            aria-label="Open menu"
+            aria-label={t("nav.openMenu")}
+            data-label-open={t("nav.openMenu")}
+            data-label-close={t("nav.closeMenu")}
             aria-expanded="false"
             aria-controls="mobileNav"
           >

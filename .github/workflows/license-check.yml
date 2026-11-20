@@ -1,0 +1,56 @@
+name: License check
+
+# Dependency-free SPDX license audit of package-lock.json. Fails on denied
+# licenses; review items are reported but non-blocking (--allow-review)
+# because the repo has a known, documented review set — see
+# docs/security/license-compliance.md.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly drift check, Mondays 06:00 UTC.
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  licenses:
+    name: License compliance audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # No npm install needed: the checker is dependency-free and reads
+      # package-lock.json directly. --allow-review keeps known review items
+      # (LGPL libvips binaries, EPL/WTFPL/FSL dev deps) non-blocking while
+      # denied licenses still fail with exit code 1.
+      - name: Audit dependency licenses
+        run: node scripts/licenses/check.mjs --allow-review
+
+      - name: Emit JSON report
+        if: always()
+        # `|| true`: a denied license already failed the audit step above;
+        # this step only needs to produce the artifact.
+        run: node scripts/licenses/check.mjs --allow-review --json > license-report.json || true
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.json
+          if-no-files-found: ignore

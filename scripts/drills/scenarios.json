@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Disaster-recovery drill scenarios for scripts/drills/drill.mjs. Each scenario's `command` is the LOCAL-SAFE form (dry-run/plan mode) executed by default. `liveCommand` documents the real-drill invocation used against staging — see docs/resilience/disaster-recovery.md. `rtoTargetSeconds` is the recovery-time objective the REAL drill is measured against; in dry-run mode the elapsed time is only a lower-bound proxy.",
+  "scenarios": [
+    {
+      "id": "db-restore",
+      "title": "Restore database from backup into a scratch database",
+      "category": "database",
+      "description": "Delegates to scripts/db/restore-test/restore-test.mjs. Dry-run validates argument parsing and prints the create -> restore -> verify -> drop plan without touching a database. A real drill restores the newest artifact in backups/ (or --file) into a throwaway scratch DB on the same server, verifies tables/row counts/migration state, then drops it.",
+      "rtoTargetSeconds": 14400,
+      "command": ["node", "scripts/db/restore-test/restore-test.mjs", "--dry-run"],
+      "liveCommand": "node scripts/db/restore-test/restore-test.mjs --backup-dir <dir> [--file <artifact>]",
+      "docs": "docs/runbooks/database-restore-test.md"
+    },
+    {
+      "id": "backup-plan",
+      "title": "Backup pipeline plan (pg_dump -> encrypt -> prune)",
+      "category": "database",
+      "description": "Delegates to scripts/db/backup/backup.ts --dry-run. Validates preflight order and prints the full backup plan (dump format, artifact path, encryption mode, retention) without producing an artifact.",
+      "rtoTargetSeconds": 3600,
+      "command": ["./node_modules/.bin/tsx", "scripts/db/backup/backup.ts", "--dry-run"],
+      "liveCommand": "npx tsx scripts/db/backup/backup.ts --ci [--encrypt openssl]",
+      "docs": "docs/runbooks/database-backup.md"
+    },
+    {
+      "id": "deploy-rollback",
+      "title": "Roll back a deploy to the previous recorded release",
+      "category": "deploy",
+      "description": "Delegates to scripts/deploy/rollback.mjs --dry-run. Prints the release list lookup and the merged host.env + release env compose plan without SSHing anywhere. A real drill runs the same command without --dry-run against staging with DEPLOY_HOST/DEPLOY_DIR set.",
+      "rtoTargetSeconds": 900,
+      "command": ["node", "scripts/deploy/rollback.mjs", "--dry-run"],
+      "liveCommand": "DEPLOY_HOST=<user@staging-host> DEPLOY_DIR=/srv/spindle-staging node scripts/deploy/rollback.mjs [--to <release>]",
+      "docs": "docs/runbooks/hosting.md"
+    },
+    {
+      "id": "verify-secrets",
+      "title": "Secret-store configuration check",
+      "category": "secrets",
+      "description": "Runs scripts/secrets/check.ts in development mode: validates that every expected secret name is present and well-formed WITHOUT printing values. Missing names are tolerated outside production (pass --production to require all). Proves the injected environment a container would boot with is diagnosable during an incident.",
+      "rtoTargetSeconds": 300,
+      "command": ["./node_modules/.bin/tsx", "scripts/secrets/check.ts"],
+      "liveCommand": "npm run secrets:check -- --production   (on the origin, inside the container env)",
+      "docs": "docs/decisions/0002-secrets-management.md"
+    },
+    {
+      "id": "secrets-rotation",
+      "title": "Dual-key rotation drill (edge HMAC + B2 credential overlap)",
+      "category": "secrets",
+      "description": "Runs scripts/secrets/rotation-drill.ts — a fully offline drill using ephemeral keys: verifies the previous key works during the overlap window, the current key signs/verifies, and revoked keys are rejected after cleanup. No secret store or provider calls.",
+      "rtoTargetSeconds": 300,
+      "command": ["./node_modules/.bin/tsx", "scripts/secrets/rotation-drill.ts"],
+      "liveCommand": "npm run secrets:verify-rotation   (against real injected env on staging)",
+      "docs": "docs/runbooks/secrets-rotation.md"
+    },
+    {
+      "id": "monitor-alerts",
+      "title": "Monitoring rule evaluation (incl. backup-staleness)",
+      "category": "observability",
+      "description": "Runs scripts/db/monitoring/check.mjs --dry-run, which evaluates every alert rule in rules.json against demo values — including backup-staleness, the rule that detects a broken backup pipeline during a DR event — without connecting to a database.",
+      "rtoTargetSeconds": 300,
+      "command": ["node", "scripts/db/monitoring/check.mjs", "--dry-run"],
+      "liveCommand": "node scripts/db/monitoring/check.mjs [--only backup-staleness]   (with DATABASE_URL / MONITOR_BACKUP_DIR set)",
+      "docs": "docs/runbooks/database-monitoring.md"
+    }
+  ]
+}

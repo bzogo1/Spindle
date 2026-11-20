@@ -1,0 +1,50 @@
+{
+  "name": "spindle-production-waf-ratelimit",
+  "kind": "zone",
+  "phase": "http_ratelimit",
+  "description": "Rate-limiting rules for the spindle.app zone. Application-level rate limits still apply in Next.js; these edge rules absorb volumetric abuse before it reaches the origin. See docs/security/waf-rules.md and docs/security/edge-rate-limiting.md for thresholds and rollout.",
+  "rules": [
+    {
+      "ref": "spindle-ratelimit-auth",
+      "action": "block",
+      "expression": "http.request.uri.path contains \"/api/auth/\"",
+      "description": "Auth endpoints (signin, signup, passwordless, password reset, 2FA). Tight per-IP budget; real users retrying a few times stay well under it.",
+      "enabled": true,
+      "ratelimit": {
+        "characteristics": ["ip.src", "cf.colo.id"],
+        "period": 60,
+        "requests_per_period": 20,
+        "mitigation_timeout": 600,
+        "requests_to_origin": true
+      }
+    },
+    {
+      "ref": "spindle-ratelimit-forms",
+      "action": "managed_challenge",
+      "expression": "(http.request.uri.path contains \"/api/contact\") or (http.request.uri.path contains \"/api/newsletter\") or (http.request.uri.path contains \"/api/feedback\") or (http.request.uri.path contains \"/api/nps\")",
+      "description": "Public form endpoints are spam magnets. A managed challenge on repeat offenders keeps real submitters unblocked (challenge only fires once the counter trips).",
+      "enabled": true,
+      "ratelimit": {
+        "characteristics": ["ip.src", "cf.colo.id"],
+        "period": 60,
+        "requests_per_period": 10,
+        "mitigation_timeout": 600,
+        "requests_to_origin": true
+      }
+    },
+    {
+      "ref": "spindle-ratelimit-landing",
+      "action": "block",
+      "expression": "http.request.uri.path eq \"/\"",
+      "description": "Catch-all volumetric ceiling on the landing page. Generous on purpose; it exists to stop scraping floods, not to shape normal traffic. Tune against analytics.",
+      "enabled": false,
+      "ratelimit": {
+        "characteristics": ["ip.src", "cf.colo.id"],
+        "period": 60,
+        "requests_per_period": 300,
+        "mitigation_timeout": 60,
+        "requests_to_origin": true
+      }
+    }
+  ]
+}

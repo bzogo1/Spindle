@@ -3,40 +3,31 @@
 import { useEffect, useRef, useState, type FormEvent } from "react"
 import { AlertTriangle, CheckCircle2, Clock3 } from "lucide-react"
 
+import { useLanguage } from "@/components/i18n/language-provider"
 import { Button } from "@/components/ui/button"
 import { getTokenState } from "@/lib/auth-recovery"
+import { AuthApiError, confirmPasswordReset } from "@/lib/auth/auth-client"
+import { PASSWORD_MIN_LENGTH } from "@/components/site/auth/validation"
 
 import { PasswordField } from "./password-field"
+import { CaptchaWidget } from "./captcha-widget"
 
-const unusableLinkCopy = {
-  expired: {
-    label: "Link expired",
-    title: "This reset link has expired",
-    description:
-      "Password reset links expire quickly to keep accounts safe. Request a fresh link and we'll email it to you.",
-  },
-  used: {
-    label: "Link already used",
-    title: "This reset link has already been used",
-    description:
-      "If you already changed your password, sign in with the new one. Otherwise, request another link.",
-  },
-  invalid: {
-    label: "Invalid link",
-    title: "This reset link isn't valid",
-    description:
-      "The link is incomplete or may have been copied incorrectly. Request a new link to continue.",
-  },
-} as const
-
+type UnusableLinkState = "expired" | "used" | "invalid"
 type Phase = "form" | "submitting" | "success"
 
 /** New-password form for `/reset-password/[token]`, including unusable-link states. */
 export function ResetPasswordForm({ token }: { token: string }) {
+  const { t } = useLanguage()
   const tokenState = getTokenState(token)
   const [phase, setPhase] = useState<Phase>("form")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaStatus, setCaptchaStatus] = useState<"solving" | "verified" | "error">("solving")
+  // Bumped to remount the widget (fresh challenge) when the server rejects a
+  // captcha token — tokens are single-use, so a burned/expired one needs a
+  // brand-new solve rather than a resubmit.
+  const [captchaEpoch, setCaptchaEpoch] = useState(0)
   const [error, setError] = useState("")
   const timerRef = useRef<number | null>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
@@ -54,31 +45,38 @@ export function ResetPasswordForm({ token }: { token: string }) {
     if (phase === "success") successRef.current?.focus()
   }, [phase])
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
 
-    if (password.length < 8) {
-      setError("Use at least 8 characters.")
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(t("auth.validation.passwordTooShort", { min: PASSWORD_MIN_LENGTH }))
       passwordRef.current?.focus()
       return
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords don't match.")
+      setError(t("auth.validation.passwordsDontMatch"))
       confirmRef.current?.focus()
       return
     }
 
     setPhase("submitting")
-    timerRef.current = window.setTimeout(() => {
-      timerRef.current = null
+    try {
+      await confirmPasswordReset({ token, password, captchaToken: captchaToken ?? undefined })
       setPhase("success")
-    }, 450)
+    } catch (error) {
+      setPhase("form")
+      setError(error instanceof AuthApiError ? error.message : t("auth.error.connection"))
+      if (error instanceof AuthApiError && error.code === "captcha_failed") {
+        setCaptchaEpoch((epoch) => epoch + 1)
+      }
+      passwordRef.current?.focus()
+    }
   }
 
   if (tokenState !== "valid") {
-    const copy = unusableLinkCopy[tokenState]
+    const state = tokenState as UnusableLinkState
     return (
       <>
         <span className={tokenState === "invalid" ? "auth-badge auth-badge--warn" : "auth-badge"}>
@@ -87,16 +85,16 @@ export function ResetPasswordForm({ token }: { token: string }) {
           ) : (
             <Clock3 aria-hidden="true" />
           )}
-          {copy.label}
+          {t(`auth.link.${state}.label`)}
         </span>
-        <h1 className="auth-title">{copy.title}</h1>
-        <p className="auth-desc">{copy.description}</p>
+        <h1 className="auth-title">{t(`auth.link.${state}.title`)}</h1>
+        <p className="auth-desc">{t(`auth.link.${state}.description`)}</p>
         <div className="auth-actions">
           <Button asChild className="ui-btn-primary auth-submit">
-            <a href="/reset-password">Request a new link</a>
+            <a href="/reset-password">{t("auth.requestNewLink")}</a>
           </Button>
           <a className="auth-link-button" href="/about#contact">
-            Contact support
+            {t("auth.contactSupport")}
           </a>
         </div>
       </>
@@ -110,15 +108,12 @@ export function ResetPasswordForm({ token }: { token: string }) {
           <CheckCircle2 />
         </span>
         <h1 className="auth-title" ref={successRef} tabIndex={-1}>
-          Password updated
+          {t("auth.passwordUpdated")}
         </h1>
-        <p className="auth-desc">
-          Your password has been changed. Sign in with your new password to get back to your
-          workspace.
-        </p>
+        <p className="auth-desc">{t("auth.passwordUpdatedDesc")}</p>
         <div className="auth-actions">
           <Button asChild className="ui-btn-primary auth-submit">
-            <a href="/">Sign in</a>
+            <a href="/">{t("auth.signIn")}</a>
           </Button>
         </div>
       </div>
@@ -127,16 +122,14 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
   return (
     <>
-      <span className="auth-eyebrow">Account recovery</span>
-      <h1 className="auth-title">Choose a new password</h1>
-      <p className="auth-desc">
-        Pick a strong password for your Spindle account, then sign in with it.
-      </p>
+      <span className="auth-eyebrow">{t("auth.recoveryEyebrow")}</span>
+      <h1 className="auth-title">{t("auth.chooseNewPassword")}</h1>
+      <p className="auth-desc">{t("auth.chooseNewPasswordDesc")}</p>
 
       <form className="auth-form" onSubmit={handleSubmit} aria-busy={phase === "submitting"}>
         <PasswordField
           id="new-password"
-          label="New password"
+          label={t("auth.newPassword")}
           value={password}
           onChange={(value) => {
             setPassword(value)
@@ -144,13 +137,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
           }}
           autoComplete="new-password"
           placeholder="••••••••"
-          minLength={8}
-          hint="At least 8 characters."
+          minLength={PASSWORD_MIN_LENGTH}
+          hint={t("auth.passwordMinHint", { min: PASSWORD_MIN_LENGTH })}
           inputRef={passwordRef}
         />
         <PasswordField
           id="confirm-password"
-          label="Confirm new password"
+          label={t("auth.confirmNewPassword")}
           value={confirmPassword}
           onChange={(value) => {
             setConfirmPassword(value)
@@ -158,23 +151,29 @@ export function ResetPasswordForm({ token }: { token: string }) {
           }}
           autoComplete="new-password"
           placeholder="••••••••"
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
           error={error || undefined}
           inputRef={confirmRef}
+        />
+
+        <CaptchaWidget
+          key={captchaEpoch}
+          onToken={setCaptchaToken}
+          onStatusChange={setCaptchaStatus}
         />
 
         <Button
           type="submit"
           className="ui-btn-primary auth-submit"
-          disabled={phase === "submitting"}
+          disabled={phase === "submitting" || captchaStatus !== "verified"}
         >
           {phase === "submitting" ? (
             <>
               <span className="auth-spinner" aria-hidden="true" />
-              Updating password…
+              {t("auth.updatingPassword")}
             </>
           ) : (
-            "Update password"
+            t("auth.updatePassword")
           )}
         </Button>
       </form>

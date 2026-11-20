@@ -16,7 +16,7 @@ export default function SiteError({
   const { reference, copied, copyReference } = useErrorReference(error)
 
   return (
-    <main id="top" className="page-main">
+    <main id="top" tabIndex={-1} className="page-main">
       <section className="error-page">
         <div className="container">
           <p className="error-code">Unexpected error</p>

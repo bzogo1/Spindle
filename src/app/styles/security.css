@@ -213,3 +213,25 @@
     gap: 10px 22px;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME — surfaces that were hardcoded dark. Inner text already uses
+   the theme tokens, so only the opaque panel backgrounds need remapping.
+   ========================================================================== */
+:root:not(.dark) .security-flow li {
+  background: rgba(255, 255, 255, 0.72);
+}
+:root:not(.dark) .security-status--na {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Request-path figure: white-alpha fill and pale-green/pale-amber tints. */
+:root:not(.dark) .security-architecture {
+  background:
+    radial-gradient(ellipse 380px 180px at 12% 0%, rgba(63, 100, 24, 0.05), transparent 70%),
+    rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .security-status--none {
+  border-color: rgba(138, 90, 30, 0.35);
+  background: rgba(138, 90, 30, 0.08);
+}

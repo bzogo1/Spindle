@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deploy Metrics — Demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        margin: 0;
+        padding: 24px;
+        background: #0f1420;
+        color: #e6e9f0;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 0 0 4px;
+      }
+      .muted {
+        color: #8b93a7;
+        font-weight: 400;
+        font-size: 0.85em;
+      }
+      .sub {
+        fill: #8b93a7;
+        font-size: 10px;
+      }
+      .meta {
+        color: #8b93a7;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .kpi {
+        background: #171e2e;
+        border: 1px solid #26314a;
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .kpi-v {
+        font-size: 1.5rem;
+        font-weight: 700;
+      }
+      .kpi-k {
+        font-size: 0.78rem;
+        color: #8b93a7;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 16px;
+      }
+      .card {
+        background: #171e2e;
+        border: 1px solid #26314a;
+        border-radius: 10px;
+        padding: 16px;
+        overflow-x: auto;
+      }
+      .card h2 {
+        font-size: 0.95rem;
+        margin: 0 0 10px;
+      }
+      svg {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+      .lbl {
+        fill: #aab2c5;
+        font-size: 11px;
+      }
+      .val {
+        fill: #dfe4f0;
+        font-size: 11px;
+      }
+      .axis {
+        stroke: #3a4560;
+        stroke-width: 1;
+      }
+      .empty {
+        color: #8b93a7;
+        font-size: 0.9rem;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 7px 10px;
+        border-bottom: 1px solid #26314a;
+        white-space: nowrap;
+      }
+      th {
+        color: #8b93a7;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .badge.ok {
+        background: #123b2a;
+        color: #4ade80;
+      }
+      .badge.bad {
+        background: #3d1620;
+        color: #f87171;
+      }
+      .badge.warn {
+        background: #3d2f12;
+        color: #fbbf24;
+      }
+      .badge.unk {
+        background: #26314a;
+        color: #aab2c5;
+      }
+      .banner {
+        background: #3d2f12;
+        border: 1px solid #6b5518;
+        color: #fcd34d;
+        border-radius: 10px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Deployment Metrics <span class="muted">— demo data</span></h1>
+    <div class="meta">Generated 2026-11-20T04:24:06.659Z · demo</div>
+    <div class="banner">
+      Demo mode: metrics below are synthetic sample data, not real deployments.
+    </div>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="kpi-v">12</div>
+        <div class="kpi-k">Releases</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">2</div>
+        <div class="kpi-k">Rollbacks</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">2</div>
+        <div class="kpi-k">Failures</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">1.12.0</div>
+        <div class="kpi-k">Current version</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">257s</div>
+        <div class="kpi-k">Avg build</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">63s</div>
+        <div class="kpi-k">Avg deploy</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-v">102ms</div>
+        <div class="kpi-k">Health avg</div>
+      </div>
+    </div>
+    <div class="grid">
+      <section class="card">
+        <h2>Build time per release (s)</h2>
+        <svg viewBox="0 0 720 456" role="img" aria-label="Build time per release (s)">
+          <text x="102" y="56" text-anchor="end" class="lbl">1.1.0</text>
+          <rect x="110" y="40" width="293.3" height="22" rx="3" fill="#4f8ef7" />
+          <text x="409.3333333333333" y="56" class="val">
+            184s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="90" text-anchor="end" class="lbl">1.2.0</text>
+          <rect x="110" y="74" width="365.1" height="22" rx="3" fill="#4f8ef7" />
+          <text x="481.07246376811594" y="90" class="val">
+            229s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="124" text-anchor="end" class="lbl">1.3.0</text>
+          <rect x="110" y="108" width="428.8" height="22" rx="3" fill="#4f8ef7" />
+          <text x="544.840579710145" y="124" class="val">
+            269s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="158" text-anchor="end" class="lbl">1.4.0</text>
+          <rect x="110" y="142" width="492.6" height="22" rx="3" fill="#4f8ef7" />
+          <text x="608.608695652174" y="158" class="val">
+            309s
+            <tspan class="sub">failure</tspan>
+          </text>
+          <text x="102" y="192" text-anchor="end" class="lbl">1.5.0</text>
+          <rect x="110" y="176" width="545.2" height="22" rx="3" fill="#4f8ef7" />
+          <text x="661.2173913043479" y="192" class="val">
+            342s
+            <tspan class="sub">rolled-back</tspan>
+          </text>
+          <text x="102" y="226" text-anchor="end" class="lbl">1.6.0</text>
+          <rect x="110" y="210" width="310.9" height="22" rx="3" fill="#4f8ef7" />
+          <text x="426.8695652173913" y="226" class="val">
+            195s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="260" text-anchor="end" class="lbl">1.7.0</text>
+          <rect x="110" y="244" width="360.3" height="22" rx="3" fill="#4f8ef7" />
+          <text x="476.28985507246375" y="260" class="val">
+            226s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="294" text-anchor="end" class="lbl">1.8.0</text>
+          <rect x="110" y="278" width="417.7" height="22" rx="3" fill="#4f8ef7" />
+          <text x="533.6811594202899" y="294" class="val">
+            262s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="328" text-anchor="end" class="lbl">1.9.0</text>
+          <rect x="110" y="312" width="479.9" height="22" rx="3" fill="#4f8ef7" />
+          <text x="595.8550724637681" y="328" class="val">
+            301s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="362" text-anchor="end" class="lbl">1.10.0</text>
+          <rect x="110" y="346" width="550.0" height="22" rx="3" fill="#4f8ef7" />
+          <text x="666" y="362" class="val">
+            345s
+            <tspan class="sub">failure</tspan>
+          </text>
+          <text x="102" y="396" text-anchor="end" class="lbl">1.11.0</text>
+          <rect x="110" y="380" width="302.9" height="22" rx="3" fill="#4f8ef7" />
+          <text x="418.8985507246377" y="396" class="val">
+            190s
+            <tspan class="sub">rolled-back</tspan>
+          </text>
+          <text x="102" y="430" text-anchor="end" class="lbl">1.12.0</text>
+          <rect x="110" y="414" width="371.4" height="22" rx="3" fill="#4f8ef7" />
+          <text x="487.4492753623188" y="430" class="val">
+            233s
+            <tspan class="sub">success</tspan>
+          </text>
+        </svg>
+      </section>
+      <section class="card">
+        <h2>Deploy duration per release (s)</h2>
+        <svg viewBox="0 0 720 456" role="img" aria-label="Deploy duration per release (s)">
+          <text x="102" y="56" text-anchor="end" class="lbl">1.1.0</text>
+          <rect x="110" y="40" width="291.6" height="22" rx="3" fill="#a78bfa" />
+          <text x="407.56626506024094" y="56" class="val">
+            44s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="90" text-anchor="end" class="lbl">1.2.0</text>
+          <rect x="110" y="74" width="371.1" height="22" rx="3" fill="#a78bfa" />
+          <text x="487.0843373493976" y="90" class="val">
+            56s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="124" text-anchor="end" class="lbl">1.3.0</text>
+          <rect x="110" y="108" width="450.6" height="22" rx="3" fill="#a78bfa" />
+          <text x="566.6024096385543" y="124" class="val">
+            68s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="158" text-anchor="end" class="lbl">1.4.0</text>
+          <rect x="110" y="142" width="536.7" height="22" rx="3" fill="#a78bfa" />
+          <text x="652.7469879518072" y="158" class="val">
+            81s
+            <tspan class="sub">failure</tspan>
+          </text>
+          <text x="102" y="192" text-anchor="end" class="lbl">1.5.0</text>
+          <rect x="110" y="176" width="298.2" height="22" rx="3" fill="#a78bfa" />
+          <text x="414.1927710843373" y="192" class="val">
+            45s
+            <tspan class="sub">rollback</tspan>
+          </text>
+          <text x="102" y="226" text-anchor="end" class="lbl">1.6.0</text>
+          <rect x="110" y="210" width="344.6" height="22" rx="3" fill="#a78bfa" />
+          <text x="460.578313253012" y="226" class="val">
+            52s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="260" text-anchor="end" class="lbl">1.7.0</text>
+          <rect x="110" y="244" width="463.9" height="22" rx="3" fill="#a78bfa" />
+          <text x="579.8554216867469" y="260" class="val">
+            70s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="294" text-anchor="end" class="lbl">1.8.0</text>
+          <rect x="110" y="278" width="550.0" height="22" rx="3" fill="#a78bfa" />
+          <text x="666" y="294" class="val">
+            83s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="328" text-anchor="end" class="lbl">1.9.0</text>
+          <rect x="110" y="312" width="271.7" height="22" rx="3" fill="#a78bfa" />
+          <text x="387.68674698795184" y="328" class="val">
+            41s
+            <tspan class="sub">success</tspan>
+          </text>
+          <text x="102" y="362" text-anchor="end" class="lbl">1.10.0</text>
+          <rect x="110" y="346" width="377.7" height="22" rx="3" fill="#a78bfa" />
+          <text x="493.71084337349396" y="362" class="val">
+            57s
+            <tspan class="sub">failure</tspan>
+          </text>
+          <text x="102" y="396" text-anchor="end" class="lbl">1.11.0</text>
+          <rect x="110" y="380" width="470.5" height="22" rx="3" fill="#a78bfa" />
+          <text x="586.4819277108434" y="396" class="val">
+            71s
+            <tspan class="sub">rollback</tspan>
+          </text>
+          <text x="102" y="430" text-anchor="end" class="lbl">1.12.0</text>
+          <rect x="110" y="414" width="543.4" height="22" rx="3" fill="#a78bfa" />
+          <text x="659.3734939759037" y="430" class="val">
+            82s
+            <tspan class="sub">success</tspan>
+          </text>
+        </svg>
+      </section>
+      <section class="card">
+        <h2>Health-check latency (ms) <span class="muted">1 failed sample(s)</span></h2>
+        <svg viewBox="0 0 720 200" role="img" aria-label="Health-check latency (ms)">
+          <line x1="46" y1="172" x2="706" y2="172" class="axis" />
+          <line x1="46" y1="18" x2="46" y2="172" class="axis" />
+          <text x="40" y="22" class="val" text-anchor="end">136</text>
+          <text x="40" y="172" class="val" text-anchor="end">67</text>
+          <path
+            d="M46.0,111.7 L70.4,105.0 L94.9,85.0 L119.3,60.4 L143.8,26.9 L168.2,51.5 L192.7,38.1 L217.1,71.6 L241.6,47.0 L266.0,118.4 L290.4,127.4 L314.9,154.1 L339.3,151.9 L363.8,172.0 L388.2,149.7 L412.7,149.7 L437.1,160.8 L461.6,122.9 L486.0,120.7 L510.4,122.9 L534.9,96.1 L559.3,53.7 L583.8,60.4 L608.2,18.0 L632.7,58.2 L657.1,42.6 L681.6,73.8 L706.0,78.3"
+            fill="none"
+            stroke="#34c98e"
+            stroke-width="2"
+          />
+          <circle cx="46.0" cy="111.7" r="2.5" fill="#34c98e">
+            <title>2026-11-06T04:24:06.659Z — 94</title>
+          </circle>
+          <circle cx="70.4" cy="105.0" r="2.5" fill="#34c98e">
+            <title>2026-11-06T16:24:06.659Z — 97</title>
+          </circle>
+          <circle cx="94.9" cy="85.0" r="2.5" fill="#34c98e">
+            <title>2026-11-07T04:24:06.659Z — 106</title>
+          </circle>
+          <circle cx="119.3" cy="60.4" r="2.5" fill="#34c98e">
+            <title>2026-11-07T16:24:06.659Z — 117</title>
+          </circle>
+          <circle cx="143.8" cy="26.9" r="2.5" fill="#34c98e">
+            <title>2026-11-08T04:24:06.659Z — 132</title>
+          </circle>
+          <circle cx="168.2" cy="51.5" r="2.5" fill="#34c98e">
+            <title>2026-11-08T16:24:06.659Z — 121</title>
+          </circle>
+          <circle cx="192.7" cy="38.1" r="2.5" fill="#34c98e">
+            <title>2026-11-09T04:24:06.659Z — 127</title>
+          </circle>
+          <circle cx="217.1" cy="71.6" r="2.5" fill="#34c98e">
+            <title>2026-11-09T16:24:06.659Z — 112</title>
+          </circle>
+          <circle cx="241.6" cy="47.0" r="2.5" fill="#34c98e">
+            <title>2026-11-10T04:24:06.659Z — 123</title>
+          </circle>
+          <circle cx="266.0" cy="118.4" r="2.5" fill="#34c98e">
+            <title>2026-11-10T16:24:06.659Z — 91</title>
+          </circle>
+          <circle cx="290.4" cy="127.4" r="2.5" fill="#34c98e">
+            <title>2026-11-11T04:24:06.659Z — 87</title>
+          </circle>
+          <circle cx="314.9" cy="154.1" r="2.5" fill="#34c98e">
+            <title>2026-11-11T16:24:06.659Z — 75</title>
+          </circle>
+          <circle cx="339.3" cy="151.9" r="2.5" fill="#34c98e">
+            <title>2026-11-12T04:24:06.659Z — 76</title>
+          </circle>
+          <circle cx="363.8" cy="172.0" r="2.5" fill="#34c98e">
+            <title>2026-11-12T16:24:06.659Z — 67</title>
+          </circle>
+          <circle cx="388.2" cy="149.7" r="2.5" fill="#34c98e">
+            <title>2026-11-13T04:24:06.659Z — 77</title>
+          </circle>
+          <circle cx="412.7" cy="149.7" r="2.5" fill="#34c98e">
+            <title>2026-11-13T16:24:06.659Z — 77</title>
+          </circle>
+          <circle cx="437.1" cy="160.8" r="2.5" fill="#34c98e">
+            <title>2026-11-14T04:24:06.659Z — 72</title>
+          </circle>
+          <circle cx="461.6" cy="122.9" r="2.5" fill="#34c98e">
+            <title>2026-11-14T16:24:06.659Z — 89</title>
+          </circle>
+          <circle cx="486.0" cy="120.7" r="2.5" fill="#34c98e">
+            <title>2026-11-15T04:24:06.659Z — 90</title>
+          </circle>
+          <circle cx="510.4" cy="122.9" r="2.5" fill="#34c98e">
+            <title>2026-11-15T16:24:06.659Z — 89</title>
+          </circle>
+          <circle cx="534.9" cy="96.1" r="2.5" fill="#34c98e">
+            <title>2026-11-16T04:24:06.659Z — 101</title>
+          </circle>
+          <circle cx="559.3" cy="53.7" r="2.5" fill="#34c98e">
+            <title>2026-11-16T16:24:06.659Z — 120</title>
+          </circle>
+          <circle cx="583.8" cy="60.4" r="2.5" fill="#34c98e">
+            <title>2026-11-17T04:24:06.659Z — 117</title>
+          </circle>
+          <circle cx="608.2" cy="18.0" r="2.5" fill="#34c98e">
+            <title>2026-11-17T16:24:06.659Z — 136</title>
+          </circle>
+          <circle cx="632.7" cy="58.2" r="2.5" fill="#34c98e">
+            <title>2026-11-18T04:24:06.659Z — 118</title>
+          </circle>
+          <circle cx="657.1" cy="42.6" r="2.5" fill="#34c98e">
+            <title>2026-11-18T16:24:06.659Z — 125</title>
+          </circle>
+          <circle cx="681.6" cy="73.8" r="2.5" fill="#34c98e">
+            <title>2026-11-19T04:24:06.659Z — 111</title>
+          </circle>
+          <circle cx="706.0" cy="78.3" r="2.5" fill="#34c98e">
+            <title>2026-11-19T16:24:06.659Z — 109</title>
+          </circle>
+          <text x="46" y="192" class="lbl">2026-11-06</text>
+          <text x="706" y="192" class="lbl" text-anchor="end">2026-11-19</text>
+        </svg>
+      </section>
+    </div>
+    <section class="card" style="margin-top: 16px">
+      <h2>Releases</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Release</th>
+            <th>Commit</th>
+            <th>Timestamp</th>
+            <th>Build</th>
+            <th>Deploy</th>
+            <th>Rollbacks</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>v1.12.0</td>
+            <td>—</td>
+            <td>2026-11-16 14:00:06</td>
+            <td>233s</td>
+            <td>82s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.11.0</td>
+            <td>—</td>
+            <td>2026-11-14 04:24:06</td>
+            <td>190s</td>
+            <td>71s</td>
+            <td>—</td>
+            <td><span class="badge warn">rolled-back</span></td>
+          </tr>
+          <tr>
+            <td>v1.10.0</td>
+            <td>—</td>
+            <td>2026-11-11 18:48:06</td>
+            <td>345s</td>
+            <td>57s</td>
+            <td>—</td>
+            <td><span class="badge bad">failure</span></td>
+          </tr>
+          <tr>
+            <td>v1.9.0</td>
+            <td>—</td>
+            <td>2026-11-09 09:12:06</td>
+            <td>301s</td>
+            <td>41s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.8.0</td>
+            <td>—</td>
+            <td>2026-11-06 23:36:06</td>
+            <td>262s</td>
+            <td>83s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.7.0</td>
+            <td>—</td>
+            <td>2026-11-04 14:00:06</td>
+            <td>226s</td>
+            <td>70s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.6.0</td>
+            <td>—</td>
+            <td>2026-11-02 04:24:06</td>
+            <td>195s</td>
+            <td>52s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.5.0</td>
+            <td>—</td>
+            <td>2026-10-30 18:48:06</td>
+            <td>342s</td>
+            <td>45s</td>
+            <td>—</td>
+            <td><span class="badge warn">rolled-back</span></td>
+          </tr>
+          <tr>
+            <td>v1.4.0</td>
+            <td>—</td>
+            <td>2026-10-28 09:12:06</td>
+            <td>309s</td>
+            <td>81s</td>
+            <td>—</td>
+            <td><span class="badge bad">failure</span></td>
+          </tr>
+          <tr>
+            <td>v1.3.0</td>
+            <td>—</td>
+            <td>2026-10-25 23:36:06</td>
+            <td>269s</td>
+            <td>68s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.2.0</td>
+            <td>—</td>
+            <td>2026-10-23 14:00:06</td>
+            <td>229s</td>
+            <td>56s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+          <tr>
+            <td>v1.1.0</td>
+            <td>—</td>
+            <td>2026-10-21 04:24:06</td>
+            <td>184s</td>
+            <td>44s</td>
+            <td>—</td>
+            <td><span class="badge ok">success</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </body>
+</html>

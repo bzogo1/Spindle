@@ -1,0 +1,54 @@
+{
+  "name": "api-write",
+  "description": "Public form POSTs (newsletter, contact, feedback, NPS). Payloads satisfy the zod schemas in src/lib/site-forms.ts, src/lib/feedback.ts, src/lib/nps.ts. NOTE: routes are per-IP rate limited (e.g. newsletter limiter is 10/hour per IP), so sustained runs from one machine will surface 429s — that is the limiter working, check the error breakdown.",
+  "target": "https://staging.spindle.app",
+  "concurrency": 8,
+  "rps": 5,
+  "duration": "60s",
+  "warmupMs": 2000,
+  "timeoutMs": 15000,
+  "headers": {
+    "user-agent": "spindle-load/1.0 (+https://spindle.app)",
+    "content-type": "application/json"
+  },
+  "endpoints": [
+    {
+      "path": "/api/newsletter",
+      "method": "POST",
+      "weight": 3,
+      "expect": [200, 201],
+      "body": { "email": "load-test@example.com", "source": "load-test", "consent": true }
+    },
+    {
+      "path": "/api/contact",
+      "method": "POST",
+      "weight": 2,
+      "expect": [200, 201],
+      "body": {
+        "name": "Load Test",
+        "email": "load-test@example.com",
+        "topic": "general",
+        "subject": "Load test submission",
+        "message": "Automated load-test traffic. Please ignore."
+      }
+    },
+    {
+      "path": "/api/feedback",
+      "method": "POST",
+      "weight": 2,
+      "expect": [200, 201],
+      "body": {
+        "category": "general",
+        "message": "Automated load-test feedback submission. Please ignore.",
+        "email": "load-test@example.com"
+      }
+    },
+    {
+      "path": "/api/nps",
+      "method": "POST",
+      "weight": 1,
+      "expect": [200, 201],
+      "body": { "score": 9, "comment": "load test", "source": "page" }
+    }
+  ]
+}

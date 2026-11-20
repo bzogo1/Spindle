@@ -1,0 +1,44 @@
+#cloud-config
+# Rendered by infra/modules/host-security. Keep in sync with
+# infra/host/bootstrap.sh (base packages, ufw posture) and
+# infra/ddos/ufw-rules.sh (SSH-from-CIDR, public 80/443 denies).
+#
+# This payload intentionally stops at hardening. Docker install, directory
+# layout, host.env seeding, and the compose stack remain operator steps in
+# docs/runbooks/hosting.md — cloud-init must not carry secrets.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - chrony
+  - curl
+  - gnupg
+  - jq
+  - ufw
+  - unattended-upgrades
+
+runcmd:
+  # Time sync and unattended security upgrades (bootstrap.sh parity).
+  - systemctl enable --now chrony
+  - systemctl enable --now unattended-upgrades
+
+  # Firewall posture. apply_firewall=false mirrors bootstrap.sh's opt-in:
+  # default-deny inbound cuts any SSH session that is not already tunnelled.
+%{ if apply_firewall == "true" }
+  - ufw default deny incoming
+  - ufw default allow outgoing
+%{ if mgmt_ssh_enabled == "true" }
+  # Emergency path only — identical intent to infra/ddos/ufw-rules.sh.
+  - ufw allow from ${mgmt_cidr} to any port ${ssh_port} proto tcp comment 'spindle admin ssh (temporary)'
+%{ endif }
+  # Safety net if a container ever publishes 0.0.0.0 — see ufw-rules.sh for
+  # why Docker-published ports bypass ufw and must be audited with docker ps.
+  - ufw deny 80/tcp comment 'no public http — Cloudflare edge only'
+  - ufw deny 443/tcp comment 'no public https — Cloudflare edge only'
+  - ufw --force enable
+  - ufw status verbose
+%{ else }
+  - echo "ufw not applied (apply_firewall=false); run infra/host/bootstrap.sh with SPINDLE_APPLY_FIREWALL=1 after admin access is confirmed"
+%{ endif }

@@ -1,0 +1,27 @@
+# Dependabot keeps dependency and action versions current between the weekly
+# `deps-audit` workflow runs. It opens grouped weekly PRs; security updates
+# are still raised immediately by GitHub's vulnerability alerts.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Security updates are handled by GitHub advisories; this entry only
+    # governs version updates.
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3

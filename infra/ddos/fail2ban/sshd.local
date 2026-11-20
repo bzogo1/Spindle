@@ -1,0 +1,20 @@
+# fail2ban filter for sshd — install as /etc/fail2ban/filter.d/sshd.local
+#
+# Ubuntu 24.04's stock sshd filter already covers the common auth-failure
+# lines (Failed password, Invalid user, Connection closed by authenticating
+# user, etc.). This file only adds the preauth-disconnect pattern that some
+# OpenSSH builds emit on aggressive scanners and that the stock filter can
+# miss.
+#
+# If you do not see bans in 'fail2ban-client status sshd', check
+# /var/log/auth.log for lines your scanner actually produces and extend
+# failregex here.
+
+[Definition]
+
+# sshd preauth disconnect (e.g. "Connection closed by 203.0.113.7 port 51234")
+failregex = ^%(__prefix_line)sConnection closed by <HOST>( port \d+)? \[preauth\]$
+            ^%(__prefix_line)sDisconnected from authenticating user \S+ <HOST> port \d+ \[preauth\]$
+            ^%(__prefix_line)sReceived disconnect from <HOST> port \d+:11: Bye Bye \[preauth\]$
+
+ignoreregex =

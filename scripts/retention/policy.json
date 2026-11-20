@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "description": "Spindle log retention policy. See docs/observability/log-retention.md for the rationale behind each threshold. Patterns are relative to the repo root (or --root). Age is measured from file mtime; '*.gz' files are only eligible for deletion, never re-compressed.",
+  "rules": [
+    {
+      "name": "secret-access-audit",
+      "description": "Secret access audit JSONL (.spindle/secret-access-audit.jsonl*). Contract requires >= 90 days of local history to cover the longest secret rotation max-age (Resend 180d provider overlap is covered by the shipped copy; local floor is the 90d EDGE_HMAC/B2/LLM/Postgres/Worker rotations). Compress after 30d, delete local copies after 365d once shipped to the central store per docs/security/secret-access-audit.md.",
+      "match": [".spindle/secret-access-audit.jsonl*"],
+      "compressAfterDays": 30,
+      "deleteAfterDays": 365
+    },
+    {
+      "name": "app-json-logs",
+      "description": "Application pino JSON logs spilled to disk (logs/app/, logs/app.log*) and the ship.mjs file sink (logs/ship.jsonl* plus rotated .N files, or a logs/ship/ dir if --out points there). Primary store is Loki with 14d hot retention (docs/observability/log-aggregation.md); local spools are a buffer, so 30d is ample for gap recovery. Compress after 7d.",
+      "match": [
+        "logs/app/*.log*",
+        "logs/app/*.jsonl*",
+        "logs/app.log*",
+        "logs/ship/*.jsonl*",
+        "logs/ship.jsonl*"
+      ],
+      "compressAfterDays": 7,
+      "deleteAfterDays": 30
+    },
+    {
+      "name": "access-logs",
+      "description": "nginx/edge-style access logs written to logs/nginx/ on the host (not the Cloudflare Tunnel — edge logs live in Cloudflare). 90d covers the 28d SLO windows in docs/slo/service-level-objectives.md plus investigation margin; keepNewest protects the active file from age-based deletion.",
+      "match": ["logs/nginx/access*.log*"],
+      "compressAfterDays": 7,
+      "deleteAfterDays": 90,
+      "keepNewest": 1
+    },
+    {
+      "name": "deploy-logs",
+      "description": "Deploy/rollback operator logs (logs/deploy/). Deploy history of record lives in GitHub Actions artifacts and scripts/deploy/rollback.mjs release records; local copies are debugging aids. 90d matches the quarterly DR drill cadence in docs/resilience/disaster-recovery.md.",
+      "match": ["logs/deploy/*.log*"],
+      "compressAfterDays": 14,
+      "deleteAfterDays": 90
+    },
+    {
+      "name": "misc-logs",
+      "description": "Catch-all for other host-side *.log/*.jsonl under logs/ not claimed above (e.g. /var/log/spindle-backup.log copied into logs/). Conservative 90d.",
+      "match": ["logs/**/*.log*", "logs/**/*.jsonl*"],
+      "exclude": [
+        "logs/app/*",
+        "logs/app.log*",
+        "logs/ship/*",
+        "logs/ship.jsonl*",
+        "logs/nginx/*",
+        "logs/deploy/*"
+      ],
+      "compressAfterDays": 14,
+      "deleteAfterDays": 90
+    },
+    {
+      "name": "backup-artifacts",
+      "description": "pg_dump artifacts in backups/ (spindle-*). Count-based retention (keep newest 14, or BACKUP_RETENTION_COUNT) is owned by scripts/db/backup/backup.ts — this rule is only a 400d age safety net so a forgotten cron cannot accumulate dumps forever. keepNewest mirrors the default count retention as a second guard.",
+      "match": ["backups/spindle-*"],
+      "deleteAfterDays": 400,
+      "keepNewest": 14
+    }
+  ]
+}

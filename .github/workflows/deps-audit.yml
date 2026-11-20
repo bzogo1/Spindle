@@ -1,0 +1,67 @@
+name: Dependency audit
+
+# Scheduled and lockfile-touching dependency vulnerability scan. Complements
+# the supply-chain workflow (pinning/integrity) and Dependabot (automated
+# bumps): this job is the advisory gate — it fails on high/critical findings
+# and always uploads a JSON report plus a markdown summary.
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC.
+    - cron: "0 6 * * 1"
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  npm-audit:
+    name: npm audit (high/critical gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm audit` reads package-lock.json and does not require node_modules,
+      # so no `npm ci` is needed — the audit covers the locked dependency tree
+      # exactly as it would be installed.
+      - name: Collect npm audit report
+        run: npm audit --json > audit-report.json || true
+
+      - name: Audit summary
+        run: node scripts/security/deps-audit/report.mjs --file audit-report.json | tee audit-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Advisory only: verifies registry signatures/attestations where
+      # available. Many legitimate packages are unsigned, so findings here do
+      # not block — they are surfaced in the log for review.
+      - name: Audit registry signatures (advisory)
+        continue-on-error: true
+        run: npm audit signatures || true
+
+      - name: Fail on high or critical vulnerabilities
+        run: npm audit --audit-level=high
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: |
+            audit-report.json
+            audit-summary.md
+          retention-days: 90

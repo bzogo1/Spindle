@@ -16,7 +16,7 @@ export default function ChangelogNotFound() {
           <ChangelogThemeToggle />
         </div>
       </div>
-      <div className="cl-shell cl-content">
+      <main id="main-content" tabIndex={-1} className="cl-shell cl-content">
         <div className="cl-state">
           <p className="cl-state-code">404 — page not found</p>
           <h1 className="cl-state-title">This changelog entry doesn&rsquo;t exist.</h1>
@@ -33,7 +33,7 @@ export default function ChangelogNotFound() {
             </Link>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

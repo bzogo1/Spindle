@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { ensureFreshSession } from "@/lib/auth/auth-client"
+
 import { ApiError, request } from "./client"
+
+vi.mock("@/lib/auth/auth-client", () => ({
+  ensureFreshSession: vi.fn(async () => null),
+}))
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -12,6 +18,8 @@ function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.mocked(ensureFreshSession).mockClear()
+  vi.mocked(ensureFreshSession).mockResolvedValue(null)
 })
 
 describe("request", () => {
@@ -180,5 +188,68 @@ describe("request", () => {
 
     const error = await request("http://api.test", "/thing").catch((e: unknown) => e)
     expect(error).toMatchObject({ status: 200, code: "invalid_response" })
+  })
+
+  describe("401 session refresh", () => {
+    it("refreshes the session and retries once after a 401", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response("expired", { status: 401 }))
+        .mockResolvedValueOnce(jsonResponse({ ok: true }))
+      vi.stubGlobal("fetch", fetchMock)
+
+      await expect(request("http://api.test", "/thing")).resolves.toEqual({ ok: true })
+      expect(ensureFreshSession).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it("propagates the error when the retry is still a 401", async () => {
+      const fetchMock = vi.fn(async () => new Response("nope", { status: 401 }))
+      vi.stubGlobal("fetch", fetchMock)
+
+      const error = await request("http://api.test", "/thing").catch((e: unknown) => e)
+      expect(error).toMatchObject({ status: 401, code: "unauthorized" })
+      expect(ensureFreshSession).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
+
+    it("does not refresh or retry on non-401 errors", async () => {
+      const fetchMock = vi.fn(async () => new Response("boom", { status: 500 }))
+      vi.stubGlobal("fetch", fetchMock)
+
+      const error = await request("http://api.test", "/thing").catch((e: unknown) => e)
+      expect(error).toMatchObject({ status: 500, code: "server_error" })
+      expect(ensureFreshSession).not.toHaveBeenCalled()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not refresh or retry on network failures", async () => {
+      const fetchMock = vi.fn(async () => Promise.reject(new TypeError("fetch failed")))
+      vi.stubGlobal("fetch", fetchMock)
+
+      const error = await request("http://api.test", "/thing").catch((e: unknown) => e)
+      expect(error).toMatchObject({ status: null, code: "network_error" })
+      expect(ensureFreshSession).not.toHaveBeenCalled()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it("surfaces the original 401 when the session refresh fails", async () => {
+      vi.mocked(ensureFreshSession).mockRejectedValueOnce(new Error("refresh exploded"))
+      const fetchMock = vi.fn(async () => new Response("expired", { status: 401 }))
+      vi.stubGlobal("fetch", fetchMock)
+
+      const error = await request("http://api.test", "/thing").catch((e: unknown) => e)
+      expect(error).toMatchObject({ status: 401, code: "unauthorized" })
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it("never retries more than once even across repeated 401s", async () => {
+      const fetchMock = vi.fn(async () => new Response("expired", { status: 401 }))
+      vi.stubGlobal("fetch", fetchMock)
+
+      await request("http://api.test", "/thing").catch(() => {})
+      expect(ensureFreshSession).toHaveBeenCalledTimes(1)
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+    })
   })
 })

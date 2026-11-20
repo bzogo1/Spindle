@@ -1,0 +1,70 @@
+/* Help center page-level spacing. Component-level styles live in
+   src/components/site/help-search.module.css. */
+
+.categoryGrid {
+  margin-bottom: 44px;
+}
+
+.searchWrap {
+  max-width: 880px;
+}
+
+.contactNote {
+  margin-top: 28px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.contactNote a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-color: var(--accent-line);
+  text-underline-offset: 3px;
+}
+
+.contactNote a:hover,
+.contactNote a:focus-visible {
+  text-decoration-color: var(--accent);
+}
+
+.articleMeta {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.articleUpdated {
+  margin-left: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.articleNav {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.articleNav a {
+  font-size: 13.5px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.articleNav a:hover,
+.articleNav a:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.articleNav .spacer {
+  visibility: hidden;
+}

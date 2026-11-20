@@ -1,4 +1,4 @@
-import { MockStoreProvider } from "@/components/app/mock-store-provider"
+import { ProjectGuard } from "@/components/app/project-guard"
 import { ProjectTabs } from "@/components/app/project-tabs"
 
 export default async function ProjectLayout({
@@ -10,9 +10,9 @@ export default async function ProjectLayout({
 }) {
   const { projectId } = await params
   return (
-    <MockStoreProvider projectId={projectId}>
+    <>
       <ProjectTabs projectId={projectId} />
-      {children}
-    </MockStoreProvider>
+      <ProjectGuard projectId={projectId}>{children}</ProjectGuard>
+    </>
   )
 }

@@ -1,0 +1,15 @@
+{
+  "$comment": "Certificate expiry check configuration for scripts/certificates/expiry-check.mjs. Hosts are the public hostnames behind the Cloudflare Tunnel; no origin TLS is needed because TLS terminates at the Cloudflare edge. Per-host warnDays/criticalDays override defaults. Exit codes: 0 all ok, 1 warning, 2 critical/unreachable, 64 usage error.",
+  "defaults": {
+    "port": 443,
+    "warnDays": 21,
+    "criticalDays": 7,
+    "timeoutMs": 10000
+  },
+  "hosts": [
+    { "name": "production-app", "host": "app.spindle.app" },
+    { "name": "production-lab", "host": "lab.spindle.app" },
+    { "name": "staging-app", "host": "staging.spindle.app" },
+    { "name": "staging-lab", "host": "staging-lab.spindle.app" }
+  ]
+}

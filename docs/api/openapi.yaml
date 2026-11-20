@@ -1,0 +1,3165 @@
+openapi: 3.1.0
+info:
+  title: Spindle API
+  version: "1.0.0"
+  description: |
+    Route handlers under `src/app/api/` (Next.js App Router). See
+    `docs/api/reference.md` for the full human-readable reference and
+    `docs/api/contract-testing.md` for the Playwright contract specs.
+
+    Two response envelopes exist:
+
+    - **Auth family** (`/api/auth/*`, `/api/profile`, `/api/cohorts`,
+      `/api/communication-preferences`, `/api/analytics*`,
+      `/api/notifications*`, `/api/activity*`):
+      `{ ok: true, ...payload }` on success,
+      `{ ok: false, code, message, ...extra }` on failure.
+    - **Public forms** (`/api/contact`, `/api/newsletter`, `/api/feedback`,
+      `/api/nps`, `/api/email/unsubscribe`):
+      `{ ok: true, message, ... }` /
+      `{ ok: false, message, errors? }` — no `code` field.
+
+    Session auth uses httpOnly cookies `spindle_at` (access JWT, `Path=/`)
+    and `spindle_rt` (refresh token, `Path=/api/auth`, single-use rotation).
+    Cookie-authenticated mutations enforce a same-origin check (Origin /
+    Sec-Fetch-Site) and answer `403 forbidden` on mismatch.
+servers:
+  - url: http://localhost:3000
+    description: Local dev (`npm run dev`)
+
+tags:
+  - name: auth
+  - name: account
+  - name: analytics
+  - name: realtime
+  - name: email-series
+  - name: invitations
+  - name: public-forms
+  - name: infrastructure
+
+paths:
+  # ---------------------------------------------------------------- auth
+  /api/auth/signup:
+    post:
+      tags: [auth]
+      summary: Create account + workspace and sign in
+      description: Sends a verification email, creates a session immediately. Rate limit 5/hour per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignUpRequest" }
+      responses:
+        "200":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionOk" }
+          headers:
+            Set-Cookie:
+              description: Sets `spindle_at` and `spindle_rt` auth cookies.
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: email_taken } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/signin:
+    post:
+      tags: [auth]
+      summary: Email + password sign-in
+      description: |
+        Returns a session, or `{ status: "totp_required", challenge }` when the
+        account has TOTP 2FA enabled — follow with `POST /api/auth/2fa/verify-login`.
+        Unknown email and wrong password both return 401 `invalid_credentials`.
+        Rate limit 10/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInRequest" }
+      responses:
+        "200":
+          description: Session issued, or a TOTP challenge
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SessionOk"
+                  - type: object
+                    required: [ok, status, challenge]
+                    properties:
+                      ok: { const: true }
+                      status: { const: totp_required }
+                      challenge: { type: string }
+          headers:
+            Set-Cookie:
+              description: 'Present only on `status: "ok"`.'
+              schema: { type: string }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_credentials } }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/session:
+    get:
+      tags: [auth]
+      summary: Current session
+      description: |
+        Resolves `spindle_at` first; otherwise rotates `spindle_rt` and returns
+        the new session; otherwise `{ session: null }`.
+      responses:
+        "200":
+          description: Session state (never 401)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, session]
+                properties:
+                  ok: { const: true }
+                  session:
+                    oneOf:
+                      - $ref: "#/components/schemas/AuthSession"
+                      - type: "null"
+
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Rotate refresh token
+      description: Refresh tokens are single-use; a lost rotation race returns 401.
+      responses:
+        "200":
+          description: New token pair
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionOk" }
+          headers:
+            Set-Cookie: { schema: { type: string } }
+        "401":
+          description: No/expired/revoked session (cookies cleared)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Sign out
+      description: Revokes the refresh-token session and clears both auth cookies. Idempotent.
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkOnly" }
+          headers:
+            Set-Cookie: { schema: { type: string } }
+
+  /api/auth/audit:
+    get:
+      tags: [auth]
+      summary: Caller's auth audit events
+      description: Requires a valid `spindle_at` session. Newest first.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, events, limit]
+                properties:
+                  ok: { const: true }
+                  limit: { type: integer }
+                  events:
+                    type: array
+                    items: { $ref: "#/components/schemas/AuthAuditEvent" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/passwordless/request:
+    post:
+      tags: [auth]
+      summary: Email a magic-link sign-in / verification link
+      description: "Always returns `sent: true` for valid input (no account enumeration). Rate limit 5/10min per IP."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordlessRequest" }
+      responses:
+        "200":
+          description: Link (maybe) sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sent]
+                properties:
+                  ok: { const: true }
+                  sent: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/passwordless/verify:
+    post:
+      tags: [auth]
+      summary: Consume a magic-link token
+      description: Single-use. Rate limit 10/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "200":
+          description: Session issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionOk" }
+          headers:
+            Set-Cookie: { schema: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Token invalid/expired/used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: invalid_token }
+                      reason: { type: string, enum: [expired, used, invalid] }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/password/reset/request:
+    post:
+      tags: [auth]
+      summary: Email a password-reset link
+      description: "Always `sent: true` (no enumeration). Rate limit 5/10min per IP."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmailRequest" }
+      responses:
+        "200":
+          description: Reset link (maybe) sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sent]
+                properties:
+                  ok: { const: true }
+                  sent: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/password/reset/confirm:
+    post:
+      tags: [auth]
+      summary: Consume a reset token and set a new password
+      description: Revokes all existing sessions. Rate limit 10/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PasswordResetConfirm" }
+      responses:
+        "200":
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, reset]
+                properties:
+                  ok: { const: true }
+                  reset: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Token invalid/expired/used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/verify-email:
+    post:
+      tags: [auth]
+      summary: Consume a verification token
+      description: Marks the account verified. Rate limit 10/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "200":
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, verified]
+                properties:
+                  ok: { const: true }
+                  verified: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Token invalid/expired/used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: invalid_token }
+                      reason: { type: string, enum: [expired, used, invalid] }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/verify-email/resend:
+    post:
+      tags: [auth]
+      summary: Resend the verification email
+      description: |
+        Per-email cooldown applied uniformly to all well-formed addresses
+        (no enumeration oracle). On cooldown: 429 with `retryAfter` in the
+        body and a `Retry-After` header. Rate limit 5/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmailRequest" }
+      responses:
+        "200":
+          description: Verification email (maybe) sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sent, retryAfter]
+                properties:
+                  ok: { const: true }
+                  sent: { const: true }
+                  retryAfter:
+                    { type: integer, description: Seconds until the per-email cooldown ends. }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "429":
+          description: Per-email cooldown or per-IP limit
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: rate_limited }
+                      retryAfter: { type: integer }
+
+  /api/auth/oauth/{provider}:
+    get:
+      tags: [auth]
+      summary: OAuth provider configuration
+      description: "Public (non-secret) config for the client-side PKCE flow. Built-ins: github, google, gitlab; mock providers under NEXT_PUBLIC_MOCK_AUTH."
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema: { type: string, pattern: "^[a-z0-9-]{2,32}$" }
+      responses:
+        "200":
+          description: Provider config
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, provider, clientId, authorizeUrl, scopes, redirectUri]
+                properties:
+                  ok: { const: true }
+                  provider: { type: string }
+                  clientId: { type: string }
+                  authorizeUrl: { type: string, format: uri }
+                  scopes: { type: array, items: { type: string } }
+                  redirectUri: { type: string, format: uri }
+        "404":
+          description: Provider not configured
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: unknown_provider } }
+
+  /api/auth/oauth/callback:
+    get:
+      tags: [auth]
+      summary: Mock-mode authorize bounce
+      description: Only reachable for synthetic providers when mock auth is enabled; 302-redirects to /oauth/callback with a fixture code.
+      parameters:
+        - name: mock_authorize
+          in: query
+          required: true
+          schema: { type: string }
+        - name: state
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to /oauth/callback with mock code
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "404": { $ref: "#/components/responses/UnknownProvider" }
+    post:
+      tags: [auth]
+      summary: Exchange OAuth code for a session
+      description: Client-driven PKCE flow; `redirectUri` must match authorize time. Rate limit 10/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/OAuthCallbackRequest" }
+      responses:
+        "200":
+          description: Session issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionOk" }
+          headers:
+            Set-Cookie: { schema: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Code exchange failed or provider returned no email
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: oauth_failed } }
+        "404": { $ref: "#/components/responses/UnknownProvider" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ------------------------------------------------------------ 2FA TOTP
+  /api/auth/2fa/enroll:
+    post:
+      tags: [auth]
+      summary: Start TOTP enrollment
+      description: Requires a session. Returns the secret + otpauth URL; activates only after /confirm.
+      responses:
+        "200":
+          description: Enrollment material
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, secret, otpauthUrl, digits, periodSeconds]
+                properties:
+                  ok: { const: true }
+                  secret: { type: string }
+                  otpauthUrl: { type: string }
+                  digits: { const: 6 }
+                  periodSeconds: { const: 30 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/auth/2fa/confirm:
+    post:
+      tags: [auth]
+      summary: Activate TOTP
+      description: Validates a code against the pending enrollment and returns one-time backup codes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TotpCodeRequest" }
+      responses:
+        "200":
+          description: 2FA enabled; backup codes shown once
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, enabled, backupCodes]
+                properties:
+                  ok: { const: true }
+                  enabled: { const: true }
+                  backupCodes: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Code did not match
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: totp_invalid } }
+
+  /api/auth/2fa/backup-codes:
+    get:
+      tags: [auth]
+      summary: Backup-code status
+      responses:
+        "200":
+          description: Status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, enabled, managed, remaining]
+                properties:
+                  ok: { const: true }
+                  enabled: { type: boolean }
+                  managed: { type: boolean }
+                  remaining: { type: [integer, "null"] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [auth]
+      summary: Issue fresh backup codes
+      description: Requires 2FA enabled; invalidates all previous codes. Returns plaintext once.
+      responses:
+        "200":
+          description: New backup codes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, backupCodes, remaining]
+                properties:
+                  ok: { const: true }
+                  backupCodes: { type: array, items: { type: string } }
+                  remaining: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: TOTP not enabled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: totp_not_enabled } }
+
+  /api/auth/2fa/verify-login:
+    post:
+      tags: [auth]
+      summary: Second sign-in step (TOTP or backup code)
+      description: Consumes the `challenge` from a `totp_required` sign-in. Rate limit 10/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TotpVerifyLoginRequest" }
+      responses:
+        "200":
+          description: Session issued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionOk" }
+          headers:
+            Set-Cookie: { schema: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: totp_invalid } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/2fa/disable:
+    post:
+      tags: [auth]
+      summary: Disable TOTP
+      description: Requires the account password as re-authentication.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DisableTotpRequest" }
+      responses:
+        "200":
+          description: 2FA disabled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, disabled]
+                properties:
+                  ok: { const: true }
+                  disabled: { const: true }
+        "400":
+          description: Missing password or wrong password / 2FA not enabled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { type: string, enum: [invalid_request, totp_invalid] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/2fa/recovery/request:
+    post:
+      tags: [auth]
+      summary: Start/resend 2FA recovery
+      description: |
+        Emails a single-use recovery token; 2FA stays enabled through a 72h
+        cooldown so an unauthorized request is cancellable. Requires TOTP
+        enabled and a session. Rate limit 5/10min per IP.
+      responses:
+        "200":
+          description: Recovery state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, state]
+                properties:
+                  ok: { const: true }
+                  state:
+                    type: string
+                    enum: [awaiting_token, cooldown]
+                  emailSent: { type: boolean }
+                  retryAfterSeconds: { type: integer }
+                  executeAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403":
+          description: TOTP not enabled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: totp_not_enabled } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/2fa/recovery/confirm:
+    post:
+      tags: [auth]
+      summary: Confirm recovery via emailed token
+      description: Moves recovery into the 72h cooldown; 2FA is NOT disabled here. Rate limit 10/min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecoveryConfirmRequest" }
+      responses:
+        "200":
+          description: Recovery in cooldown
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, state, executeAt]
+                properties:
+                  ok: { const: true }
+                  state: { const: cooldown }
+                  executeAt: { type: string, format: date-time }
+        "400":
+          description: Bad body or wrong backup code
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { type: string, enum: [invalid_request, invalid_backup_code] }
+        "401":
+          description: Token invalid/expired/used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: invalid_token }
+                      reason: { type: string, enum: [expired, used, invalid] }
+        "409":
+          description: No pending recovery
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: no_pending_recovery } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/2fa/recovery/status:
+    get:
+      tags: [auth]
+      summary: Recovery state
+      description: When a cooldown reaches executeAt this GET finalizes it lazily (clears TOTP, emails the user).
+      responses:
+        "200":
+          description: Recovery state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, state]
+                properties:
+                  ok: { const: true }
+                  state: { type: string, enum: [none, awaiting_token, cooldown, completed] }
+                  executeAt: { type: string, format: date-time }
+                  secondsRemaining: { type: integer }
+                  enabled: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/2fa/recovery/cancel:
+    post:
+      tags: [auth]
+      summary: Cancel a pending/cooling-down recovery
+      description: Safety hatch for an unauthorized request. Rate limit 10/min per IP.
+      responses:
+        "200":
+          description: Recovery cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, state]
+                properties:
+                  ok: { const: true }
+                  state: { const: cancelled }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: No active recovery
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: no_active_recovery } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/email-change:
+    get:
+      tags: [auth]
+      summary: Email-change status
+      description: Effective sign-in email plus any pending change and the resend cooldown. Session or mock session required.
+      responses:
+        "200":
+          description: Email-change status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, emailChange]
+                properties:
+                  ok: { const: true }
+                  emailChange:
+                    type: object
+                    required: [email, pending, resendCooldownSeconds]
+                    properties:
+                      email: { type: string, format: email }
+                      pending:
+                        oneOf:
+                          - type: "null"
+                          - type: object
+                            required: [newEmail, requestedAt, expiresAt]
+                            properties:
+                              newEmail: { type: string, format: email }
+                              requestedAt: { type: string, format: date-time }
+                              expiresAt: { type: string, format: date-time }
+                      resendCooldownSeconds: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/auth/email-change/request:
+    post:
+      tags: [auth]
+      summary: Start an email change
+      description: |
+        Emails a signed single-use confirmation link to the NEW address; the
+        old address is notified only after confirm. Rate limit 5/10min per IP
+        plus a per-principal resend cooldown shared with `/resend` — on
+        cooldown the response is 429 with `retryAfter` in the body and a
+        `Retry-After` header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newEmail]
+              properties:
+                newEmail: { type: string, format: email, maxLength: 320 }
+      responses:
+        "200":
+          description: Change pending; link (maybe) sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, pending, retryAfter]
+                properties:
+                  ok: { const: true }
+                  pending:
+                    type: object
+                    required: [newEmail, requestedAt, expiresAt]
+                    properties:
+                      newEmail: { type: string, format: email }
+                      requestedAt: { type: string, format: date-time }
+                      expiresAt: { type: string, format: date-time }
+                  retryAfter: { type: integer }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "422":
+          description: Target email rejected (e.g. already in use)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_email } }
+        "429":
+          description: Per-IP limit or per-principal resend cooldown
+          headers:
+            Retry-After: { schema: { type: integer } }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: rate_limited }
+                      retryAfter: { type: integer }
+
+  /api/auth/email-change/resend:
+    post:
+      tags: [auth]
+      summary: Resend the email-change confirmation
+      description: |
+        Emails a fresh link for the pending change; resending rotates the
+        pending record id so earlier links stop working. Shares the
+        per-principal cooldown with `/request`. Same rate limits.
+      responses:
+        "200":
+          description: Fresh link sent (same shape as /request)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, pending, retryAfter]
+                properties:
+                  ok: { const: true }
+                  pending:
+                    type: object
+                    required: [newEmail, requestedAt, expiresAt]
+                    properties:
+                      newEmail: { type: string, format: email }
+                      requestedAt: { type: string, format: date-time }
+                      expiresAt: { type: string, format: date-time }
+                  retryAfter: { type: integer }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "404":
+          description: No pending email change
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: no_pending } }
+        "422":
+          description: Target email rejected
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_email } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/email-change/cancel:
+    post:
+      tags: [auth]
+      summary: Cancel a pending email change
+      description: Drops the pending change so its emailed link stops working. Idempotent. Session required.
+      responses:
+        "200":
+          description: Cancel result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, cancelled]
+                properties:
+                  ok: { const: true }
+                  cancelled: { type: boolean, description: "false when nothing was pending" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/auth/email-change/confirm:
+    get:
+      tags: [auth]
+      summary: Confirm email change (emailed link)
+      description: |
+        Emailed-link entry point — no session required, the signed token is
+        the credential. Verifies then 302-redirects to `/app/account` with an
+        `email-change` result flag. Rate limit 10/10min per IP.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to /app/account?email-change=confirmed|failed&reason=…
+        "429":
+          description: Rate limited (redirects with reason=rate_limited)
+          content:
+            application/json:
+              schema: { type: object }
+    post:
+      tags: [auth]
+      summary: Confirm email change (JSON)
+      description: JSON variant for API clients; same-origin checked. Sessions stay valid after the change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 1, maxLength: 2048 }
+      responses:
+        "200":
+          description: Email changed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, email]
+                properties:
+                  ok: { const: true }
+                  email: { type: string, format: email }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "410":
+          description: Confirmation failed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: confirm_failed }
+                      reason:
+                        type: string
+                        enum: [expired, invalid, no_pending, email_unavailable]
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/request:
+    post:
+      tags: [auth]
+      summary: Start/resend account recovery
+      description: |
+        Emails a single-use recovery token link (`/account-recovery?token=…`,
+        expires in 30 minutes). Anti-enumeration: identical `sent: true`
+        response whether or not the address is registered; known addresses
+        get a throttled, single-active recovery per user. Rate limit
+        5/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmailRequest" }
+      responses:
+        "200":
+          description: Recovery link (maybe) sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sent]
+                properties:
+                  ok: { const: true }
+                  sent: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/verify:
+    post:
+      tags: [auth]
+      summary: Exchange recovery token for a session token
+      description: |
+        Consumes the emailed single-use token and returns a short-lived
+        recovery session token that authorises the verified-phase endpoints
+        (password, email-verified, status, complete). Rate limit 20/10min
+        per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TokenRequest" }
+      responses:
+        "200":
+          description: Recovery session issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, sessionToken, sessionExpiresAt, email]
+                properties:
+                  ok: { const: true }
+                  sessionToken: { type: string }
+                  sessionExpiresAt: { type: string, format: date-time }
+                  email: { type: string, format: email }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Token invalid/expired/used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: invalid_token }
+                      reason: { type: string, enum: [expired, used, invalid] }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/status:
+    post:
+      tags: [auth]
+      summary: Recovery session status
+      description: |
+        State of a verified recovery session — current phase, completed
+        actions, and the account's 10 most recent auth audit events for
+        security review. Rate limit 60/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecoverySessionRequest" }
+      responses:
+        "200":
+          description: Recovery state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, phase, email, sessionExpiresAt, actions, events]
+                properties:
+                  ok: { const: true }
+                  phase: { type: string }
+                  email: { type: string, format: email }
+                  sessionExpiresAt: { type: [string, "null"], format: date-time }
+                  actions: { type: object, additionalProperties: true }
+                  events:
+                    type: array
+                    maxItems: 10
+                    items:
+                      type: object
+                      required: [timestamp, type, metadata]
+                      properties:
+                        timestamp: { type: string, format: date-time }
+                        type: { type: string }
+                        metadata: { type: object, additionalProperties: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Recovery session expired/unknown
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/password:
+    post:
+      tags: [auth]
+      summary: Set a new password during recovery
+      description: Requires the recovery session token; the password is never logged or audited. Rate limit 10/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecoveryPasswordRequest" }
+      responses:
+        "200":
+          description: Password set
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, reset]
+                properties:
+                  ok: { const: true }
+                  reset: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Recovery session expired/unknown
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/email-verified:
+    post:
+      tags: [auth]
+      summary: Mark email verified during recovery
+      description: Possession of the emailed token already proves inbox control. Rate limit 10/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecoverySessionRequest" }
+      responses:
+        "200":
+          description: Email marked verified
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, verified]
+                properties:
+                  ok: { const: true }
+                  verified: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Recovery session expired/unknown
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/recovery/complete:
+    post:
+      tags: [auth]
+      summary: Finish account recovery
+      description: |
+        Revokes every auth session for the account, burns the emailed-token
+        hash and the recovery session token, records
+        `account.recovery.completed`, and sends a best-effort confirmation
+        email. Rate limit 10/10min per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecoverySessionRequest" }
+      responses:
+        "200":
+          description: Recovery complete
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, completed]
+                properties:
+                  ok: { const: true }
+                  completed: { const: true }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401":
+          description: Recovery session expired/unknown
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_token } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/auth/fingerprint:
+    post:
+      tags: [auth]
+      summary: Register a device fingerprint
+      description: |
+        Stores the caller's versioned fingerprint digest (`<version>:<hex>`,
+        e.g. `fp1:<16–128 hex>`) keyed by (userId, sessionId). Requires a
+        valid `spindle_at` whose user still exists. `match` is a soft signal
+        only — clients must not treat `changed` as an error.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FingerprintRequest" }
+      responses:
+        "200":
+          description: Fingerprint registered
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, match, fingerprint]
+                properties:
+                  ok: { const: true }
+                  match: { type: string, enum: [new, known, changed] }
+                  fingerprint:
+                    type: object
+                    required: [version, hash, seenCount, lastSeenAt]
+                    properties:
+                      version: { type: string }
+                      hash: { type: string }
+                      seenCount: { type: integer }
+                      lastSeenAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/auth/login-alerts:
+    get:
+      tags: [auth]
+      summary: Suspicious-login alerts
+      description: Caller's alerts (newest first), unread count, and delivery preferences. Session required.
+      responses:
+        "200":
+          description: Alerts payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, alerts, unreadCount, preferences]
+                properties:
+                  ok: { const: true }
+                  alerts:
+                    type: array
+                    items: { $ref: "#/components/schemas/LoginAlert" }
+                  unreadCount: { type: integer }
+                  preferences:
+                    type: object
+                    required: [inAppNotifications, emailNotifications]
+                    properties:
+                      inAppNotifications: { type: boolean }
+                      emailNotifications: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [auth]
+      summary: Mutate login alerts
+      description: |
+        Discriminated union on `action`: `mark_read` (specific ids),
+        `mark_all_read`, or `update_preferences`. Returns the same payload
+        shape as GET so clients reconcile without a refetch.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginAlertAction" }
+      responses:
+        "200":
+          description: Mutated state (same shape as GET)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, alerts, unreadCount, preferences]
+                properties:
+                  ok: { const: true }
+                  alerts:
+                    type: array
+                    items: { $ref: "#/components/schemas/LoginAlert" }
+                  unreadCount: { type: integer }
+                  preferences:
+                    type: object
+                    required: [inAppNotifications, emailNotifications]
+                    properties:
+                      inAppNotifications: { type: boolean }
+                      emailNotifications: { type: boolean }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  # ------------------------------------------------------------- account
+  /api/profile:
+    get:
+      tags: [account]
+      summary: Display profile
+      responses:
+        "200":
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, profile]
+                properties:
+                  ok: { const: true }
+                  profile: { $ref: "#/components/schemas/Profile" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [account]
+      summary: Update display name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, description: "Non-empty after trim" }
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, profile]
+                properties:
+                  ok: { const: true }
+                  profile: { $ref: "#/components/schemas/Profile" }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "422":
+          description: Invalid display name
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_name } }
+
+  /api/communication-preferences:
+    get:
+      tags: [account]
+      summary: Communication opt-ins
+      responses:
+        "200":
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, preferences]
+                properties:
+                  ok: { const: true }
+                  preferences: { $ref: "#/components/schemas/CommunicationPreferences" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [account]
+      summary: Partial update of communication preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [preferences]
+              properties:
+                preferences: { $ref: "#/components/schemas/CommunicationPreferencesUpdate" }
+      responses:
+        "200":
+          description: Merged preferences
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, preferences]
+                properties:
+                  ok: { const: true }
+                  preferences: { $ref: "#/components/schemas/CommunicationPreferences" }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "422":
+          description: Invalid preferences
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_preferences } }
+
+  /api/cohorts:
+    get:
+      tags: [account]
+      summary: Signup-week cohort retention report
+      description: 'Requires a session. Returns synthetic demo data (`dataSource: "demo"`).'
+      responses:
+        "200":
+          description: Cohort report
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, report]
+                properties:
+                  ok: { const: true }
+                  report: { $ref: "#/components/schemas/CohortReport" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/onboarding:
+    get:
+      tags: [account]
+      summary: Onboarding wizard progress
+      description: |
+        Per-user wizard state (`user:<uid>` / `mock:<email>` principal,
+        process-local store). `onboarding` is null until the user starts.
+        Session or mock session required.
+      responses:
+        "200":
+          description: Onboarding state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, onboarding, steps]
+                properties:
+                  ok: { const: true }
+                  onboarding:
+                    oneOf:
+                      - type: "null"
+                      - $ref: "#/components/schemas/OnboardingRecord"
+                  steps:
+                    type: array
+                    items: { type: string, enum: [welcome, profile, preferences, tour] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [account]
+      summary: Save onboarding progress
+      description: |
+        Saves in-progress state. When `answers` is present it REPLACES the
+        stored answers wholesale (cleared fields stay deleted); omitting it
+        keeps previous answers. Same-origin checked.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [stepIndex]
+              properties:
+                stepIndex: { type: integer, minimum: 0, maximum: 3 }
+                answers: { $ref: "#/components/schemas/OnboardingAnswers" }
+      responses:
+        "200":
+          description: Saved state (same shape as GET)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, onboarding, steps]
+                properties:
+                  ok: { const: true }
+                  onboarding: { $ref: "#/components/schemas/OnboardingRecord" }
+                  steps:
+                    type: array
+                    items: { type: string, enum: [welcome, profile, preferences, tour] }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "422":
+          description: stepIndex out of range or non-integer
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_step } }
+    post:
+      tags: [account]
+      summary: Finish or skip onboarding
+      description: 'Marks the flow finished (`{}` or empty body) or skipped (`{ "skipped": true }`). Same-origin checked.'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skipped: { type: boolean }
+      responses:
+        "200":
+          description: Final state (same shape as GET)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, onboarding, steps]
+                properties:
+                  ok: { const: true }
+                  onboarding: { $ref: "#/components/schemas/OnboardingRecord" }
+                  steps:
+                    type: array
+                    items: { type: string, enum: [welcome, profile, preferences, tour] }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  # ----------------------------------------------------------- analytics
+  /api/analytics:
+    post:
+      tags: [analytics]
+      summary: Ingest consented analytics events
+      description: |
+        Gates in order: same-origin → per-IP rate limit (300/min) →
+        `spindle_consent` cookie (`{ version: "1.0", analytics: true }`) →
+        payload validation (1–20 events).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  minItems: 1
+                  maxItems: 20
+                  items: { $ref: "#/components/schemas/AnalyticsEventInput" }
+      responses:
+        "200":
+          description: Events accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, accepted]
+                properties:
+                  ok: { const: true }
+                  accepted: { type: integer }
+        "400":
+          description: Malformed JSON or invalid events
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_request } }
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_events } }
+        "403":
+          description: Cross-origin or missing analytics consent
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: forbidden } }
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: consent_required } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/analytics/summary:
+    get:
+      tags: [analytics]
+      summary: Analytics aggregates for the caller
+      description: Session required; per-principal rate limit 60/min. Only events attributed to the caller's principal are returned.
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 90, default: 30 }
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, summary]
+                properties:
+                  ok: { const: true }
+                  summary: { $ref: "#/components/schemas/AnalyticsSummary" }
+        "400":
+          description: days out of range
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invalid_days } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ------------------------------------------------------------ realtime
+  /api/notifications:
+    post:
+      tags: [realtime]
+      summary: Publish a notification event
+      description: Fans one `NotificationStreamEvent` out to every stream held by the caller's principal (own tabs/devices only). SSE feed at /api/notifications/stream.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationStreamEvent" }
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkOnly" }
+        "400":
+          description: Bad JSON or unsupported event
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_request } }
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_event } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/notifications/stream:
+    get:
+      tags: [realtime]
+      summary: SSE feed of notification events
+      description: |
+        `text/event-stream`. Immediate `: connected` comment frame, `: ping`
+        every 25s, then `data: <NotificationStreamEvent JSON>` frames.
+        401 closes the EventSource permanently (no retry).
+      responses:
+        "200":
+          description: Event stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/notifications/digest:
+    post:
+      tags: [realtime]
+      summary: Send the caller's notification email digest
+      description: |
+        Recipient is always the session's own email. `preferences` is sanitized
+        server-side (email master switch defaults off). Rate limit 10/hour per
+        recipient. When `lastSentAt` is within the cadence window the route
+        answers `{ delivery: "not-due" }` without sending.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DigestRequest" }
+      responses:
+        "200":
+          description: Digest result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, delivery]
+                properties:
+                  ok: { const: true }
+                  delivery:
+                    type: string
+                    enum: [sent, unconfigured, empty, disabled, not-due]
+                  itemCount: { type: integer }
+                  overflowCount: { type: integer }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "502":
+          description: Email provider rejected the send
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: delivery_failed } }
+
+  /api/activity:
+    post:
+      tags: [realtime]
+      summary: Publish an activity event
+      description: Fans one `ActivityStreamEvent` out to every stream held by the caller's principal. SSE feed at /api/activity/stream.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityStreamEvent" }
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OkOnly" }
+        "400":
+          description: Bad JSON or unsupported event
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_request } }
+                  - allOf:
+                      - $ref: "#/components/schemas/AuthError"
+                      - type: object
+                        properties: { code: { const: invalid_event } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+
+  /api/activity/stream:
+    get:
+      tags: [realtime]
+      summary: SSE feed of project-activity events
+      description: Same transport as /api/notifications/stream; frames carry `ActivityStreamEvent`.
+      responses:
+        "200":
+          description: Event stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  # ---------------------------------------------------------- email series
+  /api/email-series/enroll:
+    post:
+      tags: [email-series]
+      summary: Enroll an email address in a drip series
+      description: |
+        Public enrollment hook for flows that only know an email address
+        (signup calls `enrollEmailSeries` directly). Same-origin checked;
+        rate limit 10/hour per IP. Idempotent — repeat calls return the
+        existing enrollment. The day-0 step is sent by the next tick.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email, maxLength: 320 }
+                name: { type: string, maxLength: 80 }
+      responses:
+        "200":
+          description: Enrollment state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, alreadyEnrolled, status, nextSendAt, sentSteps]
+                properties:
+                  ok: { const: true }
+                  alreadyEnrolled: { type: boolean }
+                  status: { type: string }
+                  nextSendAt: { type: [string, "null"], format: date-time }
+                  sentSteps: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/email-series/status:
+    get:
+      tags: [email-series]
+      summary: Enrollment status (support/debugging)
+      description: |
+        Read-only status — step ids and timestamps only, no message
+        content. Rate limit 30/hour per IP. `series` defaults to the
+        welcome series when omitted.
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema: { type: string, description: "Must contain @" }
+        - name: series
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Enrollment state
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, enrolled]
+                properties:
+                  ok: { const: true }
+                  enrolled: { type: boolean }
+                  status: { type: string }
+                  nextStepIndex: { type: integer }
+                  nextSendAt: { type: [string, "null"], format: date-time }
+                  sentSteps: { type: array, items: { type: string } }
+                  skippedSteps: { type: array, items: { type: string } }
+                  failedSteps: { type: array, items: { type: string } }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/email-series/tick:
+    post:
+      tags: [email-series]
+      summary: Cron tick — dispatch due drip emails
+      description: |
+        Runs `processEmailSeriesQueue()`. Rate limit 30/hour per IP.
+        Auth: `Authorization: Bearer <SESSION_SECRET>` when the secret is
+        set; without a secret the route is open only outside production
+        (fails closed with 503 in production).
+      responses:
+        "200":
+          description: Queue summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { const: true }
+        "401":
+          description: Missing/invalid bearer token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: unauthorized } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500":
+          description: Tick failed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: tick_failed } }
+        "503":
+          description: SESSION_SECRET required in production
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: unconfigured } }
+
+  # --------------------------------------------------------- invitations
+  /api/invitations:
+    get:
+      tags: [invitations]
+      summary: List the caller's invitations
+      description: |
+        Session-authenticated (mock or real). Returns the caller's
+        invitations newest-first; pending invites past `expiresAt` report
+        `status: "expired"`. Read limiter 60/min per IP.
+      responses:
+        "200":
+          description: Invitation list
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, invitations]
+                properties:
+                  ok: { const: true }
+                  invitations:
+                    type: array
+                    items: { $ref: "#/components/schemas/InvitationView" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [invitations]
+      summary: Create a pending invitation and email the accept link
+      description: |
+        Owner/admin only (`canInviteMembers`); admins cannot grant `owner`.
+        Same-origin checked; email-send limiter 5/10min per IP plus a
+        per-email resend cooldown. `409 duplicate_pending` returns the
+        existing invite so the client can offer resend.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, role]
+              properties:
+                email: { type: string, format: email, maxLength: 320 }
+                role: { type: string, enum: [owner, admin, member] }
+      responses:
+        "200":
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, invitation]
+                properties:
+                  ok: { const: true }
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+        "400": { $ref: "#/components/responses/AuthBadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "409":
+          description: A live pending invite already exists for this email
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties:
+                      code: { const: duplicate_pending }
+                      invitation: { $ref: "#/components/schemas/InvitationView" }
+        "422":
+          description: Cannot invite own address
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: cannot_invite_self } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/invitations/{id}:
+    delete:
+      tags: [invitations]
+      summary: Revoke a pending invitation
+      description: |
+        Owner/admin only, scoped to the inviter who created the invite.
+        Missing, foreign, or terminal invites all answer 404 (no
+        enumeration). Same-origin checked.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Invitation revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, invitation]
+                properties:
+                  ok: { const: true }
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "404":
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: not_found } }
+
+  /api/invitations/{id}/resend:
+    post:
+      tags: [invitations]
+      summary: Resend an invitation with a fresh accept link
+      description: |
+        Extends the expiry window (fresh 7 days), stamps a new `lastSentAt`,
+        and emails a NEW token — every previously emailed link stops
+        resolving. Also the recovery path for expired invites (the store
+        flips `expired` back to `pending`). Resets the reminder counters.
+        Per-email cooldown applies; 429 carries `Retry-After`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Invitation resent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, invitation, retryAfter]
+                properties:
+                  ok: { const: true }
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+                  retryAfter: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "404":
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: not_found } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /api/invitations/{id}/remind:
+    post:
+      tags: [invitations]
+      summary: Send a reminder email with the EXISTING accept link
+      description: |
+        Re-sends the current accept link — no token rotation, no expiry
+        extension. Shares the reminder budget with the automated tick: max
+        3 per invite, min 8h between sends. Unlike the tick there is NO
+        near-expiry window restriction — a pending invite can be reminded
+        at any time (intentional). The counter is stamped only after the
+        provider accepts the email, so `503 email_unconfigured` and
+        `502 email_send_failed` never burn budget.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Reminder sent
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, invitation]
+                properties:
+                  ok: { const: true }
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "404":
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: not_found } }
+        "409":
+          description: Reminder cap reached
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: reminder_limit } }
+        "410":
+          description: Invitation expired — resend to recover
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invite_expired } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "502":
+          description: Provider send failed (budget not consumed)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: email_send_failed } }
+        "503":
+          description: Email provider not configured (budget not consumed)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: email_unconfigured } }
+
+  /api/invitations/accept:
+    get:
+      tags: [invitations]
+      summary: Public status probe for the accept page
+      description: |
+        The emailed HMAC token is the capability. Always answers 200 with a
+        `status` (`pending` | `used` | `revoked` | `expired` | `invalid`);
+        `pending` also returns the invitation view. Read limiter 60/min per IP.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Token status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, status]
+                properties:
+                  ok: { const: true }
+                  status:
+                    type: string
+                    enum: [pending, used, revoked, expired, invalid]
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [invitations]
+      summary: Accept an invitation (single-use) and sign in
+      description: |
+        Consumes the invite atomically, provisions/links the invitee's
+        backend account, records workspace membership at the invited role,
+        and issues a session (mock cookie or real token pair). Same-origin
+        checked; token-consume limiter per IP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string, minLength: 1, maxLength: 4096 }
+      responses:
+        "200":
+          description: Invitation accepted; session issued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, status, invitation]
+                properties:
+                  ok: { const: true }
+                  status: { const: accepted }
+                  invitation: { $ref: "#/components/schemas/InvitationView" }
+                  session: { type: object }
+        "400":
+          description: Invalid/missing token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { enum: [invalid_token, invalid_request] } }
+        "403": { $ref: "#/components/responses/AuthForbidden" }
+        "409":
+          description: Invite already used
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: invite_used } }
+        "410":
+          description: Invite revoked or expired
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { enum: [invite_revoked, invite_expired] } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500":
+          description: Accept failed downstream (invite released for retry)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: accept_failed } }
+
+  /api/invitations/analytics:
+    get:
+      tags: [invitations]
+      summary: Invitation funnel analytics for the caller's workspace
+      description: Session-authenticated; aggregates the caller's own invitations.
+      responses:
+        "200":
+          description: Analytics payload
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, analytics]
+                properties:
+                  ok: { const: true }
+                  analytics: { type: object }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/invitations/tick:
+    post:
+      tags: [invitations]
+      summary: Cron tick — sweep expired invites and send reminders
+      description: |
+        Runs `sweepExpired()` then sends reminder emails for pending invites
+        inside the last 24h of their expiry window (max 3 per invite, min 8h
+        apart — shared with the manual remind route). Reminder counters are
+        stamped only on `"sent"` deliveries; `unconfigured`/failed sends are
+        retried next tick. Rate limit 30/hour per IP. Auth: `Authorization:
+        Bearer <SESSION_SECRET>` when the secret is set; without a secret
+        the route is open only outside production (503 in production).
+      responses:
+        "200":
+          description: Tick summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, swept, eligible, sent, failed, unconfigured]
+                properties:
+                  ok: { const: true }
+                  swept: { type: integer }
+                  eligible: { type: integer }
+                  sent: { type: integer }
+                  failed: { type: integer }
+                  unconfigured: { type: integer }
+        "401":
+          description: Missing/invalid bearer token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: unauthorized } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500":
+          description: Tick failed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: tick_failed } }
+        "503":
+          description: SESSION_SECRET required in production
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/AuthError"
+                  - type: object
+                    properties: { code: { const: unconfigured } }
+
+  # --------------------------------------------------------- public forms
+  /api/contact:
+    post:
+      tags: [public-forms]
+      summary: Contact form
+      description: Rate limit 5/hour per IP. `website` honeypot must stay empty (silent success otherwise). Emails the submission and sends a best-effort auto-reply.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ContactRequest" }
+      responses:
+        "200":
+          description: Submission accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, message]
+                properties:
+                  ok: { const: true }
+                  message: { type: string }
+                  reference: { type: string, description: "Ticket id, e.g. CT-4F2A9C1D" }
+        "400":
+          description: Invalid request or field errors
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "502":
+          description: Email delivery failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+
+  /api/newsletter:
+    post:
+      tags: [public-forms]
+      summary: Newsletter subscribe
+      description: Rate limit 10/hour per IP. `consent` must be literal `true`; consent is audit-only (not persisted).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewsletterRequest" }
+      responses:
+        "200":
+          description: Subscribed (or honeypot silent success)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormOk" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "502":
+          description: Email delivery failed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+
+  /api/feedback:
+    post:
+      tags: [public-forms]
+      summary: User feedback
+      description: Rate limit 10/hour per IP. Stored in a process-local in-memory store.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedbackRequest" }
+      responses:
+        "200":
+          description: Feedback received
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormOk" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+
+  /api/nps:
+    post:
+      tags: [public-forms]
+      summary: NPS survey response
+      description: Rate limit 20/hour per IP. Anonymous; stored in process memory.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NpsRequest" }
+      responses:
+        "200":
+          description: Response recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormOk" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+
+  /api/email/unsubscribe:
+    get:
+      tags: [public-forms]
+      summary: Unsubscribe status (never mutates)
+      description: Rate limit 30/hour per IP. Safe for mail scanners/link prefetchers.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+        - name: email
+          in: query
+          required: false
+          schema:
+            {
+              type: string,
+              format: email,
+              description: Display-only; must match the token's address,
+            }
+      responses:
+        "200":
+          description: Subscription status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, email, scope, subscribed, expiresAt]
+                properties:
+                  ok: { const: true }
+                  email: { type: string, format: email }
+                  scope: { type: string }
+                  subscribed: { type: boolean }
+                  expiresAt: { type: string, format: date-time }
+        "400":
+          description: Invalid/expired/mismatched token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+    post:
+      tags: [public-forms]
+      summary: Unsubscribe (JSON or RFC 8058 one-click)
+      description: |
+        Accepts `application/json` `{ token, email? }`, or form-urlencoded
+        `List-Unsubscribe=One-Click` / `token=...`. Token may also arrive via
+        `?token=`. Idempotent. Rate limit 30/hour per IP.
+      parameters:
+        - name: token
+          in: query
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+                email: { type: string, format: email }
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                token: { type: string }
+                email: { type: string }
+                List-Unsubscribe: { type: string, enum: [One-Click] }
+      responses:
+        "200":
+          description: Unsubscribed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, email, scope, subscribed, message]
+                properties:
+                  ok: { const: true }
+                  email: { type: string, format: email }
+                  scope: { type: string }
+                  subscribed: { const: false }
+                  message: { type: string }
+        "400":
+          description: Invalid/expired/mismatched token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FormError" }
+
+  # ------------------------------------------------------- infrastructure
+  /api/csp-report:
+    post:
+      tags: [infrastructure]
+      summary: CSP violation collector
+      description: |
+        Accepts legacy `application/csp-report` (`{"csp-report":{…}}`) and
+        `application/reports+json` batches. Logs `csp.violation` events (cap
+        50/request, 256KB body cap). Always 204 — browsers must not retry.
+      requestBody:
+        required: false
+        content:
+          application/csp-report:
+            schema: { type: object }
+          application/reports+json:
+            schema: { type: array, items: { type: object } }
+      responses:
+        "204":
+          description: Accepted (always)
+        "405":
+          description: Method not allowed (GET)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { error: { type: string } }
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: spindle_at
+      description: Signed access-token JWT. `spindle_rt` refresh cookie is scoped to /api/auth.
+
+  responses:
+    AuthBadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AuthError" }
+    AuthForbidden:
+      description: Cross-origin request blocked
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/AuthError"
+              - type: object
+                properties: { code: { const: forbidden } }
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/AuthError"
+              - type: object
+                properties:
+                  code:
+                    type: string
+                    enum: [unauthenticated, unauthorized]
+    UnknownProvider:
+      description: OAuth provider not configured
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/AuthError"
+              - type: object
+                properties: { code: { const: unknown_provider } }
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/AuthError"
+              - type: object
+                properties: { code: { const: rate_limited } }
+
+  schemas:
+    OkOnly:
+      type: object
+      required: [ok]
+      properties:
+        ok: { const: true }
+
+    AuthError:
+      type: object
+      required: [ok, code, message]
+      properties:
+        ok: { const: false }
+        code: { type: string, description: Machine-readable error code }
+        message: { type: string, description: Human-readable message }
+
+    FormError:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { const: false }
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties: { type: string }
+          description: Per-field validation messages
+
+    FormOk:
+      type: object
+      required: [ok, message]
+      properties:
+        ok: { const: true }
+        message: { type: string }
+
+    AuthUser:
+      type: object
+      required: [id, email, emailVerified, createdAt]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: [string, "null"] }
+        emailVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    InvitationView:
+      type: object
+      description: Client-facing invitation payload (never exposes `inviterId`).
+      required:
+        - id
+        - email
+        - role
+        - status
+        - inviterName
+        - workspaceName
+        - createdAt
+        - sentAt
+        - expiresAt
+        - acceptedAt
+        - reminderCount
+        - reminderLimit
+        - lastReminderAt
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [owner, admin, member] }
+        status:
+          type: string
+          enum: [pending, accepted, revoked, expired]
+          description: Pending invites past `expiresAt` read as `expired`.
+        inviterName: { type: string }
+        workspaceName: { type: string }
+        createdAt: { type: string, format: date-time }
+        sentAt:
+          type: string
+          format: date-time
+          description: Last (re)send time — start of the current expiry window.
+        expiresAt: { type: string, format: date-time }
+        acceptedAt: { type: [string, "null"], format: date-time }
+        reminderCount:
+          type: integer
+          description: Reminders sent so far (manual + automated share the counter).
+        reminderLimit:
+          type: integer
+          description: Lifetime reminder cap per invite (currently 3).
+        lastReminderAt: { type: [string, "null"], format: date-time }
+
+    WorkspaceInfo:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+
+    AuthSession:
+      type: object
+      required: [user, workspace, sessionId, expiresAt]
+      properties:
+        user: { $ref: "#/components/schemas/AuthUser" }
+        workspace: { oneOf: [{ $ref: "#/components/schemas/WorkspaceInfo" }, { type: "null" }] }
+        sessionId: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+    SessionOk:
+      type: object
+      required: [ok, session]
+      properties:
+        ok: { const: true }
+        session: { $ref: "#/components/schemas/AuthSession" }
+        status: { type: string, enum: [ok] }
+
+    SignUpRequest:
+      type: object
+      required: [workspaceName, email, password]
+      properties:
+        workspaceName:
+          type: string
+          minLength: 2
+          maxLength: 60
+          pattern: "^[a-zA-Z0-9][a-zA-Z0-9 _-]*$"
+        email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, minLength: 8, maxLength: 1024 }
+        remember: { type: boolean, default: true }
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        password: { type: string, minLength: 1, maxLength: 1024 }
+        remember: { type: boolean, default: true }
+
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 1, maxLength: 512 }
+
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+
+    PasswordResetConfirm:
+      type: object
+      required: [token, password]
+      properties:
+        token: { type: string, minLength: 1, maxLength: 512 }
+        password: { type: string, minLength: 8, maxLength: 1024 }
+
+    PasswordlessRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        purpose: { type: string, enum: [signin, verify-email], default: signin }
+        next:
+          type: string
+          maxLength: 2048
+          description: Same-origin app path only (`/...`, not `//...`)
+
+    OAuthCallbackRequest:
+      type: object
+      required: [provider, code, redirectUri, codeVerifier]
+      properties:
+        provider: { type: string, pattern: "^[a-z0-9-]{2,32}$" }
+        code: { type: string, minLength: 1, maxLength: 2048 }
+        redirectUri: { type: string, format: uri, maxLength: 2048 }
+        codeVerifier: { type: string, minLength: 43, maxLength: 128 }
+
+    TotpCodeRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, minLength: 6, maxLength: 16 }
+
+    TotpVerifyLoginRequest:
+      type: object
+      required: [challenge, code]
+      properties:
+        challenge: { type: string, minLength: 1, maxLength: 2048 }
+        code:
+          { type: string, minLength: 6, maxLength: 16, description: "6-digit TOTP or backup code" }
+        remember: { type: boolean, default: true }
+
+    DisableTotpRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string, minLength: 1, maxLength: 1024 }
+
+    RecoveryConfirmRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 1, maxLength: 512 }
+        backupCode: { type: string, minLength: 1, maxLength: 32 }
+
+    RecoverySessionRequest:
+      type: object
+      required: [sessionToken]
+      properties:
+        sessionToken:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: Bearer secret issued by /api/auth/recovery/verify — sent in the body, never a cookie or URL param.
+
+    RecoveryPasswordRequest:
+      type: object
+      required: [sessionToken, password]
+      properties:
+        sessionToken: { type: string, minLength: 1, maxLength: 512 }
+        password: { type: string, minLength: 8, maxLength: 1024 }
+
+    FingerprintRequest:
+      type: object
+      required: [fingerprint]
+      properties:
+        fingerprint:
+          type: string
+          pattern: "^[a-z0-9]{1,16}:[0-9a-f]{16,128}$"
+          description: "Versioned digest, e.g. `fp1:<hex>` (case-insensitive hex, 16–128 chars)."
+
+    LoginAlert:
+      type: object
+      required: [id, userId, kind, severity, title, detail, ip, userAgent, createdAt, read]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        kind: { type: string, enum: [new_device, new_ip, velocity, brute_force] }
+        severity: { type: string, enum: [info, warning, critical] }
+        title: { type: string }
+        detail: { type: string }
+        ip: { type: [string, "null"] }
+        userAgent: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+        read: { type: boolean }
+
+    LoginAlertAction:
+      description: Discriminated union on `action` for POST /api/auth/login-alerts.
+      oneOf:
+        - type: object
+          required: [action, ids]
+          properties:
+            action: { const: mark_read }
+            ids:
+              type: array
+              minItems: 1
+              maxItems: 200
+              items: { type: string, minLength: 1, maxLength: 100 }
+        - type: object
+          required: [action]
+          properties:
+            action: { const: mark_all_read }
+        - type: object
+          required: [action, preferences]
+          properties:
+            action: { const: update_preferences }
+            preferences:
+              type: object
+              properties:
+                inAppNotifications: { type: boolean }
+                emailNotifications: { type: boolean }
+
+    OnboardingAnswers:
+      type: object
+      properties:
+        displayName: { type: string }
+        role: { type: string, enum: [individual, lab, team, institution] }
+
+    OnboardingRecord:
+      type: object
+      required: [stepIndex, answers, completedAt, skipped, updatedAt]
+      properties:
+        stepIndex: { type: integer, minimum: 0, maximum: 3 }
+        answers: { $ref: "#/components/schemas/OnboardingAnswers" }
+        completedAt: { type: [string, "null"], format: date-time }
+        skipped: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+
+    AuthAuditEvent:
+      type: object
+      required: [timestamp, type, userId, email, ip, userAgent, metadata]
+      properties:
+        timestamp: { type: string, format: date-time }
+        type:
+          type: string
+          description: e.g. signin.success, signin.failure, signup, logout, password.reset, totp.enroll, totp.recovery.*
+        userId: { type: [string, "null"] }
+        email: { type: [string, "null"], format: email }
+        ip: { type: [string, "null"] }
+        userAgent: { type: [string, "null"] }
+        metadata: { type: object, additionalProperties: true }
+
+    Profile:
+      type: object
+      required: [name, email, memberSince]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        memberSince: { type: [string, "null"], format: date-time }
+
+    CommunicationPreferences:
+      type: object
+      required: [productUpdates, securityAlerts, digestFrequency, feedbackRequests, referralProgram]
+      properties:
+        productUpdates: { type: boolean }
+        securityAlerts: { const: true, description: "Always on — cannot be disabled" }
+        digestFrequency: { type: string, enum: [off, daily, weekly] }
+        feedbackRequests: { type: boolean }
+        referralProgram: { type: boolean }
+
+    CommunicationPreferencesUpdate:
+      type: object
+      additionalProperties: false
+      properties:
+        productUpdates: { type: boolean }
+        securityAlerts: { type: boolean, enum: [true], description: "Only `true` is accepted" }
+        digestFrequency: { type: string, enum: [off, daily, weekly] }
+        feedbackRequests: { type: boolean }
+        referralProgram: { type: boolean }
+
+    CohortReport:
+      type: object
+      required: [generatedAt, dataSource, note, weeks, cohorts, totals]
+      properties:
+        generatedAt: { type: string, format: date-time }
+        dataSource:
+          {
+            const: demo,
+            description: "Synthetic demo data until a real user/activity source exists",
+          }
+        note: { type: string }
+        weeks: { type: integer }
+        cohorts:
+          type: array
+          items:
+            type: object
+            required: [weekStart, label, size, inactiveLatestWeek, avgActiveWeeks, cells]
+            properties:
+              weekStart: { type: string, format: date }
+              label: { type: string }
+              size: { type: integer }
+              inactiveLatestWeek: { type: integer }
+              avgActiveWeeks: { type: number }
+              cells:
+                type: array
+                items:
+                  type: object
+                  required: [week, weekStart, activeUsers, retention, complete]
+                  properties:
+                    week: { type: integer }
+                    weekStart: { type: string, format: date }
+                    activeUsers: { type: integer }
+                    retention: { type: [number, "null"], minimum: 0, maximum: 1 }
+                    complete: { type: boolean }
+        totals:
+          type: object
+          required: [users, excludedUsers, activeThisWeek]
+          properties:
+            users: { type: integer }
+            excludedUsers: { type: integer }
+            activeThisWeek: { type: integer }
+
+    AnalyticsEventInput:
+      type: object
+      required: [type, name]
+      properties:
+        type: { type: string, enum: [page_view, feature_use, api_call] }
+        name: { type: string, maxLength: 128 }
+        path: { type: [string, "null"], maxLength: 512 }
+        feature: { type: [string, "null"], maxLength: 512 }
+        endpoint: { type: [string, "null"], maxLength: 512 }
+        props: { type: object, additionalProperties: true, description: "≤4KB serialized" }
+        timestamp: { type: number, description: "Epoch ms; clamped server-side" }
+        anonymousId: { type: [string, "null"], maxLength: 64 }
+
+    AnalyticsSummary:
+      type: object
+      required: [days, generatedAt, totals, daily, topEvents, topPaths]
+      properties:
+        days: { type: integer }
+        generatedAt: { type: number, description: "Epoch ms" }
+        totals:
+          type: object
+          required: [events, pageViews, featureUses, apiCalls]
+          properties:
+            events: { type: integer }
+            pageViews: { type: integer }
+            featureUses: { type: integer }
+            apiCalls: { type: integer }
+        daily:
+          type: array
+          items:
+            type: object
+            required: [date, events, pageViews, featureUses, apiCalls]
+            properties:
+              date: { type: string, description: "YYYY-MM-DD (UTC)" }
+              events: { type: integer }
+              pageViews: { type: integer }
+              featureUses: { type: integer }
+              apiCalls: { type: integer }
+        topEvents:
+          type: array
+          items:
+            type: object
+            required: [name, type, count]
+            properties:
+              name: { type: string }
+              type: { type: string, enum: [page_view, feature_use, api_call] }
+              count: { type: integer }
+        topPaths:
+          type: array
+          items:
+            type: object
+            required: [path, count]
+            properties:
+              path: { type: string }
+              count: { type: integer }
+
+    NotificationPayload:
+      type: object
+      required: [type, title, body]
+      properties:
+        type: { type: string, enum: [info, success, warning, error] }
+        title: { type: string, maxLength: 200 }
+        body: { type: string, maxLength: 2000 }
+        id: { type: string, maxLength: 200 }
+        href: { type: string, maxLength: 500 }
+        createdAt: { type: string }
+        read: { type: boolean }
+        demo: { type: boolean }
+        projectId: { type: string, maxLength: 200 }
+        category: { type: string, maxLength: 50 }
+        subject: { type: string, maxLength: 200 }
+        actions:
+          type: array
+          maxItems: 5
+          items: { type: object, additionalProperties: true }
+
+    NotificationStreamEvent:
+      description: One of the realtime event shapes carried on /api/notifications and /api/notifications/stream.
+      oneOf:
+        - type: object
+          required: [type, notification]
+          properties:
+            type: { const: notification }
+            notification: { $ref: "#/components/schemas/NotificationPayload" }
+        - type: object
+          required: [type, id]
+          properties:
+            type: { type: string, enum: [read, unread, dismiss] }
+            id: { type: string, minLength: 1, maxLength: 200 }
+        - type: object
+          required: [type]
+          properties:
+            type: { const: read_all }
+
+    ActivityEvent:
+      type: object
+      required: [id, kind, summary, createdAt, actor]
+      properties:
+        id: { type: string, minLength: 1, maxLength: 200 }
+        kind: { type: string, enum: [project, file, lab, chat, agent, system] }
+        summary: { type: string, minLength: 1, maxLength: 500 }
+        createdAt: { type: string }
+        projectId: { type: string, maxLength: 200 }
+        projectName: { type: string, maxLength: 200 }
+        target: { type: string, maxLength: 300 }
+        actor:
+          type: object
+          required: [id, name]
+          properties:
+            id: { type: string, minLength: 1, maxLength: 200 }
+            name: { type: string, minLength: 1, maxLength: 200 }
+            avatarUrl: { type: string, maxLength: 500 }
+
+    ActivityStreamEvent:
+      type: object
+      required: [type, activity]
+      properties:
+        type: { const: activity }
+        activity: { $ref: "#/components/schemas/ActivityEvent" }
+
+    DigestRequest:
+      type: object
+      required: [frequency, notifications]
+      properties:
+        frequency: { type: string, enum: [daily, weekly] }
+        notifications:
+          type: array
+          maxItems: 200
+          items:
+            type: object
+            required: [title]
+            properties:
+              title: { type: string, minLength: 1, maxLength: 200 }
+              body: { type: string, maxLength: 2000 }
+              href: { type: string, maxLength: 500 }
+              category: { type: string, maxLength: 50 }
+              createdAt: { type: string, maxLength: 64 }
+        preferences:
+          type: object
+          description: "Untrusted; sanitized server-side. `{ email: bool, categories: { <cat>: { email: bool } } }`; email master switch defaults off."
+          additionalProperties: true
+        lastSentAt:
+          { type: string, maxLength: 64, description: "ISO timestamp; enables cadence check" }
+
+    Honeypot:
+      type: string
+      maxLength: 500
+      description: "Hidden `website` field — must be empty; a filled value returns silent success."
+
+    ContactRequest:
+      type: object
+      required: [name, email, topic, subject, message]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 320 }
+        topic: { type: string, enum: [general, product, billing, security, other] }
+        reference: { type: string, maxLength: 120 }
+        subject: { type: string, minLength: 1, maxLength: 200 }
+        message: { type: string, minLength: 10, maxLength: 5000 }
+        website: { $ref: "#/components/schemas/Honeypot" }
+
+    NewsletterRequest:
+      type: object
+      required: [email, consent]
+      properties:
+        email: { type: string, format: email, maxLength: 320 }
+        source: { type: string, maxLength: 100 }
+        consent: { const: true, description: "Must be literal true" }
+        website: { $ref: "#/components/schemas/Honeypot" }
+
+    FeedbackRequest:
+      type: object
+      required: [category, message]
+      properties:
+        category: { type: string, enum: [bug, idea, general] }
+        message: { type: string, minLength: 10, maxLength: 5000 }
+        email: { type: string, format: email, maxLength: 320 }
+        website: { $ref: "#/components/schemas/Honeypot" }
+
+    NpsRequest:
+      type: object
+      required: [score]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 10 }
+        comment: { type: string, maxLength: 2000 }
+        source: { type: string, enum: [widget, page, email] }
+        website: { $ref: "#/components/schemas/Honeypot" }

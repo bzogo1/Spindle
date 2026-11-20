@@ -37,10 +37,20 @@ describe("createApiClient", () => {
   it("falls back to same-origin /api when no URL is configured", async () => {
     const fetchMock = vi.fn(
       async () =>
-        new Response(JSON.stringify({ requests: 0, tokens: 0, costUsd: 0 }), {
-          status: 200,
-          headers: { "content-type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify({
+            periodStart: "1970-01-01T00:00:00.000Z",
+            periodEnd: "1970-01-01T00:00:00.000Z",
+            requests: 0,
+            tokens: 0,
+            costUsd: 0,
+            daily: [],
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        ),
     )
     vi.stubGlobal("fetch", fetchMock)
 

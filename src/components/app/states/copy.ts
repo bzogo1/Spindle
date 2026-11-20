@@ -27,7 +27,15 @@ export const appStateCopy = {
 } as const
 
 export type AppScreenKey =
-  "dashboard" | "project" | "files" | "filesTree" | "lab" | "chat" | "agent" | "settings"
+  | "dashboard"
+  | "projects"
+  | "project"
+  | "files"
+  | "filesTree"
+  | "lab"
+  | "chat"
+  | "agent"
+  | "settings"
 
 export const appScreenCopy: Record<
   AppScreenKey,
@@ -49,6 +57,15 @@ export const appScreenCopy: Record<
     errorMessage:
       "We could not load your dashboard. Try again to refresh projects, activity, and usage.",
     skeleton: "dashboard",
+  },
+  projects: {
+    loadingLabel: "Loading projects",
+    emptyTitle: "No projects yet",
+    emptyBody:
+      "Create a project to start collecting files, running lab sessions, and working with the agent.",
+    errorTitle: "Projects did not load",
+    errorMessage: "We could not load your projects. Try again to refresh the list.",
+    skeleton: "projects",
   },
   project: {
     loadingLabel: "Loading project",

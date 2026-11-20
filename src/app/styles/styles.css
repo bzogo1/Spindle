@@ -18,7 +18,7 @@
   /* text */
   --text: #e9ede8;
   --text-muted: #9aa49c;
-  --text-dim: #6d766e;
+  --text-dim: #7d877e;
 
   /* accents */
   --accent: #c8f083;
@@ -33,9 +33,59 @@
   --radius-lg: 12px;
   --container: 1160px;
 
+  /* focus rings + accent shadows shared across the feature stylesheets.
+     Colors reference --accent/--accent-soft, so they flip with the theme. */
+  --focus-ring: 2px solid var(--accent);
+  --focus-halo: 0 0 0 3px var(--accent-soft);
+  --shadow-glow-sm: 0 0 8px var(--accent);
+  --shadow-glow-md: 0 0 12px var(--accent);
+  --shadow-dot-halo: 0 0 0 4px var(--accent-soft);
+  --shadow-active-underline: inset 0 -2px 0 var(--accent);
+  --shadow-active-inset: inset 0 0 0 1px var(--accent-line);
+  --shadow-float: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  --shadow-pulse-ring: 0 0 0 3px rgba(200, 240, 131, 0.12);
+
+  /* motion */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+
   /* type */
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  color-scheme: dark;
+}
+
+/* Light theme — same activation as index.css: light is the default whenever
+   <html> does not carry `.dark` (the theme scripts only toggle that class;
+   an explicit `.light` class lands here too). Values mirror the light
+   --app-* tokens in app.css. */
+:root:not(.dark) {
+  color-scheme: light;
+
+  /* surfaces */
+  --bg: #f6f7f5;
+  --bg-alt: #eceee9;
+  --surface: #ffffff;
+  --surface-2: #f4f6f2;
+  --surface-3: #e7eae4;
+
+  /* lines */
+  --border: rgba(15, 25, 18, 0.1);
+  --border-strong: rgba(15, 25, 18, 0.18);
+
+  /* text */
+  --text: #1a201b;
+  --text-muted: #5d6960;
+  --text-dim: #5c6861;
+
+  /* accents */
+  --accent: #3f6418;
+  --accent-hover: #3d6118;
+  --accent-soft: rgba(63, 100, 24, 0.08);
+  --accent-line: rgba(63, 100, 24, 0.26);
+  --amber: #8a5a1e;
+  --mint: #2f7d4f;
 }
 
 *,
@@ -44,7 +94,17 @@
   box-sizing: border-box;
 }
 [hidden] {
-  display: none !important;
+  display: none;
+}
+/* `[hidden]` ties on specificity with single-class selectors, so any later
+   `display` declaration on the same element would win. Elements that are
+   toggled via the `hidden` attribute while carrying a display-setting
+   class need an attribute-qualified rule (same pattern as `.toast[hidden]`
+   / `.day-pills[hidden]` in the feature stylesheets). */
+.fm-row[hidden],
+.chat-msg[hidden],
+.anon-toggle[hidden] {
+  display: none;
 }
 
 html {
@@ -82,12 +142,12 @@ svg {
   display: block;
 }
 ::selection {
-  background: rgba(200, 240, 131, 0.25);
-  color: #fff;
+  background: var(--accent-line);
+  color: var(--text);
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 3px;
   border-radius: 3px;
 }
@@ -102,6 +162,39 @@ svg {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* Skip link: first focusable element in the layout, visually hidden until
+   keyboard focus reveals it. */
+.skip-link {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--ui-primary-foreground);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-decoration: none;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+.skip-link:focus-visible {
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+  white-space: normal;
 }
 
 .svg-sprite {
@@ -197,9 +290,9 @@ svg {
   white-space: nowrap;
   border: 1px solid transparent;
   transition:
-    background 0.18s,
-    border-color 0.18s,
-    color 0.18s;
+    background var(--transition-normal),
+    border-color var(--transition-normal),
+    color var(--transition-normal);
 }
 .btn--sm {
   padding: 7px 13px;
@@ -215,7 +308,7 @@ svg {
 
 .btn--primary {
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   border-color: var(--accent);
 }
 .btn--primary:hover {
@@ -240,8 +333,8 @@ svg {
   font-size: 13.5px;
   font-weight: 500;
   transition:
-    gap 0.18s,
-    color 0.18s;
+    gap var(--transition-normal),
+    color var(--transition-normal);
 }
 .text-link:hover {
   gap: 11px;
@@ -260,7 +353,7 @@ svg {
   background: rgba(13, 15, 14, 0.88);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-normal);
 }
 .site-header.scrolled {
   border-bottom-color: var(--border);
@@ -323,8 +416,8 @@ svg {
   text-decoration: none;
   white-space: nowrap;
   transition:
-    color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 .nav-fallback a:hover {
   color: var(--text);
@@ -344,7 +437,7 @@ svg {
 .sign-in {
   font-size: 13.5px;
   color: var(--text-muted);
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 .sign-in:hover {
   color: var(--text);
@@ -370,6 +463,52 @@ svg {
 .menu-toggle[aria-expanded="true"] .icon--close {
   display: block;
 }
+/* The global :focus-visible rule sets border-radius: 3px, which would shrink
+   this button's corners while focused — keep the 6px radius and show the
+   ring explicitly so the hamburger never loses its focus indicator. */
+.menu-toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Header theme control — same chrome as .menu-toggle but always visible. */
+.site-theme-toggle {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color var(--transition-normal),
+    border-color var(--transition-normal);
+}
+.site-theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.site-theme-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Header language picker — a native <select> on the shared .btn chrome.
+   `font: inherit` is needed because form controls don't inherit fonts. */
+.site-language-switcher {
+  height: 34px;
+  font: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.site-language-switcher:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
 
 .nav-mobile {
   display: none;
@@ -389,7 +528,9 @@ svg {
   top: -140px;
   left: 50%;
   transform: translateX(-50%);
-  width: 900px;
+  /* Cap at viewport width: a fixed 900px glow centered on narrow viewports
+     overflows the right edge and inflates document scrollWidth. */
+  width: min(900px, 100vw);
   height: 500px;
   pointer-events: none;
   background: radial-gradient(ellipse at 50% 0%, rgba(200, 240, 131, 0.055), transparent 65%);
@@ -406,7 +547,7 @@ svg {
   font-size: 13px;
   color: var(--text-muted);
   margin-bottom: 24px;
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 .hero-announce .icon {
   color: var(--accent);
@@ -445,8 +586,8 @@ svg {
   font-size: 13.5px;
   color: var(--text-muted);
   transition:
-    color 0.18s,
-    gap 0.18s;
+    color var(--transition-normal),
+    gap var(--transition-normal);
 }
 .hero-secondary:hover {
   color: var(--text);
@@ -467,6 +608,13 @@ svg {
   overflow: hidden;
   background: var(--surface);
   box-shadow: 0 24px 70px -32px rgba(0, 0, 0, 0.85);
+}
+
+/* The hero `.app-window` spans the full container width, so grids inside it
+   (e.g. `.overview-grid`) respond to the window's own width via container
+   queries rather than the viewport. */
+.app-window {
+  container-type: inline-size;
 }
 
 .window-bar {
@@ -685,8 +833,8 @@ svg {
   font-size: 12px;
   color: var(--text-dim);
   transition:
-    color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 .win-tab:hover {
   color: var(--text);
@@ -695,7 +843,7 @@ svg {
 .win-tab.is-active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: var(--shadow-active-underline);
 }
 .win-content {
   padding: 24px;
@@ -716,7 +864,7 @@ svg {
   letter-spacing: 0.1em;
   color: var(--text-dim);
 }
-.panel-head h3 {
+.panel-head .panel-title {
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -1051,7 +1199,7 @@ svg {
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  box-shadow: var(--shadow-dot-halo);
 }
 
 .network-scroll {
@@ -1234,8 +1382,8 @@ svg {
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.014);
   transition:
-    border-color 0.18s,
-    background 0.18s;
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .feature-card:hover {
   border-color: var(--border-strong);
@@ -1283,6 +1431,9 @@ svg {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  /* Grid item: allow the card to shrink to its track instead of sizing to
+     min-content (long code tokens would otherwise blow out narrow grids). */
+  min-width: 0;
 }
 .duo-badge {
   display: inline-flex;
@@ -1396,6 +1547,9 @@ svg {
   line-height: 1.75;
   color: #dbe2d8;
   white-space: pre-wrap;
+  /* pre-wrap only breaks at spaces — break long unbroken tokens (e.g.
+     `project.files.sync('data/tides')`) so they can't force overflow. */
+  overflow-wrap: break-word;
 }
 .code-card-foot {
   display: flex;
@@ -1472,9 +1626,9 @@ svg {
   font-size: 9.5px;
   line-height: 1;
   transition:
-    color 0.18s,
-    border-color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .code-copy:hover {
   color: var(--text);
@@ -1482,7 +1636,7 @@ svg {
   background: rgba(255, 255, 255, 0.03);
 }
 .code-copy:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 .code-copy[data-status="copied"] {
@@ -1493,6 +1647,19 @@ svg {
 .code-copy[data-status="error"] {
   color: var(--amber);
   border-color: rgba(227, 182, 126, 0.35);
+}
+/* On narrow screens the header row (title + language + meta + copy) can be
+   wider than the card. Let it wrap so the copy button drops to its own line
+   instead of overflowing the card edge. */
+@media (max-width: 540px) {
+  .code-card-head {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .code-card-actions {
+    flex: 1 1 100%;
+    justify-content: flex-end;
+  }
 }
 .code-block {
   margin: 12px 0 10px;
@@ -1508,7 +1675,7 @@ svg {
   white-space: normal;
 }
 .code-block:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 .code-block code {
@@ -1610,8 +1777,8 @@ svg {
   font-size: 12px;
   color: var(--text-dim);
   transition:
-    color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    background var(--transition-normal);
 }
 .lab-tab:hover {
   color: var(--text);
@@ -1619,7 +1786,7 @@ svg {
 .lab-tab.is-active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: var(--shadow-active-underline);
 }
 .lab-screen {
   min-height: 300px;
@@ -1826,7 +1993,7 @@ svg {
 .vscode-tabs .vscode-tab.is-active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: var(--shadow-active-underline);
 }
 .vscode-breadcrumb {
   padding: 5px 12px;
@@ -1899,8 +2066,8 @@ svg {
   color: inherit;
   text-align: left;
   transition:
-    background 0.18s,
-    border-color 0.18s;
+    background var(--transition-normal),
+    border-color var(--transition-normal);
 }
 .mode-explain-item:hover {
   background: rgba(255, 255, 255, 0.025);
@@ -1911,7 +2078,7 @@ svg {
   background: rgba(200, 240, 131, 0.04);
 }
 .mode-explain-item:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: 2px;
 }
 .mode-icon {
@@ -1972,8 +2139,8 @@ svg {
   font-size: 12.5px;
   color: var(--text-dim);
   transition:
-    background 0.18s,
-    color 0.18s;
+    background var(--transition-normal),
+    color var(--transition-normal);
 }
 .segment.is-active {
   background: var(--accent-soft);
@@ -1988,6 +2155,13 @@ svg {
   border: 1px solid var(--border-strong);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.16);
+  transition: border-color var(--transition-normal);
+}
+/* The bare input below suppresses its own outline, so the wrapper carries
+   the focus indicator instead. */
+.console-query:focus-within {
+  border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .console-query > .icon {
   color: var(--accent);
@@ -2009,7 +2183,7 @@ svg {
   border: none;
   border-radius: 5px;
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   flex: none;
 }
 .engine-row {
@@ -2056,7 +2230,7 @@ svg {
   color: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.18s;
+  transition: background var(--transition-normal);
 }
 .result-item:hover {
   background: rgba(255, 255, 255, 0.025);
@@ -2065,7 +2239,7 @@ svg {
   background: rgba(200, 240, 131, 0.035);
 }
 .result-item:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--focus-ring);
   outline-offset: -2px;
 }
 .result-abstract {
@@ -2081,8 +2255,8 @@ svg {
 }
 .result-item > svg {
   transition:
-    transform 0.18s,
-    color 0.18s;
+    transform var(--transition-normal),
+    color var(--transition-normal);
 }
 .result-item.is-open > svg {
   transform: rotate(90deg);
@@ -2198,7 +2372,8 @@ svg {
   color: var(--text-dim);
 }
 .fm-search:focus-within {
-  border-color: var(--border-strong);
+  border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .fm-search input {
   flex: 1;
@@ -2256,7 +2431,7 @@ svg {
 }
 .fm-btn--solid {
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   border-color: var(--accent);
   font-weight: 500;
 }
@@ -2289,8 +2464,8 @@ svg {
   font-size: 11.5px;
   color: var(--text-muted);
   transition:
-    background 0.18s,
-    border-color 0.18s;
+    background var(--transition-normal),
+    border-color var(--transition-normal);
 }
 .fm-row:hover {
   background: rgba(255, 255, 255, 0.025);
@@ -2569,9 +2744,9 @@ svg {
   font-size: 11.5px;
   color: var(--text-muted);
   transition:
-    color 0.18s,
-    border-color 0.18s,
-    background 0.18s;
+    color var(--transition-normal),
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .suggestion:hover,
 .suggestion.is-active {
@@ -2717,8 +2892,8 @@ svg {
   color: var(--text-muted);
   text-align: left;
   transition:
-    background 0.18s,
-    color 0.18s;
+    background var(--transition-normal),
+    color var(--transition-normal);
 }
 .chat-channel:hover {
   background: rgba(255, 255, 255, 0.025);
@@ -2763,8 +2938,8 @@ svg {
   background: rgba(255, 255, 255, 0.02);
   text-align: left;
   transition:
-    border-color 0.18s,
-    background 0.18s;
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .anon-toggle:hover {
   border-color: var(--border-strong);
@@ -2780,7 +2955,7 @@ svg {
   background: rgba(255, 255, 255, 0.12);
   padding: 2px;
   flex: none;
-  transition: background 0.2s;
+  transition: background var(--transition-normal);
 }
 .anon-switch i {
   display: block;
@@ -2789,8 +2964,8 @@ svg {
   border-radius: 50%;
   background: #a9b4aa;
   transition:
-    transform 0.22s,
-    background 0.2s;
+    transform var(--transition-normal),
+    background var(--transition-normal);
 }
 .anon-toggle[aria-pressed="true"] .anon-switch {
   background: var(--mint);
@@ -2901,7 +3076,8 @@ svg {
   color: var(--text-dim);
 }
 .chat-composer:focus-within {
-  border-color: var(--border-strong);
+  border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .chat-composer input {
   flex: 1;
@@ -3404,6 +3580,184 @@ svg {
 }
 
 /* ==========================================================================
+   PRICING — billing toggle, plan cards, comparison, FAQ
+   ========================================================================== */
+
+.billing-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  width: fit-content;
+  margin: 0 auto 28px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.billing-toggle__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+.billing-toggle__option:hover {
+  color: var(--text);
+}
+.billing-toggle__option[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.billing-toggle__badge {
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.plan-cards--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.plan-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.plan-price-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.compare-wrap {
+  margin-top: 56px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+/* The 680px-min table only overflows the wrap below ~745px viewport width
+   (container padding + borders). Fade the right edge there as a scroll hint;
+   wider viewports show the full table with no affordance needed. */
+@media (max-width: 745px) {
+  .compare-wrap {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
+  }
+}
+.compare-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.compare-caption {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  text-align: left;
+  caption-side: top;
+}
+.compare-table th,
+.compare-table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+.compare-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.compare-table tbody th[scope="row"] {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.compare-table tbody tr:last-child th,
+.compare-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.compare-check {
+  color: var(--accent);
+}
+.compare-check .icon {
+  width: 15px;
+  height: 15px;
+}
+.compare-empty {
+  color: var(--text-dim);
+}
+.compare-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pricing-faq {
+  max-width: 780px;
+  margin: 64px auto 0;
+}
+.pricing-faq-title {
+  margin: 0 0 8px;
+  font-size: clamp(1.4rem, 2.6vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.pricing-faq .ui-faq-trigger {
+  font-size: 14.5px;
+}
+
+@media (max-width: 1000px) {
+  .plan-cards--three {
+    grid-template-columns: 1fr;
+  }
+  .billing-toggle {
+    flex-wrap: wrap;
+    justify-content: center;
+    border-radius: var(--radius);
+  }
+  .billing-toggle__option {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
    CTA + FOOTER
    ========================================================================== */
 
@@ -3466,8 +3820,8 @@ svg {
   border: 1px solid var(--border);
   color: var(--text-dim);
   transition:
-    color 0.18s,
-    border-color 0.18s;
+    color var(--transition-normal),
+    border-color var(--transition-normal);
 }
 .socials a:hover {
   color: var(--text);
@@ -3483,7 +3837,7 @@ svg {
   flex-direction: column;
   gap: 10px;
 }
-.footer-col h4 {
+.footer-col h2 {
   margin: 0 0 6px;
   font-size: 12px;
   font-weight: 500;
@@ -3492,7 +3846,7 @@ svg {
 .footer-col a {
   font-size: 13px;
   color: var(--text-dim);
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 .footer-col a:hover {
   color: var(--text);
@@ -3521,21 +3875,10 @@ svg {
   color: var(--text-dim);
   text-decoration: underline;
   text-underline-offset: 3px;
-  transition: color 0.18s;
+  transition: color var(--transition-normal);
 }
 .footer-cookie-settings:hover {
   color: var(--text);
-}
-.system-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.system-status i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--mint);
 }
 
 /* ==========================================================================
@@ -3606,6 +3949,12 @@ svg {
   .header-actions {
     margin-left: auto;
   }
+  /* The session-loading placeholder span carries an inline
+     `display: inline-block` that beats the .sign-in rule above — hide it
+     explicitly so it can't hold 72px of header width while resolving. */
+  .header-actions > .sign-in {
+    display: none !important;
+  }
   .nav-mobile {
     display: none;
     flex-direction: column;
@@ -3662,7 +4011,13 @@ svg {
   .split-grid--reverse .split-copy {
     order: -1;
   }
-  .duo-grid,
+  /* `1fr` is `minmax(auto, 1fr)` — a single unbreakable child (e.g. a long
+     code token in .code-card pre) would widen the track past the viewport.
+     minmax(0, 1fr) pins the track to the container; .duo-card also has
+     min-width: 0 so the card itself can shrink to fit. */
+  .duo-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .files-layout,
   .plan-cards {
     grid-template-columns: 1fr;
@@ -3736,12 +4091,6 @@ svg {
     padding: 0 11px;
     font-size: 11.5px;
   }
-  .overview-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .overview-tile:last-child {
-    display: none;
-  }
 
   .network-nodes {
     gap: 12px;
@@ -3754,16 +4103,21 @@ svg {
     min-height: 360px;
   }
   .globe-sphere {
-    width: 260px;
-    height: 260px;
+    /* min() caps keep the mockup inside narrow stages so it can't inflate
+       document scrollWidth on phones; aspect-ratio keeps it circular. */
+    width: min(260px, 100%);
+    height: auto;
+    aspect-ratio: 1;
   }
   .globe-glow {
-    width: 270px;
-    height: 270px;
+    width: min(270px, 100%);
+    height: auto;
+    aspect-ratio: 1;
   }
   .globe-glow--wide {
-    width: 330px;
-    height: 330px;
+    width: min(330px, 100%);
+    height: auto;
+    aspect-ratio: 1;
   }
   .globe-orbit {
     max-width: 420px;
@@ -3905,6 +4259,39 @@ svg {
   }
 }
 
+/* Phone widths: the full action row (search trigger, theme toggle, sign-in,
+   "Start free", menu toggle) is wider than the space left beside the brand,
+   so the header overflows the viewport. Drop the two non-essential actions —
+   site search stays available from the mobile nav's "Search site" entry and
+   the CTA moves into the mobile nav panel — and tighten the gaps. */
+@media (max-width: 540px) {
+  .header-inner {
+    gap: 12px;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  /* The ⌘K trigger is the only direct-child <button> without one of these
+     classes (theme toggle, sign-in trigger, menu toggle). */
+  .header-actions > button:not(.menu-toggle):not(.site-theme-toggle):not(.ui-signin-trigger) {
+    display: none;
+  }
+  .header-actions > .btn {
+    display: none;
+  }
+  /* Long account names must not push the header past the viewport edge;
+     the trigger truncates with an ellipsis instead. */
+  .header-actions .ui-signin-trigger {
+    max-width: 84px;
+  }
+  .header-actions .ui-signin-trigger > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 380px) {
   .brand-name {
     font-size: 16px;
@@ -3916,12 +4303,6 @@ svg {
   .win-tab {
     padding: 0 8px;
   }
-  .overview-grid {
-    grid-template-columns: 1fr;
-  }
-  .overview-tile:last-child {
-    display: block;
-  }
   .fm-columns,
   .fm-row {
     grid-template-columns: 1fr 0.6fr;
@@ -3932,19 +4313,441 @@ svg {
   }
 }
 
+/* `.overview-grid` lives inside the hero `.app-window`, which is a container —
+   collapse tiles based on the window's width, not the viewport's. */
+@container (max-width: 640px) {
+  .overview-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .overview-tile:last-child {
+    display: none;
+  }
+}
+
+@container (max-width: 380px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+  .overview-tile:last-child {
+    display: block;
+  }
+}
+
+/* Fallback for engines without container-query support (Safari < 16): the
+   @container rules above are dropped, so reproduce them as viewport media. */
+@supports not (container-type: inline-size) {
+  @media (max-width: 640px) {
+    .overview-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .overview-tile:last-child {
+      display: none;
+    }
+  }
+  @media (max-width: 380px) {
+    .overview-grid {
+      grid-template-columns: 1fr;
+    }
+    .overview-tile:last-child {
+      display: block;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  /* Decorative animations defined in this file. The blanket
+     animation/transition neuter for every element lives in ui.css (loaded
+     on every route that pulls in styles.css); killing these by name keeps
+     this stylesheet self-sufficient without !important. */
+  .wire-flow,
+  .network-hub::before,
+  .node-orb,
+  .term-caret,
+  .trace-pulse,
+  .globe-glow,
+  .orbit-line--flow,
+  .globe-wire .wire-pulse,
+  .globe-tag {
+    animation: none;
   }
   [data-reveal] {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ==========================================================================
+   LIGHT THEME — hardcoded dark-palette fixes
+   The rules above were written against the dark palette. This block remaps
+   the few places that hardcode near-white ink, pastel syntax accents, or
+   opaque dark chrome so they stay legible when <html> has no `.dark`.
+   ========================================================================== */
+
+/* Chrome that was a hardcoded dark bar/scrim. */
+:root:not(.dark) .site-header {
+  background: rgba(246, 247, 245, 0.88);
+}
+:root:not(.dark) .nav-mobile {
+  background: rgba(246, 247, 245, 0.97);
+}
+:root:not(.dark) .globe-tag {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* White-on-dark hover washes become invisible on light surfaces. */
+:root:not(.dark) .btn--ghost:hover {
+  background: rgba(15, 25, 18, 0.05);
+  border-color: rgba(15, 25, 18, 0.28);
+}
+:root:not(.dark) .nav-fallback a:hover {
+  background: rgba(15, 25, 18, 0.05);
+}
+:root:not(.dark) .win-tab:hover {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .win-tab.is-active {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Near-white ink inside theme-surface windows (code, terminal, notebook). */
+:root:not(.dark) .notebook-cell code,
+:root:not(.dark) .code-card pre,
+:root:not(.dark) .rstudio-editor pre,
+:root:not(.dark) .vscode-editor pre,
+:root:not(.dark) .terminal-card-body--lab {
+  color: var(--text);
+}
+:root:not(.dark) .notebook-out {
+  color: var(--mint);
+}
+:root:not(.dark) .term-caret {
+  background: var(--text-dim);
+}
+:root:not(.dark) .term-dir {
+  color: #2f7d99;
+}
+:root:not(.dark) .term-success {
+  color: #2f7d4f;
+}
+:root:not(.dark) .mode-icon--basic {
+  color: #2f7d99;
+}
+
+/* File-type chips and result-source tags: pastel ink → light-theme ink. */
+:root:not(.dark) .file-ext--csv {
+  color: #2f7d4f;
+}
+:root:not(.dark) .file-ext--parquet {
+  color: #2f7d99;
+}
+:root:not(.dark) .file-ext--ipynb {
+  color: #8a5a1e;
+}
+:root:not(.dark) .file-ext--pdf {
+  color: #b4552d;
+}
+:root:not(.dark) .result-source--alt {
+  color: #2f7d99;
+}
+:root:not(.dark) .result-source--alt2 {
+  color: #8a5a1e;
+}
+
+/* Syntax tokens tuned for dark backgrounds. */
+:root:not(.dark) .tok-com {
+  color: #5d6960;
+}
+:root:not(.dark) .tok-key {
+  color: #8a5a1e;
+}
+:root:not(.dark) .tok-str {
+  color: #2f7d4f;
+}
+:root:not(.dark) .tok-fn {
+  color: #2f7d99;
+}
+:root:not(.dark) .tok-num {
+  color: #b4552d;
+}
+
+/* Misc decorative accents. */
+:root:not(.dark) .activity-dot--teal {
+  color: #2f7d99;
+  background: #2f7d99;
+}
+:root:not(.dark) .diff-del {
+  background: #c0392b;
+}
+:root:not(.dark) .tag-dots i:nth-child(2) {
+  background: #2f7d99;
+}
+:root:not(.dark) .anon-toggle[aria-pressed="true"] .anon-switch i {
+  background: #ffffff;
+}
+
+/* Faint white hairlines and hover washes are invisible on light surfaces —
+   route them through the theme border token or a dark-ink wash instead. */
+:root:not(.dark) .activity-row,
+:root:not(.dark) .mini-file,
+:root:not(.dark) .notebook-cell,
+:root:not(.dark) .mini-result,
+:root:not(.dark) .result-item,
+:root:not(.dark) .trace-row {
+  border-top-color: var(--border);
+}
+:root:not(.dark) .vscode-breadcrumb {
+  border-bottom-color: var(--border);
+}
+:root:not(.dark) .result-item:hover,
+:root:not(.dark) .vscode-tabs .vscode-tab.is-active {
+  background: rgba(15, 25, 18, 0.05);
+}
+:root:not(.dark) .result-item.is-open {
+  background: rgba(63, 100, 24, 0.07);
+}
+:root:not(.dark) .suggestion:hover,
+:root:not(.dark) .suggestion.is-active {
+  background: var(--accent-soft);
+}
+
+/* RStudio plot mock (homepage lab section): the inline SVG hardcodes a
+   near-white grid stroke and pale-green dots for the dark theme. */
+:root:not(.dark) .rstudio-plot svg path {
+  stroke: rgba(15, 25, 18, 0.14);
+}
+:root:not(.dark) .rstudio-plot svg circle {
+  fill: #3f6418;
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — white-alpha strokes, washes and pale-accent tints
+   that vanish or wash out on light surfaces.
+   ========================================================================== */
+
+/* Integration network wires, guide lines and the orbit hairline. */
+:root:not(.dark) .network-guide {
+  stroke: rgba(15, 25, 18, 0.16);
+}
+:root:not(.dark) .network-guide--soft {
+  stroke: rgba(15, 25, 18, 0.08);
+}
+:root:not(.dark) .wire {
+  stroke: rgba(15, 25, 18, 0.2);
+}
+:root:not(.dark) .orbit-line--soft {
+  stroke: var(--border-strong);
+}
+
+/* Node orbs: the glassy top-light, inner ring and accent halo were
+   white/pale-green and disappear on the light surface. */
+:root:not(.dark) .node-orb {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(15, 25, 18, 0.05), transparent 58%), var(--surface);
+  box-shadow:
+    0 12px 28px rgba(15, 25, 18, 0.16),
+    inset 0 1px 0 rgba(15, 25, 18, 0.05);
+}
+:root:not(.dark) .node-orb::after {
+  border-color: rgba(15, 25, 18, 0.1);
+  background: linear-gradient(to bottom, rgba(15, 25, 18, 0.05), transparent 55%);
+}
+:root:not(.dark) .node--accent .node-orb {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(63, 100, 24, 0.1), transparent 60%), var(--surface-2);
+}
+:root:not(.dark) .network-hub {
+  background:
+    radial-gradient(circle at 35% 25%, rgba(63, 100, 24, 0.12), transparent 62%), var(--surface-2);
+  box-shadow:
+    0 0 0 12px rgba(63, 100, 24, 0.04),
+    0 16px 34px rgba(15, 25, 18, 0.18);
+}
+
+/* Hero/integration ambient glows: pale-green washes are nearly invisible on
+   the light page background — use the light accent tint instead. */
+:root:not(.dark) .hero::before {
+  background: radial-gradient(ellipse at 50% 0%, rgba(63, 100, 24, 0.06), transparent 65%);
+}
+:root:not(.dark) .integrations::before {
+  background: radial-gradient(ellipse at 72% 50%, rgba(63, 100, 24, 0.06), transparent 58%);
+}
+:root:not(.dark) .globe-glow {
+  background: radial-gradient(
+    circle,
+    rgba(63, 100, 24, 0.14),
+    rgba(63, 100, 24, 0.05) 45%,
+    transparent 70%
+  );
+}
+:root:not(.dark) .globe-glow--wide {
+  background: radial-gradient(circle, rgba(47, 125, 79, 0.08), transparent 65%);
+}
+
+/* Subtle white-alpha fills inside theme surfaces → dark-ink washes. */
+:root:not(.dark) .window-bar,
+:root:not(.dark) .overview-tile,
+:root:not(.dark) .lab-tabs,
+:root:not(.dark) .jupyter-menu,
+:root:not(.dark) .preview-card,
+:root:not(.dark) .format-support,
+:root:not(.dark) .privacy-note,
+:root:not(.dark) .stats-grid,
+:root:not(.dark) .plan-card,
+:root:not(.dark) .referral-note {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .status-pill--muted,
+:root:not(.dark) .feature-card,
+:root:not(.dark) .suggestion {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .feature-card:hover,
+:root:not(.dark) .fm-btn,
+:root:not(.dark) .lab-tab.is-active {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .code-copy:hover,
+:root:not(.dark) .mode-explain-item:hover,
+:root:not(.dark) .chat-channel:hover,
+:root:not(.dark) .fm-row:hover {
+  background: rgba(15, 25, 18, 0.05);
+}
+
+/* Progress/skeleton tracks that were white-alpha — invisible on light. */
+:root:not(.dark) .usage-track,
+:root:not(.dark) .fm-storage-track {
+  background: rgba(15, 25, 18, 0.12);
+}
+:root:not(.dark) .preview-lines i {
+  background: rgba(15, 25, 18, 0.14);
+}
+:root:not(.dark) .file-ext--other {
+  background: rgba(15, 25, 18, 0.08);
+}
+
+/* Notebook map grid hairlines and dots. */
+:root:not(.dark) .notebook-map {
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 18px, rgba(15, 25, 18, 0.05) 19px),
+    repeating-linear-gradient(90deg, transparent, transparent 24px, rgba(15, 25, 18, 0.05) 25px);
+}
+:root:not(.dark) .notebook-map span {
+  background: rgba(47, 125, 79, 0.6);
+  box-shadow: 0 0 0 4px rgba(47, 125, 79, 0.1);
+}
+
+/* Chat/anon toggle chrome inside the collaboration mock. */
+:root:not(.dark) .anon-toggle {
+  background: var(--surface-2);
+}
+:root:not(.dark) .anon-toggle[aria-pressed="true"] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+:root:not(.dark) .anon-switch {
+  background: rgba(15, 25, 18, 0.18);
+}
+
+/* Pale-accent tints that read as washes on light surfaces. */
+:root:not(.dark) .notebook-out {
+  background: rgba(63, 100, 24, 0.05);
+}
+:root:not(.dark) .vscode-status {
+  background: rgba(63, 100, 24, 0.05);
+}
+:root:not(.dark) .mode-explain-item.is-active {
+  background: rgba(63, 100, 24, 0.06);
+}
+:root:not(.dark) .mode-icon--basic {
+  background: rgba(47, 125, 153, 0.08);
+  border-color: rgba(47, 125, 153, 0.25);
+}
+:root:not(.dark) .code-line--added {
+  background: rgba(63, 100, 24, 0.08);
+}
+:root:not(.dark) .results-reset:hover {
+  background: rgba(63, 100, 24, 0.14);
+}
+:root:not(.dark) .fm-storage {
+  background: rgba(63, 100, 24, 0.04);
+}
+:root:not(.dark) .route-strip {
+  background: rgba(47, 125, 79, 0.04);
+}
+:root:not(.dark) .preview-image {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(63, 100, 24, 0.07) 0 12px,
+    rgba(47, 125, 79, 0.08) 12px 24px
+  );
+}
+:root:not(.dark) .duo-badge--amber {
+  border-color: rgba(138, 90, 30, 0.35);
+  background: rgba(138, 90, 30, 0.08);
+}
+:root:not(.dark) .code-copy[data-status="error"] {
+  border-color: rgba(138, 90, 30, 0.4);
+}
+:root:not(.dark) .mini-avatar--anon {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* Server-highlighted code blocks: the --code-* palette was tuned for dark
+   surfaces only (near-white ink); remap to the light syntax palette. */
+:root:not(.dark) .code-block-card {
+  --code-text: var(--text);
+  --code-comment: var(--text-dim);
+  --code-string: #2f7d4f;
+  --code-keyword: #8a5a1e;
+  --code-number: #b4552d;
+  --code-function: #2f7d99;
+  --code-variable: #7a5fb0;
+  --code-type: #2f7d99;
+  --code-punctuation: var(--text-muted);
+  --code-invalid: #c0392b;
+}
+
+/* Pastel chip tints and diff highlights tuned for dark surfaces. */
+:root:not(.dark) .file-ext--csv {
+  background: rgba(47, 125, 79, 0.1);
+}
+:root:not(.dark) .file-ext--parquet {
+  background: rgba(47, 125, 153, 0.1);
+}
+:root:not(.dark) .file-ext--ipynb {
+  background: rgba(138, 90, 30, 0.1);
+}
+:root:not(.dark) .file-ext--pdf {
+  background: rgba(180, 85, 45, 0.1);
+}
+:root:not(.dark) .file-ext--folder {
+  background: rgba(63, 100, 24, 0.08);
+}
+:root:not(.dark) .result-source--alt {
+  background: rgba(47, 125, 153, 0.1);
+}
+:root:not(.dark) .result-source--alt2 {
+  background: rgba(138, 90, 30, 0.1);
+}
+:root:not(.dark) .code-line--removed {
+  background: rgba(192, 57, 43, 0.07);
+}
+
+/* The pulse ring keyframes hardcode the pale-green accent; light mode gets
+   its own accent-tinted ring. */
+:root:not(.dark) .trace-pulse {
+  animation-name: pulse-light;
+}
+@keyframes pulse-light {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(63, 100, 24, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(63, 100, 24, 0);
   }
 }

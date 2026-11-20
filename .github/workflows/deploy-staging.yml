@@ -2,10 +2,22 @@ name: Deploy staging
 
 # Staging is the rehearsal host from ADR 0001 §5.3. Every push to main is
 # deployed there; production promotion stays a separate, manual step (DEV-10).
+#
+# Pipeline stages (see docs/deploy/staging.md):
+#   preflight — repo-side validation; needs no cloud credentials.
+#   deploy    — SSH to the staging host and roll the compose stack.
+#   smoke     — public-endpoint health checks against STAGING_URL.
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: >-
+          Image tag to deploy instead of the pushed commit SHA. Use a previous
+          SHA's tag to roll back (see docs/deploy/staging.md).
+        required: false
+        type: string
 
 concurrency:
   group: deploy-staging
@@ -15,13 +27,40 @@ permissions:
   contents: read
 
 jobs:
+  preflight:
+    name: Preflight validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # Validates compose/host.env.example coverage, workflow secret wiring,
+      # and that the smoke-test paths resolve to real routes. Needs no secrets.
+      - name: Validate deploy configuration
+        run: node scripts/deploy/validate-config.mjs
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Lint deploy scripts
+        run: npx eslint scripts/deploy
+
   deploy:
     name: Deploy staging
+    needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
       name: staging
-      url: https://staging.spindle.app
+      url: ${{ vars.STAGING_URL || 'https://staging.spindle.app' }}
 
     env:
       STAGING_HOST: ${{ secrets.STAGING_HOST }}
@@ -30,6 +69,7 @@ jobs:
       STAGING_APP_IMAGE: ${{ vars.STAGING_APP_IMAGE }}
       STAGING_WORKER_IMAGE: ${{ vars.STAGING_WORKER_IMAGE }}
       STAGING_ROOT: /srv/spindle-staging
+      IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
 
     steps:
       - name: Checkout
@@ -44,6 +84,10 @@ jobs:
               exit 1
             fi
           done
+          if [[ ! "${IMAGE_TAG}" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "::error::image_tag may only contain [A-Za-z0-9._-]: ${IMAGE_TAG}"
+            exit 1
+          fi
 
       - name: Configure SSH
         env:
@@ -62,43 +106,60 @@ jobs:
           printf '%s\n' "${STAGING_KNOWN_HOSTS}" > ~/.ssh/known_hosts
           chmod 0600 ~/.ssh/known_hosts
 
-      - name: Upload stack definition
+      - name: Upload stack definition and deploy script
         run: |
           set -euo pipefail
           ssh "${STAGING_USER}@${STAGING_HOST}" \
-            "install -d -m 0755 '${STAGING_ROOT}' '${STAGING_ROOT}/cloudflared'"
+            "install -d -m 0755 '${STAGING_ROOT}' '${STAGING_ROOT}/cloudflared' '${STAGING_ROOT}/deploy'"
           scp infra/origin/compose.yaml \
             "${STAGING_USER}@${STAGING_HOST}:${STAGING_ROOT}/compose.yaml"
           scp infra/staging/cloudflared/config.yml \
             "${STAGING_USER}@${STAGING_HOST}:${STAGING_ROOT}/cloudflared/config.yml"
+          scp scripts/deploy/remote-deploy.sh \
+            "${STAGING_USER}@${STAGING_HOST}:${STAGING_ROOT}/deploy/remote-deploy.sh"
+          ssh "${STAGING_USER}@${STAGING_HOST}" \
+            "chmod 0755 '${STAGING_ROOT}/deploy/remote-deploy.sh'"
 
       - name: Deploy
         run: |
           set -euo pipefail
-          APP_IMAGE="${STAGING_APP_IMAGE}:${GITHUB_SHA}"
-          WORKER_IMAGE="${STAGING_WORKER_IMAGE}:${GITHUB_SHA}"
+          APP_IMAGE="${STAGING_APP_IMAGE}:${IMAGE_TAG}"
+          WORKER_IMAGE="${STAGING_WORKER_IMAGE}:${IMAGE_TAG}"
 
-          ssh "${STAGING_USER}@${STAGING_HOST}" bash -s -- "${APP_IMAGE}" "${WORKER_IMAGE}" <<'EOF'
-          set -euo pipefail
-          export SPINDLE_APP_IMAGE="$1"
-          export SPINDLE_WORKER_IMAGE="$2"
-          cd /srv/spindle-staging
+          ssh "${STAGING_USER}@${STAGING_HOST}" \
+            "bash '${STAGING_ROOT}/deploy/remote-deploy.sh' '${APP_IMAGE}' '${WORKER_IMAGE}' '${STAGING_ROOT}'"
 
-          if [[ ! -f host.env ]]; then
-            echo "Missing /srv/spindle-staging/host.env on the staging host." >&2
-            exit 1
-          fi
-
-          docker compose --env-file host.env pull app worker
-          docker compose --env-file host.env up -d --remove-orphans --wait
-          docker compose --env-file host.env ps
-          EOF
-
-      - name: Smoke test staging
+      - name: Record deployed image
         run: |
-          set -euo pipefail
-          curl --fail --silent --show-error \
-            --retry 10 --retry-delay 3 --retry-all-errors \
-            "${STAGING_URL}/" > /dev/null
-          echo "Staging responded at ${STAGING_URL}." >> "$GITHUB_STEP_SUMMARY"
-          echo "Deployed ${STAGING_APP_IMAGE}:${GITHUB_SHA}." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Staging deploy"
+            echo ""
+            echo "- App image: \`${STAGING_APP_IMAGE}:${IMAGE_TAG}\`"
+            echo "- Worker image: \`${STAGING_WORKER_IMAGE}:${IMAGE_TAG}\`"
+            echo "- URL: ${STAGING_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    name: Smoke test staging
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      STAGING_URL: ${{ vars.STAGING_URL || 'https://staging.spindle.app' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Dependency-free script; probes the app's own public endpoints with
+      # retries until the new containers report healthy.
+      - name: Run smoke tests
+        env:
+          SPINDLE_SMOKE_BASE_URL: ${{ env.STAGING_URL }}
+        run: node scripts/deploy/smoke-test.mjs

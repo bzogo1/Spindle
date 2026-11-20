@@ -16,24 +16,19 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { ApiError } from "./client"
 import {
+  createEmptyAgentRunLogEntry,
   createEmptyAppSettings,
   createEmptyProjectHome,
   createEmptyUsageSummary,
   createEmptyWorkspaceDashboard,
 } from "./empty"
 import { api } from "./instance"
-import {
-  createMockStateError,
-  getMockLatencyMs,
-  getMockState,
-  MOCK_STATE_EVENT,
-  type MockStateMode,
-} from "./mock-state"
-import { useMockQuery, type MockQueryResult } from "./use-mock-query"
+import type { MockStateMode } from "./mock-state"
+import { toApiError, useApiQuery, type QueryResult } from "./use-api-query"
 import type {
   AgentRun,
+  AgentRunLogEntry,
   AppSettingsData,
-  CallOptions,
   ChatMessage,
   LabSession,
   Project,
@@ -44,19 +39,6 @@ import type {
   WorkspaceDashboard,
 } from "./types"
 
-export type QueryStatus = "idle" | "loading" | "error" | "success"
-
-export interface QueryResult<T> {
-  data: T | undefined
-  error: ApiError | null
-  isLoading: boolean
-  isRetrying: boolean
-  isEmpty: boolean
-  mode: MockStateMode
-  status: QueryStatus
-  refetch: () => void
-}
-
 export interface MutationResult<TArgs extends unknown[], TResult> {
   mutate: (...args: TArgs) => Promise<TResult>
   data: TResult | undefined
@@ -65,148 +47,24 @@ export interface MutationResult<TArgs extends unknown[], TResult> {
   reset: () => void
 }
 
-function toApiError(error: unknown): ApiError {
-  if (error instanceof ApiError) return error
-  return new ApiError({
-    status: null,
-    code: "unknown_error",
-    message: error instanceof Error ? error.message : "An unexpected error occurred.",
-    cause: error,
-  })
-}
-
-interface QueryState<T> {
-  status: QueryStatus
+/** Aggregate query state without the internal `idle` status. */
+export interface ScreenQueryResult<T> {
+  status: "loading" | "error" | "success"
   mode: MockStateMode
   data: T | undefined
-  error: ApiError | null
-  isEmpty: boolean
+  error: ApiError | undefined
+  isRetrying: boolean
+  refetch: () => void
 }
 
-function useApiQuery<T>(
-  fetcher: (options: CallOptions) => Promise<T>,
-  deps: readonly unknown[],
-  enabled = true,
-  empty?: T,
-): QueryResult<T> {
-  const [attempt, setAttempt] = useState(0)
-  const [result, setResult] = useState<QueryState<T>>(() => ({
-    status: enabled ? "loading" : "idle",
-    mode: enabled ? getMockState() : "ready",
-    data: undefined,
-    error: null,
-    isEmpty: false,
-  }))
-  const [isRetrying, setIsRetrying] = useState(false)
-  // Keep the latest fetcher/empty value without retriggering the effect.
-  const fetcherRef = useRef(fetcher)
-  fetcherRef.current = fetcher
-  const emptyRef = useRef(empty)
-  emptyRef.current = empty
-
-  const refetch = useCallback(() => setAttempt((value) => value + 1), [])
-
-  useEffect(() => {
-    const bump = () => setAttempt((value) => value + 1)
-    window.addEventListener(MOCK_STATE_EVENT, bump)
-    window.addEventListener("popstate", bump)
-    return () => {
-      window.removeEventListener(MOCK_STATE_EVENT, bump)
-      window.removeEventListener("popstate", bump)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!enabled) {
-      setResult({ status: "idle", mode: "ready", data: undefined, error: null, isEmpty: false })
-      setIsRetrying(false)
-      return
-    }
-
-    const mode = getMockState()
-
-    if (mode === "loading") {
-      setResult((previous) => ({
-        ...previous,
-        status: "loading",
-        mode,
-        error: null,
-        isEmpty: false,
-      }))
-      setIsRetrying(false)
-      return
-    }
-
-    if (mode === "empty") {
-      setResult({ status: "success", mode, data: emptyRef.current, error: null, isEmpty: true })
-      setIsRetrying(false)
-      return
-    }
-
-    if (mode === "error") {
-      setResult((previous) => ({
-        status: "error",
-        mode,
-        data: previous.data,
-        error: createMockStateError(),
-        isEmpty: false,
-      }))
-      setIsRetrying(false)
-      return
-    }
-
-    const controller = new AbortController()
-    let active = true
-
-    setIsRetrying(attempt > 0)
-    setResult((previous) => ({
-      ...previous,
-      status: "loading",
-      mode,
-      error: null,
-      isEmpty: false,
-    }))
-
-    const timer = window.setTimeout(() => {
-      fetcherRef
-        .current({ signal: controller.signal })
-        .then((data) => {
-          if (active) {
-            setResult({ status: "success", mode, data, error: null, isEmpty: false })
-            setIsRetrying(false)
-          }
-        })
-        .catch((error: unknown) => {
-          if (active && !controller.signal.aborted) {
-            setResult((previous) => ({
-              status: "error",
-              mode,
-              data: previous.data,
-              error: toApiError(error),
-              isEmpty: false,
-            }))
-            setIsRetrying(false)
-          }
-        })
-    }, getMockLatencyMs())
-
-    return () => {
-      active = false
-      window.clearTimeout(timer)
-      controller.abort()
-    }
-    // deps are provided by the caller; fetcher/empty are read through refs.
-  }, [...deps, attempt, enabled])
-
+function toScreenQuery<T>(query: QueryResult<T>): ScreenQueryResult<T> {
   return {
-    data: result.data,
-    error: result.error,
-    isLoading: result.status === "loading",
-    isRetrying,
-    isEmpty: result.isEmpty,
-    mode: result.mode,
-    status: result.status,
-    refetch,
+    status: query.status === "idle" ? "loading" : query.status,
+    mode: query.mode,
+    data: query.data,
+    error: query.error ?? undefined,
+    isRetrying: query.isRetrying,
+    refetch: query.refetch,
   }
 }
 
@@ -230,7 +88,12 @@ export function useFiles(projectId?: string): QueryResult<ProjectFile[]> {
 }
 
 export function useLabSessions(projectId?: string): QueryResult<LabSession[]> {
-  return useApiQuery((options) => api.lab.listLabSessions(projectId, options), [projectId], true, [])
+  return useApiQuery(
+    (options) => api.lab.listLabSessions(projectId, options),
+    [projectId],
+    true,
+    [],
+  )
 }
 
 export function useChatMessages(conversationId: string): QueryResult<ChatMessage[]> {
@@ -243,7 +106,12 @@ export function useChatMessages(conversationId: string): QueryResult<ChatMessage
 }
 
 export function useAgentRuns(projectId?: string): QueryResult<AgentRun[]> {
-  return useApiQuery((options) => api.agent.listAgentRuns(projectId, options), [projectId], true, [])
+  return useApiQuery(
+    (options) => api.agent.listAgentRuns(projectId, options),
+    [projectId],
+    true,
+    [],
+  )
 }
 
 export function useSession(): QueryResult<User | null> {
@@ -251,34 +119,77 @@ export function useSession(): QueryResult<User | null> {
 }
 
 export function useUsageSummary(): QueryResult<UsageSummary> {
-  return useApiQuery((options) => api.usage.getUsageSummary(options), [], true, createEmptyUsageSummary())
+  return useApiQuery(
+    (options) => api.usage.getUsageSummary(options),
+    [],
+    true,
+    createEmptyUsageSummary(),
+  )
 }
 
-export function useAppSettings(): MockQueryResult<AppSettingsData> {
-  return useMockQuery("app-settings", async () => {
-    const [dashboard, usage] = await Promise.all([
-      api.dashboard.getWorkspaceDashboard(),
-      api.usage.getUsageSummary(),
-    ])
-    return {
-      user: dashboard.user,
-      workspace: dashboard.workspace,
-      usage,
-      generatedAt: dashboard.generatedAt,
-    }
-  }, { empty: createEmptyAppSettings() })
+export function useAppSettings(): ScreenQueryResult<AppSettingsData> {
+  return toScreenQuery(
+    useApiQuery(
+      async (options) => {
+        const [dashboard, usage] = await Promise.all([
+          api.dashboard.getWorkspaceDashboard(options),
+          api.usage.getUsageSummary(options),
+        ])
+        return {
+          user: dashboard.user,
+          workspace: dashboard.workspace,
+          usage,
+          generatedAt: dashboard.generatedAt,
+        }
+      },
+      [],
+      true,
+      createEmptyAppSettings(),
+    ),
+  )
 }
 
-export function useWorkspaceDashboard(): MockQueryResult<WorkspaceDashboard> {
-  return useMockQuery("workspace-dashboard", () => api.dashboard.getWorkspaceDashboard(), {
-    empty: createEmptyWorkspaceDashboard(),
-  })
+export function useWorkspaceMembers(): QueryResult<User[]> {
+  return useApiQuery((options) => api.dashboard.listWorkspaceMembers(options), [], true, [])
 }
 
-export function useProjectHome(projectId: string): MockQueryResult<ProjectHomeData> {
-  return useMockQuery(`project-home:${projectId}`, () => api.dashboard.getProjectHome(projectId), {
-    empty: createEmptyProjectHome(projectId),
-  })
+export function useWorkspaceDashboard(): ScreenQueryResult<WorkspaceDashboard> {
+  return toScreenQuery(
+    useApiQuery(
+      (options) => api.dashboard.getWorkspaceDashboard(options),
+      [],
+      true,
+      createEmptyWorkspaceDashboard(),
+    ),
+  )
+}
+
+export function useAgentRunLog(): ScreenQueryResult<AgentRunLogEntry[]> {
+  return toScreenQuery(
+    useApiQuery((options) => api.dashboard.listAgentRunLog(options), [], true, []),
+  )
+}
+
+export function useAgentRunLogEntry(id: string | undefined): ScreenQueryResult<AgentRunLogEntry> {
+  return toScreenQuery(
+    useApiQuery(
+      (options) => api.dashboard.getAgentRunLogEntry(id as string, options),
+      [id],
+      id !== undefined,
+      id === undefined ? undefined : createEmptyAgentRunLogEntry(id),
+    ),
+  )
+}
+
+export function useProjectHome(projectId: string): ScreenQueryResult<ProjectHomeData> {
+  return toScreenQuery(
+    useApiQuery(
+      (options) => api.dashboard.getProjectHome(projectId, options),
+      [projectId],
+      true,
+      createEmptyProjectHome(projectId),
+    ),
+  )
 }
 
 export function useMutation<TArgs extends unknown[], TResult>(

@@ -10,6 +10,8 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: dark;
+
   --ui-radius: 0.5rem;
 
   --ui-background: #0d0f0e;
@@ -46,6 +48,51 @@
   --ui-sidebar-accent-foreground: #e9ede8;
   --ui-sidebar-border: rgba(255, 255, 255, 0.1);
   --ui-sidebar-ring: #c8f083;
+}
+
+/* Light theme. The theme hooks (app-theme.ts / use-app-theme.ts) and the
+   pre-paint scripts only ever toggle `.dark` on <html>, so light is the
+   absence of that class — an explicit `.light` class lands here too since it
+   never coexists with `.dark`. OS-level `prefers-color-scheme` is resolved by
+   those scripts before paint, not by CSS. Palette mirrors the light tokens in
+   app.css (--app-*). */
+:root:not(.dark) {
+  color-scheme: light;
+
+  --ui-background: #f6f7f5;
+  --ui-foreground: #1a201b;
+  --ui-card: #ffffff;
+  --ui-card-foreground: #1a201b;
+  --ui-popover: #ffffff;
+  --ui-popover-foreground: #1a201b;
+  --ui-primary: #3f6418;
+  --ui-primary-foreground: #ffffff;
+  --ui-secondary: #eef0ec;
+  --ui-secondary-foreground: #1a201b;
+  --ui-muted: #eef0ec;
+  --ui-muted-foreground: #5d6960;
+  --ui-accent: #eef0ec;
+  --ui-accent-foreground: #1a201b;
+  --ui-destructive: #c0392b;
+  --ui-destructive-foreground: #ffffff;
+  --ui-border: rgba(15, 25, 18, 0.12);
+  --ui-input: rgba(15, 25, 18, 0.18);
+  --ui-ring: #3f6418;
+
+  --ui-chart-1: #3f6418;
+  --ui-chart-2: #2f7d4f;
+  --ui-chart-3: #8a5a1e;
+  --ui-chart-4: #2f7d99;
+  --ui-chart-5: #7a5fb0;
+
+  --ui-sidebar: #fbfcfa;
+  --ui-sidebar-foreground: #1a201b;
+  --ui-sidebar-primary: #3f6418;
+  --ui-sidebar-primary-foreground: #ffffff;
+  --ui-sidebar-accent: #eef0ec;
+  --ui-sidebar-accent-foreground: #1a201b;
+  --ui-sidebar-border: rgba(15, 25, 18, 0.12);
+  --ui-sidebar-ring: #3f6418;
 }
 
 @theme inline {

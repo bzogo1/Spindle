@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-11-20T04:28:36.793Z",
+  "scanDir": "scripts/feature-flags/demo-fixture/src",
+  "registryDir": "scripts/feature-flags/demo-fixture/src/lib/feature-flags",
+  "registryFileCount": 1,
+  "filesScanned": 3,
+  "flags": [
+    {
+      "key": "new-dashboard",
+      "state": "on",
+      "percent": 100,
+      "status": null,
+      "targets": null,
+      "definedIn": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts",
+      "category": "fully-rolled-out",
+      "usageCount": 1,
+      "prodUsageCount": 1,
+      "testUsageCount": 0,
+      "usages": [
+        {
+          "file": "scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx",
+          "line": 4,
+          "kind": "call",
+          "test": false
+        }
+      ]
+    },
+    {
+      "key": "beta-export",
+      "state": "off",
+      "percent": null,
+      "status": "off",
+      "targets": null,
+      "definedIn": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts",
+      "category": "fully-off",
+      "usageCount": 1,
+      "prodUsageCount": 1,
+      "testUsageCount": 0,
+      "usages": [
+        {
+          "file": "scripts/feature-flags/demo-fixture/src/components/export-panel.tsx",
+          "line": 4,
+          "kind": "call",
+          "test": false
+        }
+      ]
+    },
+    {
+      "key": "dark-mode",
+      "state": "partial",
+      "percent": 40,
+      "status": null,
+      "targets": null,
+      "definedIn": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts",
+      "category": "partial",
+      "usageCount": 1,
+      "prodUsageCount": 1,
+      "testUsageCount": 0,
+      "usages": [
+        {
+          "file": "scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx",
+          "line": 5,
+          "kind": "call",
+          "test": false
+        }
+      ]
+    },
+    {
+      "key": "legacy-widget",
+      "state": "on",
+      "percent": 100,
+      "status": null,
+      "targets": null,
+      "definedIn": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts",
+      "category": "unused",
+      "usageCount": 0,
+      "prodUsageCount": 0,
+      "testUsageCount": 0,
+      "usages": []
+    },
+    {
+      "key": "kill-switch-logs",
+      "state": "off",
+      "percent": null,
+      "status": null,
+      "targets": null,
+      "definedIn": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts",
+      "category": "test-only",
+      "usageCount": 1,
+      "prodUsageCount": 0,
+      "testUsageCount": 1,
+      "usages": [
+        {
+          "file": "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.test.ts",
+          "line": 6,
+          "kind": "call",
+          "test": true
+        }
+      ]
+    }
+  ],
+  "staleReferences": [
+    {
+      "key": "not-a-real-flag",
+      "file": "scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx",
+      "line": 6,
+      "kind": "call"
+    }
+  ],
+  "flagModuleImports": {
+    "scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx": ["@/lib/feature-flags"],
+    "scripts/feature-flags/demo-fixture/src/components/export-panel.tsx": ["@/lib/feature-flags"],
+    "scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.test.ts": [
+      "@/lib/feature-flags"
+    ]
+  },
+  "summary": {
+    "total": 5,
+    "fullyRolledOut": 1,
+    "fullyOff": 1,
+    "unused": 1,
+    "testOnly": 1,
+    "partial": 1,
+    "unresolved": 0,
+    "staleReferences": 1
+  }
+}

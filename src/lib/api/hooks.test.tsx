@@ -9,6 +9,7 @@ import {
   useLabSessions,
   useMutation,
   useProject,
+  useProjectHome,
   useProjects,
   useSession,
   useUsageSummary,
@@ -122,5 +123,24 @@ describe("api hooks (mock adapter)", () => {
     })
     await waitFor(() => expect(result.current.isLoading).toBe(false))
     expect(result.current.data?.length).toBe(before)
+  })
+
+  it("forwards the abort signal for aggregate queries and aborts on unmount", async () => {
+    let signal: AbortSignal | undefined
+    const spy = vi
+      .spyOn(api.dashboard, "getProjectHome")
+      .mockImplementation((_projectId, options) => {
+        signal = options?.signal
+        return new Promise<never>(() => undefined)
+      })
+
+    const { unmount } = renderHook(() => useProjectHome("prj_01"))
+    await waitFor(() => expect(spy).toHaveBeenCalled())
+
+    expect(signal).toBeInstanceOf(AbortSignal)
+    expect(signal?.aborted).toBe(false)
+
+    unmount()
+    expect(signal?.aborted).toBe(true)
   })
 })

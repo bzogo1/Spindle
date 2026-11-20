@@ -8,6 +8,7 @@ import {
   configuredEnvKeys,
   EnvValidationError,
   getServerEnv,
+  parseBuildEnv,
   parseServerEnv,
   validateEnv,
 } from "./env.server"
@@ -18,6 +19,8 @@ describe("environment schema", () => {
       NODE_ENV: "development",
       NEXT_PUBLIC_SITE_URL: undefined,
       NEXT_PUBLIC_SENTRY_DSN: undefined,
+      NEXT_PUBLIC_SENTRY_RELEASE: undefined,
+      NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: undefined,
       NEXT_PUBLIC_API_MODE: "mock",
       NEXT_PUBLIC_API_URL: undefined,
       NEXT_PUBLIC_MOCK_AUTH: undefined,
@@ -32,6 +35,8 @@ describe("environment schema", () => {
       DIRECT_URL: undefined,
       SENTRY_DSN: undefined,
       SENTRY_RELEASE: undefined,
+      VERCEL_GIT_COMMIT_SHA: undefined,
+      GITHUB_SHA: undefined,
       B2_KEY_ID: undefined,
       B2_APPLICATION_KEY: undefined,
       B2_KEY_ID_PREVIOUS: undefined,
@@ -48,7 +53,16 @@ describe("environment schema", () => {
       EDGE_HMAC_SECRET_PREVIOUS: undefined,
       WORKER_SECRET: undefined,
       WORKER_SECRET_PREVIOUS: undefined,
+      OAUTH_PROVIDERS_JSON: undefined,
+      CSP_ENFORCE: undefined,
     })
+  })
+
+  it("accepts CSP_ENFORCE only as the literal opt-in flag", () => {
+    expect(parseServerEnv({ NODE_ENV: "test", CSP_ENFORCE: "1" }).CSP_ENFORCE).toBe("1")
+    expect(parseServerEnv({ NODE_ENV: "test", CSP_ENFORCE: "" }).CSP_ENFORCE).toBeUndefined()
+    expect(parseServerEnv({ NODE_ENV: "test" }).CSP_ENFORCE).toBeUndefined()
+    expect(() => parseServerEnv({ NODE_ENV: "test", CSP_ENFORCE: "true" })).toThrow(/CSP_ENFORCE/)
   })
 
   it("rejects a non-Postgres database URL", () => {
@@ -106,6 +120,14 @@ describe("environment schema", () => {
     expect(parsed).not.toHaveProperty("SENTRY_DSN")
     expect(parsed).not.toHaveProperty("SENTRY_AUTH_TOKEN")
     expect(clientEnv).not.toHaveProperty("SENTRY_DSN")
+  })
+
+  it("passes the ANALYZE flag through the build env unchanged", () => {
+    expect(parseBuildEnv({ ANALYZE: "true" }).ANALYZE).toBe("true")
+    // Whitespace is preserved so `ANALYZE === "true"` semantics are unchanged.
+    expect(parseBuildEnv({ ANALYZE: " true " }).ANALYZE).toBe(" true ")
+    expect(parseBuildEnv({ ANALYZE: "" }).ANALYZE).toBeUndefined()
+    expect(parseBuildEnv({}).ANALYZE).toBeUndefined()
   })
 
   it("refuses to read server configuration in the browser", () => {

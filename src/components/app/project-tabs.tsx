@@ -10,6 +10,8 @@ const TABS = [
   { label: "Chat", suffix: "/chat" },
   { label: "Agent", suffix: "/agent" },
   { label: "Activity", suffix: "/activity" },
+  { label: "Analytics", suffix: "/analytics" },
+  { label: "Settings", suffix: "/settings" },
 ] as const
 
 export function ProjectTabs({ projectId }: { projectId: string }) {

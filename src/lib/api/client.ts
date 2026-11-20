@@ -3,9 +3,16 @@
  *
  * `request<T>` normalizes every failure mode — non-2xx responses, malformed
  * JSON, network failures, timeouts and aborts — into `ApiError` so callers
- * never branch on fetch internals. There are no retries; errors surface to
- * the caller as-is.
+ * never branch on fetch internals.
+ *
+ * The only retry is a single 401 recovery: on an unauthorized response the
+ * client asks the auth layer to refresh the session (`ensureFreshSession`,
+ * which is single-flight across concurrent callers) and retries the original
+ * request exactly once. A second 401 — or any non-401 failure — propagates
+ * to the caller as-is.
  */
+
+import { ensureFreshSession } from "@/lib/auth/auth-client"
 
 export class ApiError extends Error {
   /** HTTP status, or null for network/abort/timeout failures. */
@@ -92,15 +99,8 @@ function joinUrl(baseUrl: string, path: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`
 }
 
-/**
- * Performs a JSON request against `baseUrl + path`.
- *
- * - Sends `credentials: "include"` so cookie sessions work same-origin and
- *   cross-origin with proper CORS.
- * - Aborts after `DEFAULT_TIMEOUT_MS` unless the caller's signal fires first.
- * - Returns the parsed JSON body on 2xx; resolves `undefined` for 204.
- */
-export async function request<T>(
+/** Single attempt: fetch + normalize. Never retries — see `request` below. */
+async function performRequest<T>(
   baseUrl: string,
   path: string,
   options: RequestOptions = {},
@@ -181,4 +181,38 @@ export async function request<T>(
   }
 
   return parsed as T
+}
+
+/**
+ * Performs a JSON request against `baseUrl + path`.
+ *
+ * - Sends `credentials: "include"` so cookie sessions work same-origin and
+ *   cross-origin with proper CORS.
+ * - Aborts after `DEFAULT_TIMEOUT_MS` unless the caller's signal fires first.
+ * - Returns the parsed JSON body on 2xx; resolves `undefined` for 204.
+ * - On a 401, refreshes the session once via `ensureFreshSession` (single-
+ *   flight, so concurrent 401s share one refresh) and retries the request a
+ *   single time. The retry goes through `performRequest` directly, so it can
+ *   never itself trigger another refresh cycle.
+ */
+export async function request<T>(
+  baseUrl: string,
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  try {
+    return await performRequest<T>(baseUrl, path, options)
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) {
+      throw error
+    }
+    try {
+      await ensureFreshSession()
+    } catch {
+      // The refresh itself failed — surface the original 401 rather than
+      // masking it with the refresh error.
+      throw error
+    }
+    return performRequest<T>(baseUrl, path, options)
+  }
 }

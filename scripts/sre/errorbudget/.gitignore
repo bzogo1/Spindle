@@ -1,0 +1,2 @@
+# Generated budget state + append-only log — never commit run output.
+.state/

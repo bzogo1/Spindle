@@ -1,0 +1,74 @@
+name: Visual regression
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  visual:
+    name: Screenshot comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://spindle.app
+      # Keep runs deterministic: no retries locally, one retry in CI.
+      CI: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Committed baselines are linux-only (filenames end in -linux.png).
+      # playwright.visual.config.ts boots its own dev server on :3100 with
+      # NEXT_PUBLIC_MOCK_AUTH=1; PLAYWRIGHT_BASE_URL is intentionally unset.
+      - name: Run visual tests
+        run: npm run test:visual
+
+      # Component-level regression: build Storybook once, serve the static
+      # output via scripts/serve-static.mjs (port 3200), and diff every story
+      # in dark + light themes. Baselines live in
+      # e2e/storybook-visual/baselines/ — regenerate on Linux with
+      # `npm run test:storybook:visual:update`. See docs/visual-testing.md.
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Run Storybook visual tests
+        timeout-minutes: 15
+        run: npm run test:storybook:visual
+
+      - name: Upload diff artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-test-results
+          path: |
+            test-results/
+            playwright-report-visual/
+            playwright-report-storybook/
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # Baseline review workflow: if the diffs are intentional, regenerate
+      # baselines locally on Linux (`npm run test:visual:update`), commit the
+      # PNGs under e2e/visual/baselines/, and push. See docs/visual-testing.md.

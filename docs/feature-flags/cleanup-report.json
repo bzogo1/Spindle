@@ -1,0 +1,201 @@
+{
+  "generatedAt": "2026-11-20T04:28:36.650Z",
+  "scanDir": "src",
+  "registryDir": "src/lib/feature-flags",
+  "registryFileCount": 15,
+  "filesScanned": 822,
+  "flags": [
+    {
+      "key": "new-dashboard",
+      "state": "partial",
+      "percent": null,
+      "status": null,
+      "targets": {
+        "fallback": false,
+        "development": true,
+        "test": true
+      },
+      "definedIn": "src/lib/feature-flags/flags.ts",
+      "category": "partial",
+      "usageCount": 16,
+      "prodUsageCount": 2,
+      "testUsageCount": 14,
+      "usages": [
+        {
+          "file": "src/components/feature-flags/use-feature-flag.test.tsx",
+          "line": 7,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/components/feature-flags/use-feature-flag.test.tsx",
+          "line": 15,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/components/feature-flags/use-feature-flag.test.tsx",
+          "line": 22,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/components/feature-flags/use-feature-flag.test.tsx",
+          "line": 31,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 39,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 40,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 109,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 120,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 123,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/analytics/analytics.test.ts",
+          "line": 125,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.test.ts",
+          "line": 145,
+          "kind": "call",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.test.ts",
+          "line": 146,
+          "kind": "call",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.test.ts",
+          "line": 166,
+          "kind": "call",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.test.ts",
+          "line": 28,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.ts",
+          "line": 16,
+          "kind": "reference",
+          "test": false
+        },
+        {
+          "file": "src/lib/feature-flags/types.ts",
+          "line": 22,
+          "kind": "reference",
+          "test": false
+        }
+      ]
+    },
+    {
+      "key": "realtime-collab",
+      "state": "partial",
+      "percent": null,
+      "status": null,
+      "targets": {
+        "fallback": false,
+        "development": true,
+        "test": true,
+        "production": {
+          "percentage": 25
+        }
+      },
+      "definedIn": "src/lib/feature-flags/flags.ts",
+      "category": "unused",
+      "usageCount": 0,
+      "prodUsageCount": 0,
+      "testUsageCount": 0,
+      "usages": []
+    },
+    {
+      "key": "docs-search-v2",
+      "state": "off",
+      "percent": null,
+      "status": null,
+      "targets": {
+        "fallback": false
+      },
+      "definedIn": "src/lib/feature-flags/flags.ts",
+      "category": "test-only",
+      "usageCount": 2,
+      "prodUsageCount": 0,
+      "testUsageCount": 2,
+      "usages": [
+        {
+          "file": "src/components/feature-flags/use-feature-flag.test.tsx",
+          "line": 7,
+          "kind": "reference",
+          "test": true
+        },
+        {
+          "file": "src/lib/feature-flags/evaluate.test.ts",
+          "line": 29,
+          "kind": "reference",
+          "test": true
+        }
+      ]
+    }
+  ],
+  "staleReferences": [],
+  "flagModuleImports": {
+    "src/components/feature-flags/use-feature-flag.test.tsx": [
+      "./feature-flags-provider",
+      "./use-feature-flag"
+    ],
+    "src/components/feature-flags/use-feature-flag.ts": [
+      "@/lib/feature-flags/evaluate",
+      "@/lib/feature-flags/flags",
+      "./feature-flags-provider"
+    ],
+    "src/lib/feature-flags/evaluate.test.ts": ["./flags"],
+    "src/lib/feature-flags/evaluate.ts": ["./flags"],
+    "src/lib/feature-flags/index.ts": [
+      "./flags",
+      "@/components/feature-flags/use-feature-flag",
+      "@/components/feature-flags/feature-flags-provider"
+    ],
+    "src/lib/feature-flags/server.ts": ["./flags"]
+  },
+  "summary": {
+    "total": 3,
+    "fullyRolledOut": 0,
+    "fullyOff": 0,
+    "unused": 1,
+    "testOnly": 1,
+    "partial": 1,
+    "unresolved": 0,
+    "staleReferences": 0
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "description": "Runbook registry: owner, severity, review cadence, and related alerts/scripts for every docs/runbooks/*.md and docs/resilience/*.md file. Consumed by scripts/runbooks/{index,lint,staleness,execute}.mjs.",
+  "runbooks": {
+    "docs/runbooks/database-backup.md": {
+      "owner": "data-platform",
+      "severity": "high",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": ["backup-staleness"],
+      "relatedScripts": [
+        "scripts/db/backup/backup.ts",
+        "scripts/db/backup/lib.ts",
+        "scripts/db/monitoring/check.mjs"
+      ],
+      "tags": ["database", "backup", "retention"]
+    },
+    "docs/runbooks/database-migrations.md": {
+      "owner": "data-platform",
+      "severity": "high",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": [],
+      "relatedScripts": ["scripts/db/migrate.mjs", "prisma7.config.ts", "prisma/schema.prisma"],
+      "tags": ["database", "migrations", "deploy"]
+    },
+    "docs/runbooks/database-monitoring.md": {
+      "owner": "observability",
+      "severity": "medium",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": [
+        "backup-staleness",
+        "replication-lag",
+        "connection-saturation",
+        "disk-usage",
+        "slow-queries"
+      ],
+      "relatedScripts": [
+        "scripts/db/monitoring/check.mjs",
+        "scripts/db/monitoring/rules.json",
+        "scripts/deploy/notify.ts"
+      ],
+      "tags": ["database", "monitoring", "alerting"]
+    },
+    "docs/runbooks/database-restore-test.md": {
+      "owner": "data-platform",
+      "severity": "high",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": ["backup-staleness"],
+      "relatedScripts": ["scripts/db/restore-test/restore-test.mjs", "scripts/db/backup/backup.ts"],
+      "tags": ["database", "restore", "drill"]
+    },
+    "docs/runbooks/hosting.md": {
+      "owner": "platform",
+      "severity": "medium",
+      "lastReviewed": "2026-11-19",
+      "relatedAlerts": ["tunnel-unhealthy", "origin-5xx"],
+      "relatedScripts": [
+        "scripts/hosting/verify-topology.sh",
+        "scripts/hosting/ws-probe.mjs",
+        "infra/origin/compose.yaml"
+      ],
+      "tags": ["hosting", "origin", "topology", "capacity"]
+    },
+    "docs/runbooks/migration-rollback.md": {
+      "owner": "data-platform",
+      "severity": "high",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": [],
+      "relatedScripts": ["scripts/db/migrate.mjs", "prisma/schema.prisma"],
+      "tags": ["database", "migrations", "rollback"]
+    },
+    "docs/runbooks/rollback.md": {
+      "owner": "platform",
+      "severity": "high",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": ["deploy-health-check"],
+      "relatedScripts": [
+        "scripts/deploy/rollback.mjs",
+        "scripts/deploy/smoke-test.mjs",
+        "scripts/hosting/verify-topology.sh"
+      ],
+      "tags": ["deploy", "rollback", "origin"]
+    },
+    "docs/runbooks/secrets-rotation.md": {
+      "owner": "security",
+      "severity": "critical",
+      "lastReviewed": "2026-11-19",
+      "relatedAlerts": ["secrets-audit-drift"],
+      "relatedScripts": [
+        "scripts/secrets/rotation/rotate.mjs",
+        "scripts/secrets/rotation/rotation-plan.json",
+        "scripts/secrets/check.ts",
+        "scripts/secrets/verify-rotation.ts",
+        "scripts/secrets/rotation-drill.ts",
+        "scripts/secrets/audit-access.ts"
+      ],
+      "tags": ["secrets", "rotation", "security"]
+    },
+    "docs/runbooks/automation.md": {
+      "owner": "platform",
+      "severity": "low",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": [],
+      "relatedScripts": [
+        "scripts/runbooks/index.mjs",
+        "scripts/runbooks/lint.mjs",
+        "scripts/runbooks/staleness.mjs",
+        "scripts/runbooks/execute.mjs",
+        "scripts/runbooks/lib.mjs",
+        "scripts/runbooks/registry.json"
+      ],
+      "tags": ["meta", "automation", "tooling"]
+    },
+    "docs/resilience/chaos-engineering.md": {
+      "owner": "platform",
+      "severity": "medium",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": [],
+      "relatedScripts": [
+        "scripts/chaos/run.mjs",
+        "scripts/chaos/fault-proxy.mjs",
+        "scripts/chaos/experiments.json",
+        "scripts/db/monitoring/check.mjs"
+      ],
+      "tags": ["chaos", "resilience", "fault-injection", "non-production"]
+    },
+    "docs/resilience/disaster-recovery.md": {
+      "owner": "platform",
+      "severity": "critical",
+      "lastReviewed": "2026-11-20",
+      "relatedAlerts": ["backup-staleness"],
+      "relatedScripts": [
+        "scripts/drills/drill.mjs",
+        "scripts/drills/scenarios.json",
+        "scripts/db/backup/backup.ts",
+        "scripts/db/restore-test/restore-test.mjs",
+        "scripts/deploy/rollback.mjs",
+        "scripts/db/monitoring/check.mjs"
+      ],
+      "tags": ["dr", "resilience", "rpo", "rto", "drills"]
+    }
+  }
+}

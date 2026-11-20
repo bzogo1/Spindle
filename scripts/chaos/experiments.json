@@ -1,0 +1,158 @@
+{
+  "$comment": "Chaos experiment catalog for scripts/chaos/run.mjs. Dependency-free JSON. Each experiment declares a steady-state hypothesis (baseline phase), a chaos hypothesis (fault active), and a recovery hypothesis (fault removed). `kind` selects the fault adapter: 'proxy' routes probes through scripts/chaos/fault-proxy.mjs; 'compose-stop'/'compose-pause' run docker compose against the service in compose.yaml; 'host-load' spawns CPU workers; 'admin' POSTs a fault payload to <target>/__admin/fault (used by --demo and by apps that expose a test-only fault hook). Durations are multiplied by --scale. See docs/resilience/chaos-engineering.md.",
+  "version": 1,
+  "defaults": {
+    "probeIntervalMs": 500,
+    "probeTimeoutMs": 8000,
+    "probePath": "/api/health",
+    "baselineSamples": 4,
+    "chaosDurationMs": 10000,
+    "recoverySamples": 6,
+    "recoveryTimeoutMs": 20000
+  },
+  "experiments": [
+    {
+      "id": "latency-injection-api",
+      "title": "Latency injection on API routes",
+      "description": "Add 800ms (+0-200ms jitter) of latency to every /api/ request through the fault proxy. Simulates a slow upstream or saturated dependency. Blast radius measured on /api/health probes through the same proxy.",
+      "severity": "warning",
+      "kind": "proxy",
+      "tags": ["local", "demo"],
+      "requires": "node scripts/chaos/fault-proxy.mjs (in-process via run.mjs)",
+      "fault": {
+        "latencyMs": 800,
+        "jitterMs": 200,
+        "match": "/api/"
+      },
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99, "avgLatencyMaxMs": 1000 },
+        "chaos": { "successRateMin": 0.85, "avgLatencyMinMs": 600 },
+        "recovery": { "successRateMin": 0.95, "avgLatencyMaxMs": 800 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#latency-injection-api"
+    },
+    {
+      "id": "error-rate-injection-api",
+      "title": "Error-rate injection on API routes",
+      "description": "Answer 50% of /api/ requests with HTTP 503 (+150ms latency) through the fault proxy. Simulates a flapping dependency. Health probes that match /api/ should show ~50% failure during chaos and full recovery after.",
+      "severity": "critical",
+      "kind": "proxy",
+      "tags": ["local", "demo"],
+      "requires": "node scripts/chaos/fault-proxy.mjs (in-process via run.mjs)",
+      "fault": {
+        "latencyMs": 150,
+        "errorRate": 0.5,
+        "status": 503,
+        "match": "/api/"
+      },
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": { "successRateMax": 0.7, "observedStatusesInclude": [503] },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#error-rate-injection-api"
+    },
+    {
+      "id": "dependency-timeout-api",
+      "title": "Upstream timeout simulation (API dependency hangs)",
+      "description": "Proxy answers 504 for any /api/ request whose upstream takes longer than 400ms. Simulates a dependency that accepts connections but never responds. Clients should see bounded failures, not hangs.",
+      "severity": "warning",
+      "kind": "proxy",
+      "tags": ["local", "demo"],
+      "requires": "node scripts/chaos/fault-proxy.mjs (in-process via run.mjs)",
+      "fault": {
+        "timeoutMs": 400,
+        "status": 504,
+        "match": "/api/"
+      },
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": { "successRateMax": 0.7 },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#dependency-timeout-api"
+    },
+    {
+      "id": "db-down",
+      "title": "Database dependency failure (postgres stopped)",
+      "description": "Runs `docker compose stop postgres` against the local compose stack, then `docker compose start postgres` for recovery. Probes /api/health — the app should degrade to a controlled 503 (not hang or 500-loop). Requires docker compose; skipped automatically when unavailable. In --demo mode the dependency failure is simulated via the dummy server's admin fault hook.",
+      "severity": "critical",
+      "kind": "compose-stop",
+      "service": "postgres",
+      "tags": ["local", "demo", "compose"],
+      "requires": "docker compose (compose.yaml service 'postgres') or a target exposing POST /__admin/fault",
+      "fault": {},
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": { "successRateMax": 0.9 },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#db-down"
+    },
+    {
+      "id": "db-pause",
+      "title": "Database freeze (postgres paused)",
+      "description": "Runs `docker compose pause postgres` — the container keeps running but is frozen (SIGSTOP), simulating a hung database rather than a dead one. Queries should hit statement timeouts instead of hanging forever. Recovery: `docker compose unpause postgres`.",
+      "severity": "warning",
+      "kind": "compose-pause",
+      "service": "postgres",
+      "tags": ["local", "compose"],
+      "requires": "docker compose (compose.yaml service 'postgres')",
+      "fault": {},
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": {
+          "note": "observational: verify queries time out rather than hang; successRate expected to drop but must not pin the event loop"
+        },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#db-pause"
+    },
+    {
+      "id": "cpu-saturation",
+      "title": "Host CPU saturation (resource exhaustion)",
+      "description": "Spawns worker processes that spin on CPU for the chaos duration. Simulates resource exhaustion on the machine running the app. Observe latency degradation and that the app remains responsive (health endpoint may slow but should not crash the process).",
+      "severity": "warning",
+      "kind": "host-load",
+      "workers": 4,
+      "tags": ["local", "demo"],
+      "requires": "node (spawns `node -e` workers); in --demo mode simulated via admin fault latency",
+      "fault": {},
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": {
+          "note": "observational: expect latency inflation; successRate should stay high on an idle dev box"
+        },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#cpu-saturation"
+    },
+    {
+      "id": "full-api-outage",
+      "title": "Full API outage (all API routes 503)",
+      "description": "Fault proxy returns 503 for 100% of /api/ traffic. Worst-case blast radius: verifies that non-API surfaces (static pages, health at edge) and client retry/timeout behaviour degrade gracefully.",
+      "severity": "critical",
+      "kind": "proxy",
+      "tags": ["local", "demo"],
+      "requires": "node scripts/chaos/fault-proxy.mjs (in-process via run.mjs)",
+      "fault": {
+        "errorRate": 1.0,
+        "status": 503,
+        "match": "/api/"
+      },
+      "probe": { "path": "/api/health", "method": "GET" },
+      "hypothesis": {
+        "baseline": { "successRateMin": 0.99 },
+        "chaos": { "successRateMax": 0.1 },
+        "recovery": { "successRateMin": 0.95 }
+      },
+      "runbook": "docs/resilience/chaos-engineering.md#full-api-outage"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+# Prometheus recording/alerting rules backing the dashboards in
+# infra/dashboards/grafana/. Metric names here match the PromQL used by those
+# dashboards; adapt label sets to your scrape config.
+#
+# Deploy-metrics rules assume an exporter that turns
+# `scripts/deploy/metrics/collect.mjs` output into counters/gauges labelled
+# {environment, version}. SLO rules assume per-request counters
+# spindle_sli_total{service,result} where result="good"|"bad"; latency rules
+# assume a histogram spindle_sli_latency_ms_bucket. FinOps rules assume the
+# report job pushes the spindle_finops_* gauges documented in
+# infra/dashboards/grafana/finops.json.
+
+groups:
+  - name: spindle-slo-recording
+    interval: 1m
+    rules:
+      # Availability SLI ratio per service over a rolling window.
+      - record: spindle_sli_availability_ratio
+        expr: |
+          sum by (service) (rate(spindle_sli_total{result="good"}[5m]))
+          /
+          clamp_min(sum by (service) (rate(spindle_sli_total[5m])), 1e-9)
+
+      # SLO targets mirror docs/slo/service-level-objectives.md — keep in sync.
+      - record: spindle_slo_target
+        expr: |
+          label_replace(vector(0.999), "service", "web-app", "", "")
+          or label_replace(vector(0.9995), "service", "api", "", "")
+          or label_replace(vector(0.999), "service", "postgres", "", "")
+
+      # Error-budget remaining % = 100 * (1 - observed_bad_rate / budgeted_bad_rate)
+      # evaluated per window label when a recording rule emits per-window ratios.
+      - record: spindle_error_budget_remaining_pct
+        expr: |
+          clamp(100 * (1 - (1 - spindle_sli_availability_ratio)
+            / (1 - spindle_slo_target)), 0, 100)
+
+      # Burn rate: fraction of window budget consumed per fraction elapsed.
+      # Requires per-window consumed ratio + window progress; stub until the
+      # SLO pipeline emits spindle_error_budget_consumed_ratio{window}.
+      - record: spindle_error_budget_burn_rate
+        expr: |
+          spindle_error_budget_consumed_ratio
+          / clamp_min(spindle_error_budget_window_elapsed_fraction, 1e-9)
+
+      # Policy label mirroring scripts/sre/errorbudget/budget.mjs POLICY bands.
+      - record: spindle_slo_policy
+        expr: |
+          label_replace(
+            (spindle_error_budget_remaining_pct < bool 10) * 1
+            or (spindle_error_budget_remaining_pct < bool 25) * 2
+            or (spindle_error_budget_remaining_pct < bool 50) * 3
+            or (spindle_error_budget_remaining_pct < bool 100) * 4
+            or vector(5),
+            "policy",
+            "deploy-halt|incident-review|approval-required|watch|normal",
+            "", "")
+
+  - name: spindle-slo-alerts
+    rules:
+      - alert: SpindleErrorBudgetLow
+        expr: spindle_error_budget_remaining_pct < 25
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.service }} error budget below 25%"
+          description: "Error budget remaining is {{ $value }}%. Policy: freeze feature work, require eng-lead sign-off (docs/sre/error-budget.md)."
+      - alert: SpindleErrorBudgetExhausted
+        expr: spindle_error_budget_remaining_pct < 10
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }} error budget nearly exhausted"
+          description: "Error budget remaining is {{ $value }}%. Halt deploys except approved hotfixes; page L3."
+      - alert: SpindleSLIBelowTarget
+        expr: spindle_sli_availability_ratio < spindle_slo_target
+        for: 30m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.service }} SLI below SLO target"
+          description: "Availability SLI {{ $value }} is under target."

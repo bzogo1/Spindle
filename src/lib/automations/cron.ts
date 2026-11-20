@@ -142,22 +142,38 @@ export function humanizeCron(expr: string): CronHuman {
   }
 
   const timePhrase = humanTime(min, hour)
-  let dayPhrase = "every day"
 
-  if (dow !== "*") {
+  // POSIX cron semantics: when BOTH day-of-month and day-of-week are
+  // restricted, a day matches when EITHER field matches (OR). When only one
+  // is restricted it must match (AND with the "*" field, which always does).
+  const domRestricted = dom !== "*"
+  const dowRestricted = dow !== "*"
+
+  let domPhrase: string | null = null
+  if (domRestricted) domPhrase = "on day " + dom + " of the month"
+
+  let dowPhrase: string | null = null
+  if (dowRestricted) {
     const range = dow.match(/^(\d)-(\d)$/)
     if (range)
-      dayPhrase = WEEKDAY_NAMES[Number(range[1])] + " through " + WEEKDAY_NAMES[Number(range[2])]
+      dowPhrase = WEEKDAY_NAMES[Number(range[1])] + " through " + WEEKDAY_NAMES[Number(range[2])]
     else if (/^\d+(,\d+)*$/.test(dow)) {
-      dayPhrase =
+      dowPhrase =
         "every " +
         dow
           .split(",")
           .map((d) => WEEKDAY_NAMES[Number(d)])
           .join(" and ")
-    } else dayPhrase = "on weekday " + dow
-  } else if (dom !== "*") {
-    dayPhrase = "on day " + dom + " of the month"
+    } else dowPhrase = "on weekday " + dow
+  }
+
+  let dayPhrase = "every day"
+  if (domPhrase && dowPhrase) {
+    dayPhrase = domPhrase + " or " + dowPhrase
+  } else if (dowPhrase) {
+    dayPhrase = dowPhrase
+  } else if (domPhrase) {
+    dayPhrase = domPhrase
   }
 
   let monthPhrase = ""
@@ -167,4 +183,71 @@ export function humanizeCron(expr: string): CronHuman {
   }
 
   return { valid: true, text: timePhrase + ", " + dayPhrase + monthPhrase, parts }
+}
+
+/**
+ * Expand a cron field into the set of matching values, or null when the field
+ * matches everything ("*"). Only call with expressions that already passed
+ * `humanizeCron` validation.
+ */
+function fieldValues(value: string, min: number, max: number): Set<number> | null {
+  if (value === "*") return null
+  return new Set(expandField(value, min, max) ?? [])
+}
+
+function fieldMatches(value: string, min: number, max: number, test: number) {
+  const values = fieldValues(value, min, max)
+  if (values === null) return true
+  return values.has(test)
+}
+
+const MAX_SCAN_MINUTES = 200_000 // ~139 days — bounds pathological schedules
+
+/**
+ * Compute the next `count` run times for a five-field cron expression.
+ * Returns fewer than `count` dates when the schedule is too sparse to find
+ * that many occurrences within the scan window.
+ */
+export function nextCronRuns(expr: string, count = 3, from = new Date()): Date[] {
+  const human = humanizeCron(expr)
+  if (!human.valid || !human.parts) return []
+
+  const [min, hour, dom, month, dow] = human.parts
+  const runs: Date[] = []
+
+  const cursor = new Date(from)
+  cursor.setSeconds(0, 0)
+  cursor.setMinutes(cursor.getMinutes() + 1)
+
+  for (let i = 0; i < MAX_SCAN_MINUTES && runs.length < count; i++) {
+    const minute = cursor.getMinutes()
+    const hourOfDay = cursor.getHours()
+    const dayOfMonth = cursor.getDate()
+    const monthOfYear = cursor.getMonth() + 1
+    const dayOfWeek = cursor.getDay()
+
+    const dowMatch =
+      fieldMatches(dow, 0, 7, dayOfWeek) || (dayOfWeek === 0 && fieldMatches(dow, 0, 7, 7))
+
+    // POSIX cron: dom and dow are OR-ed when both are restricted; when one is
+    // "*" its fieldMatches is trivially true so AND degenerates correctly.
+    const domRestricted = dom !== "*"
+    const dowRestricted = dow !== "*"
+    const dayMatch =
+      domRestricted && dowRestricted
+        ? fieldMatches(dom, 1, 31, dayOfMonth) || dowMatch
+        : fieldMatches(dom, 1, 31, dayOfMonth) && dowMatch
+
+    if (
+      fieldMatches(min, 0, 59, minute) &&
+      fieldMatches(hour, 0, 23, hourOfDay) &&
+      fieldMatches(month, 1, 12, monthOfYear) &&
+      dayMatch
+    ) {
+      runs.push(new Date(cursor))
+    }
+    cursor.setMinutes(cursor.getMinutes() + 1)
+  }
+
+  return runs
 }

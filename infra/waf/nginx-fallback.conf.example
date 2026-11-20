@@ -1,0 +1,55 @@
+# nginx fallback WAF snippets — example only.
+#
+# The production origin (infra/origin/) publishes no public port: cloudflared
+# is the only ingress and Cloudflare edge rules (infra/waf/*.json) are the
+# primary WAF. These snippets are for two fallback scenarios documented in
+# docs/security/waf-rules.md:
+#   1. A reverse proxy is ever placed in front of the app on the origin.
+#   2. The tunnel is temporarily unavailable and traffic must be served
+#      direct-to-origin behind a firewall allowlist.
+#
+# They are NOT loaded by anything in this repository.
+
+# --- rate limiting ---------------------------------------------------------
+# zone shared by all server blocks that terminate traffic.
+#
+#   http {
+#     limit_req_zone $binary_remote_addr zone=spindle_auth:10m rate=20r/m;
+#     limit_req_zone $binary_remote_addr zone=spindle_forms:10m rate=10r/m;
+#     limit_req_zone $binary_remote_addr zone=spindle_all:10m  rate=300r/m;
+#   }
+
+# --- scanner / traversal blocks --------------------------------------------
+# location blocks, or a single map-based deny if preferred:
+#
+#   location ~* /(\.env|\.git|\.svn|\.hg|wp-admin|wp-login\.php|xmlrpc\.php|
+#                phpmyadmin|pma/|cgi-bin|vendor/|node_modules/) {
+#       return 444;
+#   }
+#   location ~* \.php$ { return 444; }
+#
+#   if ($request_uri ~* "\.\.|%2e%2e|%252e") { return 444; }
+#
+# NOTE: `if` inside location is "evil" in nginx; prefer the regex location
+# above or rewrite ... last for production use. Kept simple here because this
+# file is documentation, not a deployed config.
+
+# --- per-endpoint rate limits ----------------------------------------------
+#   location /api/auth/ {
+#       limit_req zone=spindle_auth burst=10 nodelay;
+#       proxy_pass http://app:8080;
+#   }
+#   location ~ ^/api/(contact|newsletter|feedback|nps) {
+#       limit_req zone=spindle_forms burst=5 nodelay;
+#       proxy_pass http://app:8080;
+#   }
+#   location / {
+#       limit_req zone=spindle_all burst=60;
+#       proxy_pass http://app:8080;
+#   }
+
+# --- Cloudflare real-IP restoration ----------------------------------------
+# Only valid when traffic actually transits Cloudflare. Fetch the current
+# ranges from https://www.cloudflare.com/ips-v4 and /ips-v6 — do not hardcode
+# stale lists. When the origin is reached ONLY through cloudflared (current
+# design), the connector IP is a private Docker address and this is moot.

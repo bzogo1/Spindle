@@ -1,0 +1,271 @@
+{
+  "generatedAt": "2026-11-20T04:24:06.659Z",
+  "mode": "demo",
+  "releases": [
+    {
+      "version": "1.12.0",
+      "release": "v1.12.0",
+      "timestamp": "2026-11-16T14:00:06.658Z",
+      "buildSeconds": 233,
+      "deploySeconds": 82,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.11.0",
+      "release": "v1.11.0",
+      "timestamp": "2026-11-14T04:24:06.658Z",
+      "buildSeconds": 190,
+      "deploySeconds": 71,
+      "status": "rolled-back",
+      "rollback": true
+    },
+    {
+      "version": "1.10.0",
+      "release": "v1.10.0",
+      "timestamp": "2026-11-11T18:48:06.658Z",
+      "buildSeconds": 345,
+      "deploySeconds": 57,
+      "status": "failure",
+      "rollback": false
+    },
+    {
+      "version": "1.9.0",
+      "release": "v1.9.0",
+      "timestamp": "2026-11-09T09:12:06.658Z",
+      "buildSeconds": 301,
+      "deploySeconds": 41,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.8.0",
+      "release": "v1.8.0",
+      "timestamp": "2026-11-06T23:36:06.658Z",
+      "buildSeconds": 262,
+      "deploySeconds": 83,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.7.0",
+      "release": "v1.7.0",
+      "timestamp": "2026-11-04T14:00:06.658Z",
+      "buildSeconds": 226,
+      "deploySeconds": 70,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.6.0",
+      "release": "v1.6.0",
+      "timestamp": "2026-11-02T04:24:06.658Z",
+      "buildSeconds": 195,
+      "deploySeconds": 52,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.5.0",
+      "release": "v1.5.0",
+      "timestamp": "2026-10-30T18:48:06.658Z",
+      "buildSeconds": 342,
+      "deploySeconds": 45,
+      "status": "rolled-back",
+      "rollback": true
+    },
+    {
+      "version": "1.4.0",
+      "release": "v1.4.0",
+      "timestamp": "2026-10-28T09:12:06.658Z",
+      "buildSeconds": 309,
+      "deploySeconds": 81,
+      "status": "failure",
+      "rollback": false
+    },
+    {
+      "version": "1.3.0",
+      "release": "v1.3.0",
+      "timestamp": "2026-10-25T23:36:06.658Z",
+      "buildSeconds": 269,
+      "deploySeconds": 68,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.2.0",
+      "release": "v1.2.0",
+      "timestamp": "2026-10-23T14:00:06.658Z",
+      "buildSeconds": 229,
+      "deploySeconds": 56,
+      "status": "success",
+      "rollback": false
+    },
+    {
+      "version": "1.1.0",
+      "release": "v1.1.0",
+      "timestamp": "2026-10-21T04:24:06.658Z",
+      "buildSeconds": 184,
+      "deploySeconds": 44,
+      "status": "success",
+      "rollback": false
+    }
+  ],
+  "healthSamples": [
+    {
+      "timestamp": "2026-11-06T04:24:06.659Z",
+      "latencyMs": 94,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-06T16:24:06.659Z",
+      "latencyMs": 97,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-07T04:24:06.659Z",
+      "latencyMs": 106,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-07T16:24:06.659Z",
+      "latencyMs": 117,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-08T04:24:06.659Z",
+      "latencyMs": 132,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-08T16:24:06.659Z",
+      "latencyMs": 121,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-09T04:24:06.659Z",
+      "latencyMs": 127,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-09T16:24:06.659Z",
+      "latencyMs": 112,
+      "ok": false
+    },
+    {
+      "timestamp": "2026-11-10T04:24:06.659Z",
+      "latencyMs": 123,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-10T16:24:06.659Z",
+      "latencyMs": 91,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-11T04:24:06.659Z",
+      "latencyMs": 87,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-11T16:24:06.659Z",
+      "latencyMs": 75,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-12T04:24:06.659Z",
+      "latencyMs": 76,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-12T16:24:06.659Z",
+      "latencyMs": 67,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-13T04:24:06.659Z",
+      "latencyMs": 77,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-13T16:24:06.659Z",
+      "latencyMs": 77,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-14T04:24:06.659Z",
+      "latencyMs": 72,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-14T16:24:06.659Z",
+      "latencyMs": 89,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-15T04:24:06.659Z",
+      "latencyMs": 90,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-15T16:24:06.659Z",
+      "latencyMs": 89,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-16T04:24:06.659Z",
+      "latencyMs": 101,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-16T16:24:06.659Z",
+      "latencyMs": 120,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-17T04:24:06.659Z",
+      "latencyMs": 117,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-17T16:24:06.659Z",
+      "latencyMs": 136,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-18T04:24:06.659Z",
+      "latencyMs": 118,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-18T16:24:06.659Z",
+      "latencyMs": 125,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-19T04:24:06.659Z",
+      "latencyMs": 111,
+      "ok": true
+    },
+    {
+      "timestamp": "2026-11-19T16:24:06.659Z",
+      "latencyMs": 109,
+      "ok": true
+    }
+  ],
+  "summary": {
+    "releaseCount": 12,
+    "rollbackCount": 2,
+    "failureCount": 2,
+    "avgBuildSeconds": 257.0833333333333,
+    "avgDeploySeconds": 62.5,
+    "currentVersion": "1.12.0",
+    "health": {
+      "samples": 28,
+      "avgLatencyMs": 102,
+      "maxLatencyMs": 136,
+      "failures": 1
+    }
+  },
+  "collector": "demo"
+}

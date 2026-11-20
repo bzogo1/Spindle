@@ -187,6 +187,15 @@ SPINDLE_SESSION_TOKEN="<signed-session-token>" \
 sudo -E ./scripts/hosting/verify-topology.sh
 ```
 
+On 2026-11-19 the tunnel leg was exercised without a Cloudflare account by running
+`cloudflared tunnel --url http://ws-probe-proxy:7000` as a container on `spindle` (a quick
+tunnel) on a dev workstation with rootless Docker 29.10.0: the health check returned HTTP 200,
+the WebSocket upgrade and echo passed through `wss://*.trycloudflare.com`, an idle socket was cut
+at ~125 s (code 1006), and a socket pinged every 30 s stayed open past 150 s. `wscat` produced no
+output in that environment; `scripts/hosting/ws-probe.mjs` was the authoritative client. This is
+evidence for the edge path only — repeat on the origin with the named tunnel and the real lab
+proxy before calling DEV-11 done.
+
 Record the measured values on DEV-11. If the proxy cannot hold a WebSocket open for an hour through
 Cloudflare, revisit option B in ADR 0001 before building DEV-102 on top of this.
 

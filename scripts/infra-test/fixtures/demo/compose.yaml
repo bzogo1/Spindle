@@ -1,0 +1,29 @@
+# Intentionally imperfect fixture for `validate.mjs --demo`.
+# It mirrors the shape of infra/origin/compose.yaml closely enough to exercise
+# the compose checks: one required variable is deliberately undocumented in
+# host.env.example so the env-docs cross-check reports a FAIL.
+
+name: fixture
+
+services:
+  app:
+    image: example/app:1.0.0
+    environment:
+      REQUIRED_BUT_UNDOCUMENTED: ${REQUIRED_BUT_UNDOCUMENTED:?must be set somewhere}
+      OPTIONAL_TUNED: ${OPTIONAL_TUNED:-default-value}
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - internal
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    networks:
+      - internal
+      - undeclared-net
+
+networks:
+  internal:
+    external: true

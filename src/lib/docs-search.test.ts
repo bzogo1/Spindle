@@ -26,7 +26,7 @@ describe("docs search index", () => {
   })
 
   it("lists one summary per guide", () => {
-    expect(DOC_GUIDE_SUMMARIES).toHaveLength(9)
+    expect(DOC_GUIDE_SUMMARIES).toHaveLength(10)
     expect(DOC_GUIDE_SUMMARIES[0]).toMatchObject({ id: "quickstart" })
   })
 })

@@ -14,7 +14,6 @@ import {
   NotebookPen,
   Plus,
   Search,
-  ShieldCheck,
   Zap,
 } from "lucide-react"
 
@@ -47,7 +46,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 export function HeroBadge() {
   return (
     <Badge asChild variant="outline" className="ui-hero-badge">
-      <a href="/#get-started">
+      <a href="/sign-up">
         <i className="ui-live-dot" aria-hidden="true" />
         Early access is open
         <ArrowRight className="size-3" />
@@ -74,7 +73,7 @@ export function HeroActions() {
   return (
     <div className="ui-hero-actions">
       <Button asChild size="lg" className="ui-btn-primary">
-        <a href="/#get-started">
+        <a href="/sign-up">
           Start free — 5 GB included <ArrowRight className="size-4" />
         </a>
       </Button>
@@ -121,7 +120,7 @@ const features = [
   {
     icon: MessagesSquare,
     title: "Team chat",
-    body: "Channels live inside each project, with an optional Anonymous mode routed through Nym.",
+    body: "Channels live inside each project, with an optional Anonymous mode (Nym Mixnet routing planned).",
     href: "/#chat",
   },
 ]
@@ -157,7 +156,7 @@ export function LocalSearchNote() {
       <LockKeyhole className="size-3.5" />
       <AlertDescription className="ui-alert-desc">
         Searches don&apos;t leave Spindle to build an advertising profile.
-        <Button variant="link" className="p-0 h-auto text-base underline">
+        <Button variant="link" className="h-auto p-0 text-base underline">
           Learn More
         </Button>
       </AlertDescription>
@@ -203,7 +202,10 @@ export function AnonymousSwitch() {
   }
 
   return (
-    <div className="anon-toggle ui-anon-toggle" aria-pressed={checked}>
+    // No aria-pressed here: the wrapper is a plain div (aria-pressed is only
+    // valid on certain roles), and the Switch inside already exposes the
+    // toggle state to assistive tech.
+    <div className="anon-toggle ui-anon-toggle">
       <Switch
         checked={checked}
         onCheckedChange={toggle}
@@ -212,7 +214,7 @@ export function AnonymousSwitch() {
       />
       <div>
         <strong>Anonymous mode</strong>
-        <small>{checked ? "On · Nym Mixnet" : "Off · normal project chat"}</small>
+        <small>{checked ? "On · pseudonymous display" : "Off · normal project chat"}</small>
       </div>
     </div>
   )
@@ -239,7 +241,7 @@ const plans = [
       "20 agent requests per day",
     ],
     cta: "Create your workspace",
-    href: "/#get-started",
+    href: "/sign-up",
     featured: true,
   },
   {
@@ -264,7 +266,7 @@ export function PlanCards() {
       {plans.map((plan) => (
         <Card
           key={plan.name}
-          className={`ui-plan-card${plan.featured ? " ui-plan-card--featured" : ""}`}
+          className={`ui-plan-card${plan.featured ? "ui-plan-card--featured" : ""}`}
         >
           <CardHeader className="ui-plan-header">
             <CardTitle className="ui-plan-name">{plan.name}</CardTitle>

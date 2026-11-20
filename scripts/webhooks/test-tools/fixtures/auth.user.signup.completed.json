@@ -1,0 +1,15 @@
+{
+  "id": "evt_test_mwol38fg4psfg91",
+  "type": "auth.user.signup.completed",
+  "apiVersion": "2025-01",
+  "created": "2026-11-20T06:14:15.916Z",
+  "livemode": false,
+  "idempotencyKey": "idem_mwol38fg_peygb4tc",
+  "data": {
+    "object": {
+      "userId": "usr_123",
+      "email": "katherine@example.com",
+      "workspaceName": "Analytical Engines"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "api-read",
+  "description": "Unauthenticated-safe GET endpoints. /api/profile and /api/auth/audit return 401/403 without a session — those statuses are expected, not errors.",
+  "target": "https://staging.spindle.app",
+  "concurrency": 15,
+  "rps": 0,
+  "duration": "60s",
+  "rampSec": 10,
+  "warmupMs": 3000,
+  "timeoutMs": 10000,
+  "headers": {
+    "user-agent": "spindle-load/1.0 (+https://spindle.app)"
+  },
+  "endpoints": [
+    { "path": "/api/auth/session", "expect": [200] },
+    { "path": "/api/profile", "expect": [200, 401] },
+    { "path": "/api/auth/audit", "expect": [200, 401, 403] }
+  ]
+}

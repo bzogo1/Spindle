@@ -1,0 +1,67 @@
+# Reference only — NOT DEPLOYED.
+#
+# Linkerd Helm values sketch for a hypothetical future Kubernetes deployment
+# of the Spindle stack (see docs/architecture/service-mesh-evaluation.md).
+# The current production topology is a single-host Docker Compose stack
+# (infra/origin/compose.yaml) with no Kubernetes; applying these values does
+# nothing here and would be meaningless without a cluster.
+#
+# Intended shape if we ever move to K8s:
+#   - identity: automatic mTLS between app, worker, postgres, valkey
+#   - policy: default-deny between namespaces, explicit allows only
+#   - jaeger/trace contexts propagated from the Next.js app
+#
+# Example usage on a FUTURE cluster (do not run today):
+#   helm install linkerd-crds linkerd/linkerd-crds -n linkerd
+#   helm install linkerd-control-plane linkerd/linkerd-control-plane \
+#     --namespace linkerd --values infra/mesh/linkerd-values.yaml
+
+identity:
+  issuer:
+    scheme: kubernetes.io/scheme
+    # External issuer via cert-manager is preferred over the default;
+    # keeps rotation independent of the cluster CA.
+    externalIssuer:
+      useDefaultCAs: false
+      crtExpiry:
+        # 48h rotation window; secrets stored in the cluster secret store.
+        renewalMargin: 20m
+
+proxy:
+  resources:
+    cpu:
+      request: 50m
+      limit: 500m
+    memory:
+      request: 50Mi
+      limit: 256Mi
+
+  # Session containers are resource-tight (2 GB each, cap 12); if they ever
+  # run under the mesh, inject sidecars only where needed via the
+  # `linkerd.io/inject: enabled` namespace/label opt-in, never cluster-wide.
+  enableEndpointSlices: true
+
+policyController:
+  enabled: true
+
+# Deny-by-default is expressed as a Server resource, not here — sketch:
+#   apiVersion: policy.linkerd.io/v1beta1
+#   kind: Server
+#   metadata: {name: default, namespace: spindle}
+#   spec:
+#     podSelector: {}
+#     port: all
+#     proxyProtocol: opaque
+#   ---
+#   apiVersion: policy.linkerd.io/v1alpha1
+#   kind: ServerAuthorization
+#   metadata: {name: app-to-worker, namespace: spindle}
+#   spec:
+#     server:
+#       name: default
+#     client:
+#       meshTLS:
+#         serviceAccounts: ["app"]
+#     requiredAuthenticationRefs:
+#       - name: app-identity
+#         kind: MeshTLSAuthentication

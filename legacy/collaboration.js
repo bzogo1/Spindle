@@ -24,8 +24,8 @@
   function setAnonymous(enabled) {
     if (!anonToggle) return;
     anonToggle.setAttribute('aria-pressed', String(enabled));
-    if (anonStatus) anonStatus.textContent = enabled ? 'On · Nym Mixnet' : 'Off · normal project chat';
-    if (chatRoute) chatRoute.textContent = enabled ? 'Anonymous · Nym Mixnet' : currentRouteMeta();
+    if (anonStatus) anonStatus.textContent = enabled ? 'On · pseudonymous display' : 'Off · normal project chat';
+    if (chatRoute) chatRoute.textContent = enabled ? 'Anonymous · pseudonymous' : currentRouteMeta();
     if (anonMessage) anonMessage.hidden = !enabled;
     if (routeStrip) routeStrip.classList.toggle('is-live', enabled);
     if (anonCard) anonCard.classList.toggle('is-on', enabled);
@@ -176,7 +176,7 @@
       const time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
       const typing = doc.getElementById('chatTyping');
       const message = anonymous
-        ? makeMessage('', 'chat-avatar--anon', 'Anonymous', time + ' · via Nym', text)
+        ? makeMessage('', 'chat-avatar--anon', 'Anonymous', time, text)
         : makeMessage('YO', 'chat-avatar--lime', 'You', time, text);
 
       if (typing) messages.insertBefore(message, typing);

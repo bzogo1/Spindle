@@ -1,8 +1,16 @@
-import { redirect } from "next/navigation"
+import type { Metadata } from "next"
 
-import { APP_DASHBOARD_PATH } from "@/lib/auth/mock-session"
+import { ProjectsScreen } from "@/components/app/projects-screen"
+import { PageTransition } from "@/components/view-transitions/view-transitions"
 
-/** Project browsing lives on the dashboard. */
+export const metadata: Metadata = { title: "Projects" }
+
 export default function ProjectsPage() {
-  redirect(APP_DASHBOARD_PATH)
+  // PageTransition maps `nav-forward`/`nav-back` Link transition types to
+  // directional slides; it must live in page.tsx, not the layout.
+  return (
+    <PageTransition>
+      <ProjectsScreen />
+    </PageTransition>
+  )
 }

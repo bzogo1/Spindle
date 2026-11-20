@@ -1,0 +1,114 @@
+name: Image scan
+
+# Container image scanning, in two layers (see docs/security/container-scanning.md):
+#
+#   pinning-audit — offline check of every image reference the repo and deploy
+#     configs point at. Verifies digest pinning (@sha256:), flags ':latest',
+#     untagged refs, and mutable tags; resolves ${VAR} compose indirections
+#     through env files. Needs no credentials and no scanner binary.
+#
+#   vulnerability-scan — pulls the actual app/worker images and scans them
+#     with trivy for HIGH/CRITICAL CVEs. This job is skipped unless the
+#     repository variables IMAGE_SCAN_APP_IMAGE and IMAGE_SCAN_WORKER_IMAGE
+#     are set to full image refs (repo:tag@sha256:digest preferred) AND the
+#     images are readable by GITHUB_TOKEN (packages: read on ghcr.io).
+#
+# Honest limitation: app/worker images are built and pushed by an external
+# pipeline (DEV-9/DEV-10), not by this repo's CI. Until registry credentials
+# are configured here, content-level vulnerability scanning lives in that
+# pipeline; this workflow still enforces the pinning posture on every PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly sweep: new CVEs are disclosed continuously, and the pinning audit
+    # should also catch compose/env drift introduced outside PRs.
+    - cron: "41 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  pinning-audit:
+    name: Image reference pinning audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Dependency-free script; scans compose files for `image:` lines,
+      # resolves ${SPINDLE_*_IMAGE} indirections through host.env.example, and
+      # reports mutable tags / missing digests. Warnings do not fail the run;
+      # errors (':latest', untagged) and --strict findings do.
+      - name: Audit image references
+        run: >
+          node scripts/security/image-scan/check.mjs --ci
+          --env-file infra/origin/host.env.example
+
+      # Demo mode exercises the checker against fixtures; it always exits 1,
+      # so run it only to prove the tool works, tolerating the expected exit.
+      - name: Smoke-test checker fixtures
+        run: |
+          set +e
+          node scripts/security/image-scan/check.mjs --demo --json > /tmp/image-scan-demo.json
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "::error::--demo should exit 1 (fixtures contain errors), got $code"
+            exit 1
+          fi
+          node -e "const r=require('/tmp/image-scan-demo.json'); if(!r.summary||r.summary.errors<1){process.exit(1)}"
+
+  vulnerability-scan:
+    name: Vulnerability scan (app/worker images)
+    needs: pinning-audit
+    # Skipped entirely until registry access is configured. Set both vars to
+    # full refs, preferably 'repo:tag@sha256:<digest>' so the scan is
+    # reproducible. See docs/security/container-scanning.md.
+    if: ${{ vars.IMAGE_SCAN_APP_IMAGE != '' && vars.IMAGE_SCAN_WORKER_IMAGE != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+
+    env:
+      IMAGE_SCAN_APP_IMAGE: ${{ vars.IMAGE_SCAN_APP_IMAGE }}
+      IMAGE_SCAN_WORKER_IMAGE: ${{ vars.IMAGE_SCAN_WORKER_IMAGE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan images with trivy
+        env:
+          # GITHUB_TOKEN can read ghcr.io packages owned by this repo/org when
+          # "packages: read" is granted and the package visibility allows it.
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_NON_SSL: ""
+        run: |
+          set -euo pipefail
+          for ref in "${IMAGE_SCAN_APP_IMAGE}" "${IMAGE_SCAN_WORKER_IMAGE}"; do
+            echo "=== trivy image ${ref} ==="
+            # --exit-code 0 keeps the audit informational; promote to a gate
+            # once a severity threshold is agreed (see the doc).
+            docker run --rm \
+              -e TRIVY_USERNAME -e TRIVY_PASSWORD \
+              "aquasec/trivy:0.76.2" image \
+              --quiet --severity HIGH,CRITICAL --exit-code 0 \
+              "${ref}"
+          done

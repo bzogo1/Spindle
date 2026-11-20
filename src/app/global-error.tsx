@@ -17,7 +17,7 @@ export default function GlobalError({
       <head>
         <title>Something went wrong — Spindle</title>
       </head>
-      <body style={{ margin: 0, background: "#0d0f0e" }}>
+      <body style={{ margin: 0, background: "#f6f7f5" }}>
         <BrandedErrorScreen
           eyebrow="Unexpected error"
           title="Something went wrong."

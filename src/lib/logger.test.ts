@@ -93,7 +93,7 @@ describe("logger", () => {
 
   it("redacts credentials embedded in error messages", () => {
     const { logger, lines } = captureLogs()
-    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signaturepart"
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signaturepart" // leak-detection:ignore — unsigned fixture JWT
 
     logger.error(new Error(`request failed for Bearer bearer-secret and ${jwt}`), "handled")
 

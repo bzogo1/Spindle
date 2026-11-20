@@ -1,0 +1,22 @@
+{
+  "name": "homepage",
+  "description": "Public marketing/site pages — the anonymous browsing path.",
+  "target": "https://staging.spindle.app",
+  "concurrency": 20,
+  "rps": 0,
+  "duration": "60s",
+  "rampSec": 10,
+  "warmupMs": 3000,
+  "timeoutMs": 15000,
+  "headers": {
+    "user-agent": "spindle-load/1.0 (+https://spindle.app)"
+  },
+  "endpoints": [
+    { "path": "/", "weight": 5 },
+    { "path": "/pricing", "weight": 2 },
+    { "path": "/docs", "weight": 2 },
+    { "path": "/changelog", "weight": 1 },
+    { "path": "/about", "weight": 1 },
+    { "path": "/security", "weight": 1 }
+  ]
+}

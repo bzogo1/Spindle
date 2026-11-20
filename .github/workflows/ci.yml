@@ -78,8 +78,41 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run unit tests
-        run: npm test
+      # vitest.config.mts enforces calibrated per-glob coverage thresholds
+      # (src/lib ~85/84/70/83, src/{components,hooks} ~70/70/60/70); a coverage
+      # run executes the full suite, so this replaces a separate `npm test`.
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+
+  storybook:
+    name: Storybook build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # Compiles every story; a broken component or story fails the build.
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      # Vitest browser mode runs every story (incl. play functions) in
+      # headless Chromium; --with-deps installs the OS libraries it needs.
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Storybook tests
+        run: npm run test:storybook
 
   migrations:
     name: Database migrations
@@ -198,5 +231,54 @@ jobs:
 
           INFRA_URL=http://127.0.0.1:3000/infrastructure npm run test:e2e
 
+          # axe-core audit of the public routes against the production build.
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npm run test:e2e:a11y
+
+          # Password-recovery/email-verification flows are public (auth)
+          # routes on the in-memory auth backend — no mock auth or database
+          # required, so they are safe against the production build.
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/auth-recovery.spec.ts
+
+          # Public marketing routes are static and need no mock auth or
+          # database, so they are safe against the production build too.
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000 npx playwright test e2e/route-smoke.spec.ts
+
           kill "$SERVER_PID" 2>/dev/null || true
           wait "$SERVER_PID" 2>/dev/null || true
+
+  e2e:
+    name: End-to-end (mock auth)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SITE_URL: https://spindle.app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # PLAYWRIGHT_BASE_URL is intentionally unset: playwright.config.ts boots
+      # its own dev server with NEXT_PUBLIC_MOCK_AUTH=1 (a build-time flag the
+      # production build lacks), which the (app) route group and the
+      # mock-session cookie require. critical-flows covers sign-in, project
+      # create, file upload and a lab run; app-a11y axe-scans the (app)
+      # routes. route-smoke hits the public marketing surface on the same dev
+      # server. viewport-matrix sweeps the responsive surface across viewports
+      # for horizontal overflow. Visual regression stays in visual.yml.
+      # Note: viewport-matrix may currently fail on known overflow issues
+      # (header / product-window / globe) until those fixes land.
+      - name: Run critical flows, app a11y, route smoke and viewport matrix
+        run: npx playwright test e2e/critical-flows.spec.ts e2e/app-a11y.spec.ts e2e/route-smoke.spec.ts e2e/viewport-matrix.spec.ts

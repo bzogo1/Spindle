@@ -1,153 +1,72 @@
 "use client"
 
-import { useEffect, useRef } from "react"
-import createGlobe, { type COBEOptions } from "cobe"
-import { useMotionValue, useSpring } from "motion/react"
-import * as Sentry from "@sentry/nextjs"
+import { useEffect, useRef, useState } from "react"
+import dynamic from "next/dynamic"
+import type { COBEOptions } from "cobe"
 
 import { cn } from "@/lib/utils"
 
-const MOVEMENT_DAMPING = 1400
+/**
+ * Lazy boundary for the WebGL globe. `cobe` and the Sentry client
+ * capture call only exist in `globe-scene.tsx`; keeping them behind
+ * `next/dynamic` with `ssr: false` keeps them out of the initial client
+ * bundle on the marketing pages that render `<Globe />`.
+ *
+ * The globe is below the fold on every page that uses it, so mounting
+ * `GlobeScene` eagerly still costs a chunk download + WebGL init +
+ * texture generation inside the Lighthouse trace window. An
+ * IntersectionObserver with a generous `rootMargin` defers the mount —
+ * and therefore the chunk fetch — until the canvas is near the viewport.
+ * Once mounted it stays mounted; `GlobeScene` pauses its render loop
+ * itself when the canvas scrolls away or the tab hides.
+ *
+ * The placeholder below uses the same box classes as `GlobeScene`'s root
+ * (`absolute inset-0 … aspect-square max-w-150`), and the mount containers
+ * (`.globe-mount`, `.collab-globe-mount`) are fixed-size, so deferring
+ * the scene causes no layout shift — the canvas already fades in via its
+ * own opacity transition.
+ */
+const GlobeScene = dynamic(() => import("./globe-scene").then((mod) => mod.GlobeScene), {
+  ssr: false,
+})
 
-const GLOBE_CONFIG: COBEOptions = {
-  width: 800,
-  height: 800,
-  onRender: () => {},
-  devicePixelRatio: 2,
-  phi: 0,
-  theta: 0.3,
-  dark: 1,
-  diffuse: 1.1,
-  mapSamples: 30000,
-  mapBrightness: 6,
-  // Keep the oceans dark so the continent dots read as an earth map.
-  mapBaseBrightness: 0,
-  baseColor: [0.55, 0.78, 0.5],
-  // Spindle accent green instead of the default Magic UI orange.
-  markerColor: [200 / 255, 240 / 255, 131 / 255],
-  glowColor: [0.34, 0.58, 0.3],
-  markers: [
-    { location: [14.5995, 120.9842], size: 0.03 },
-    { location: [19.076, 72.8777], size: 0.1 },
-    { location: [23.8103, 90.4125], size: 0.05 },
-    { location: [30.0444, 31.2357], size: 0.07 },
-    { location: [39.9042, 116.4074], size: 0.08 },
-    { location: [-23.5505, -46.6333], size: 0.1 },
-    { location: [19.4326, -99.1332], size: 0.1 },
-    { location: [40.7128, -74.006], size: 0.1 },
-    { location: [34.6937, 135.5022], size: 0.05 },
-    { location: [41.0082, 28.9784], size: 0.06 },
-  ],
-}
-
-export function Globe({
-  className,
-  config = GLOBE_CONFIG,
-}: {
-  className?: string
-  config?: COBEOptions
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const phiRef = useRef(0)
-  const widthRef = useRef(0)
-  const pointerInteracting = useRef<number | null>(null)
-  const pointerInteractionMovement = useRef(0)
-
-  const r = useMotionValue(0)
-  const rs = useSpring(r, {
-    mass: 1,
-    damping: 30,
-    stiffness: 100,
-  })
-
-  const updatePointerInteraction = (value: number | null) => {
-    pointerInteracting.current = value
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = value !== null ? "grabbing" : "grab"
-    }
-  }
-
-  const updateMovement = (clientX: number) => {
-    if (pointerInteracting.current !== null) {
-      const delta = clientX - pointerInteracting.current
-      pointerInteractionMovement.current = delta
-      r.set(r.get() + delta / MOVEMENT_DAMPING)
-    }
-  }
+export function Globe({ className, config }: { className?: string; config?: COBEOptions }) {
+  const mountRef = useRef<HTMLDivElement>(null)
+  const [nearViewport, setNearViewport] = useState(false)
 
   useEffect(() => {
-    const onResize = () => {
-      if (canvasRef.current) {
-        widthRef.current = canvasRef.current.offsetWidth
-      }
+    const el = mountRef.current
+    if (!el) return
+
+    // No IntersectionObserver (very old browsers, some test environments):
+    // mount immediately rather than never.
+    if (typeof IntersectionObserver === "undefined") {
+      setNearViewport(true)
+      return
     }
 
-    window.addEventListener("resize", onResize)
-    onResize()
-
-    const globe = (() => {
-      const canvas = canvasRef.current
-      if (!canvas) return null
-
-      // cobe needs WebGL. Some environments (headless browsers, older GPUs,
-      // WebGL disabled) do not have it, and cobe throws a TypeError when the
-      // context is null. Skip the decorative globe instead of crashing.
-      try {
-        const probe = document.createElement("canvas")
-        const context = probe.getContext("webgl2") || probe.getContext("webgl")
-        if (!context) return null
-      } catch {
-        return null
-      }
-
-      try {
-        return createGlobe(canvas, {
-          ...config,
-          width: widthRef.current * 2,
-          height: widthRef.current * 2,
-          onRender: (state) => {
-            if (!pointerInteracting.current) phiRef.current += 0.005
-            state.phi = phiRef.current + rs.get()
-            state.width = widthRef.current * 2
-            state.height = widthRef.current * 2
-          },
-        })
-      } catch (error) {
-        console.warn("Globe: could not create the WebGL scene.", error)
-        Sentry.captureException(error)
-        return null
-      }
-    })()
-
-    const fadeTimer = globe
-      ? window.setTimeout(() => {
-          if (canvasRef.current) canvasRef.current.style.opacity = "1"
-        }, 0)
-      : null
-
-    return () => {
-      globe?.destroy()
-      if (fadeTimer !== null) window.clearTimeout(fadeTimer)
-      window.removeEventListener("resize", onResize)
-    }
-  }, [rs, config])
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setNearViewport(true)
+          // One-shot: the scene stays mounted and self-pauses offscreen.
+          observer.disconnect()
+        }
+      },
+      // Start fetching the chunk ~300px before the canvas is visible so
+      // the init cost lands outside the critical trace window.
+      { rootMargin: "300px 0px" },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <div className={cn("absolute inset-0 mx-auto aspect-square w-full max-w-150", className)}>
-      <canvas
-        className={cn(
-          "size-full opacity-0 transition-opacity duration-500 contain-[layout_paint_size]",
-        )}
-        ref={canvasRef}
-        onPointerDown={(e) => {
-          pointerInteracting.current = e.clientX
-          updatePointerInteraction(e.clientX)
-        }}
-        onPointerUp={() => updatePointerInteraction(null)}
-        onPointerOut={() => updatePointerInteraction(null)}
-        onMouseMove={(e) => updateMovement(e.clientX)}
-        onTouchMove={(e) => e.touches[0] && updateMovement(e.touches[0].clientX)}
-      />
+    <div
+      ref={mountRef}
+      className={cn("absolute inset-0 mx-auto aspect-square w-full max-w-150", className)}
+    >
+      {nearViewport ? <GlobeScene config={config} /> : null}
     </div>
   )
 }

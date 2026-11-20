@@ -1,27 +1,38 @@
 "use client"
 
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import Link from "next/link"
-import { Bot, Files, FlaskConical, HardDrive, MessageSquare, UserPlus } from "lucide-react"
+import {
+  BarChart3,
+  Bot,
+  Files,
+  FlaskConical,
+  Folder,
+  HardDrive,
+  History,
+  MessageSquare,
+  UserPlus,
+} from "lucide-react"
 
 import { ActivityFeed } from "@/components/app/activity-feed"
 import { ScreenState } from "@/components/app/states/screen-state"
 import { EmptyState } from "@/components/app/states/empty-state"
+import { InlineError } from "@/components/app/states/inline-error"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { getAvatarInitials } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useProjectHome } from "@/lib/api"
+import { mergeActivityEvents } from "@/lib/activity/client"
+import { useActivityEvents } from "@/lib/activity/use-activity-events"
 import type { ProjectHomeData, ProjectMember, ProjectMemberRole } from "@/lib/api/types"
 
 import { formatBytes, formatDate, formatRelativeTime } from "./format"
+import { SharedElement } from "@/components/view-transitions/view-transitions"
+import { viewTransitionName } from "@/components/view-transitions/vt-support"
 
 function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join("")
+  return getAvatarInitials(name)
 }
 
 function MemberAvatar({ member }: { member: ProjectMember }) {
@@ -29,6 +40,27 @@ function MemberAvatar({ member }: { member: ProjectMember }) {
   return (
     <span className="app-member-avatar" aria-hidden="true">
       {initials(label)}
+    </span>
+  )
+}
+
+function MemberStack({ members }: { members: ProjectMember[] }) {
+  const visible = members.slice(0, 4)
+  const extra = Math.max(members.length - visible.length, 0)
+
+  if (visible.length === 0) return null
+
+  return (
+    <span className="app-member-stack" aria-label={`${members.length} members`}>
+      {visible.map((member) => {
+        const label = member.user.name ?? member.user.email
+        return (
+          <span key={member.id} className="app-member-avatar" title={label} aria-hidden="true">
+            {initials(label)}
+          </span>
+        )
+      })}
+      {extra > 0 ? <span className="app-member-stack-count">+{extra}</span> : null}
     </span>
   )
 }
@@ -136,11 +168,7 @@ function InviteMemberForm({
           <option value="admin">Admin</option>
         </select>
       </div>
-      {error ? (
-        <p className="app-form-error" role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error ? <InlineError title="Could not add member" message={error} /> : null}
       <div className="app-form-actions">
         <Button type="submit" size="sm">
           Add member
@@ -156,11 +184,28 @@ function InviteMemberForm({
 function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; projectId: string }) {
   const [invitedMembers, setInvitedMembers] = useState<ProjectMember[]>([])
   const [inviteOpen, setInviteOpen] = useState(false)
+  // Live activity events merge with the fetched feed by id so new events
+  // appear without a refetch (same channel as the project activity page).
+  const liveActivity = useActivityEvents(projectId)
   const project = data.project
   const members = [...project.members, ...invitedMembers]
   const recentFiles = data.files.slice(0, 5)
   const recentRuns = data.agentRuns.slice(0, 5)
-  const recentActivity = data.activity.slice(0, 6)
+  const activity = mergeActivityEvents(data.activity, liveActivity)
+  const recentActivity = activity.slice(0, 6)
+  const topLevelFolders = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const file of data.files) {
+      const segments = file.path.split("/").filter(Boolean)
+      if (segments.length > 1) {
+        const root = segments[0]
+        counts.set(root, (counts.get(root) ?? 0) + 1)
+      }
+    }
+    return [...counts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [data.files])
   const storagePercent =
     data.storageBytes > 0 ? Math.min(100, (data.storageBytes / (5 * 1024 * 1024 * 1024)) * 100) : 0
 
@@ -173,16 +218,28 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
     <div className="app-page app-project-home">
       <header className="app-project-header">
         <nav className="app-breadcrumb" aria-label="Breadcrumb">
-          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard" transitionTypes={["nav-back"]}>
+            Dashboard
+          </Link>
           <span aria-hidden="true">/</span>
           <span>{project.name}</span>
         </nav>
         <div className="app-project-title-row">
           <div>
-            <h1>{project.name}</h1>
+            {/* Same view-transition-name as the project card/row title on the
+                projects list, so the heading morphs between the two pages. */}
+            <SharedElement name={viewTransitionName("project", projectId)}>
+              <h1>{project.name}</h1>
+            </SharedElement>
             <p className="app-page-lede">
               {project.description ?? "No description yet. Add one to give this project context."}
             </p>
+            <div className="app-project-member-stack">
+              <MemberStack members={members} />
+              <span>
+                {members.length} member{members.length === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
           <div className="app-project-actions">
             <Button asChild variant="outline">
@@ -200,6 +257,14 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
           </div>
         </div>
         <dl className="app-project-meta">
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <Badge variant={project.status === "active" ? "secondary" : "outline"}>
+                {project.status === "active" ? "Active" : "Archived"}
+              </Badge>
+            </dd>
+          </div>
           <div>
             <dt>Visibility</dt>
             <dd>
@@ -227,17 +292,17 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
 
       <div className="app-project-columns">
         <div className="app-project-main">
-          <section className="app-panel" aria-labelledby="recent-files-heading">
+          <section className="app-panel" aria-labelledby="files-heading">
             <div className="app-panel-head">
               <div>
-                <h2 id="recent-files-heading">Recent files</h2>
-                <p>Latest uploads and generated outputs.</p>
+                <h2 id="files-heading">Files</h2>
+                <p>Top-level folders and recent files.</p>
               </div>
               <Link className="app-panel-link" href={`/projects/${projectId}/files`}>
                 View all
               </Link>
             </div>
-            {recentFiles.length === 0 ? (
+            {data.files.length === 0 ? (
               <EmptyState
                 icon={<Files aria-hidden="true" />}
                 title="No files yet"
@@ -249,6 +314,24 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
               />
             ) : (
               <ul className="app-file-list">
+                {topLevelFolders.map((folder) => (
+                  <li key={`folder-${folder.name}`}>
+                    <Link
+                      href={`/projects/${projectId}/files/${encodeURIComponent(folder.name)}`}
+                      className="app-file-row"
+                    >
+                      <span className="app-file-icon" aria-hidden="true">
+                        <Folder />
+                      </span>
+                      <span className="app-file-main">
+                        <strong>{folder.name}/</strong>
+                        <small>
+                          {folder.count} item{folder.count === 1 ? "" : "s"} inside
+                        </small>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
                 {recentFiles.map((file) => (
                   <li key={file.id}>
                     <Link href={`/projects/${projectId}/files`} className="app-file-row">
@@ -405,6 +488,20 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
                 <span>
                   <strong>Agent</strong>
                   <small>{data.agentRuns.length} runs</small>
+                </span>
+              </Link>
+              <Link href={`/projects/${projectId}/activity`} className="app-quick-link">
+                <History aria-hidden="true" />
+                <span>
+                  <strong>Activity</strong>
+                  <small>{activity.length} events</small>
+                </span>
+              </Link>
+              <Link href={`/projects/${projectId}/analytics`} className="app-quick-link">
+                <BarChart3 aria-hidden="true" />
+                <span>
+                  <strong>Analytics</strong>
+                  <small>Usage overview</small>
                 </span>
               </Link>
             </nav>

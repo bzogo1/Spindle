@@ -17,6 +17,31 @@ src/generated/prisma/
 .agents/
 
 # Build/test artifacts
+.turbo/
 test-results/
 *.tsbuildinfo
 .node_modules.original/
+
+# Lab run snapshot artifacts (baselines + run diffs)
+.lab-snapshots/
+
+# Ad-hoc benchmark snapshots (baselines under scripts/perf/benchmarks/baselines/ are committed)
+scripts/perf/benchmarks/snapshots/*
+!scripts/perf/benchmarks/snapshots/.gitkeep
+storybook-static/
+
+# Visual regression HTML reports
+playwright-report-visual/
+playwright-report-storybook/
+
+# Local email template previews (scripts/email-preview.ts)
+.email-preview/
+
+# Lighthouse CI local report output
+.lighthouseci/
+
+# Scratch screenshots (not for commit)
+nym*.png
+
+# Scratch debug/probe scripts (not for commit)
+overflow-*.mjs

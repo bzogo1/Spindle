@@ -1,0 +1,43 @@
+# Reference cloudflared ingress — gateway routing layer.
+#
+# This is an annotated copy of infra/origin/cloudflared/config.yml for
+# evaluation purposes (see docs/architecture/api-gateway.md). The checked-in
+# config.yml is authoritative; edit that file, not this one.
+#
+# Key points for "gateway" behaviour:
+#   - Hostname → service routing happens here, in cloudflared itself.
+#   - TLS terminates at the Cloudflare edge; the tunnel leg is plaintext HTTP
+#     over QUIC, so there is no cert to manage at the origin.
+#   - Rate limiting is NOT done here — use Cloudflare dashboard WAF rules for
+#     IP-based limits; per-user limits belong in the app/Valkey.
+
+credentials-file: /etc/cloudflared/credentials.json
+no-autoupdate: true
+protocol: quic
+
+# Optional: pin the tunnel to a specific edge colo if ever needed.
+# region: us
+
+ingress:
+  # ── App: pages + /api/* ──────────────────────────────────────────────
+  - hostname: app.spindle.app
+    service: http://app:8080
+    originRequest:
+      connectTimeout: 10s
+      # SSE (agent runs, /api/* streams) must not be cut by an idle timeout.
+      tcpKeepAlive: 30s
+      # http2 between cloudflared and Next.js is fine; origin speaks HTTP/1.1.
+      # noTLSVerify is not needed — the leg is already plaintext inside QUIC.
+
+  # ── Lab: WebSocket proxy ─────────────────────────────────────────────
+  # Separate hostname, separate service. Never route /api/* here.
+  - hostname: lab.spindle.app
+    service: http://lab-proxy:7000
+    originRequest:
+      connectTimeout: 10s
+      tcpKeepAlive: 30s
+      # WebSocket frames must pass through without buffering.
+      disableChunkedEncoding: false
+
+  # Everything else is a 404 at the edge — no catch-all to the app.
+  - service: http_status:404

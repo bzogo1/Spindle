@@ -1,0 +1,437 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Prometheus-compatible datasource exposing SLI/error-budget metrics",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "10.0.0"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "bargauge",
+      "name": "Bar gauge",
+      "version": ""
+    }
+  ],
+  "title": "Spindle — SLO & Error Budget",
+  "uid": "spindle-slo-error-budget",
+  "tags": ["spindle", "slo", "error-budget", "sre"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-28d", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "label": "Prometheus datasource"
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "query": "label_values(spindle_sli_availability_ratio, service)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" },
+        "label": "service"
+      },
+      {
+        "name": "window",
+        "type": "custom",
+        "query": "day,7d,28d",
+        "current": { "text": "28d", "value": "28d" },
+        "options": [
+          { "text": "day", "value": "day", "selected": false },
+          { "text": "7d", "value": "7d", "selected": false },
+          { "text": "28d", "value": "28d", "selected": true }
+        ],
+        "includeAll": false,
+        "multi": false,
+        "label": "window"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "About this dashboard",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "SLI attainment and error-budget consumption for Spindle services.\\n\\n**Data source:** Prometheus (`$DS_PROMETHEUS`). Expected metrics: `spindle_sli_availability_ratio`, `spindle_sli_latency_ratio`, `spindle_error_budget_remaining_pct`, `spindle_error_budget_burn_rate`, `spindle_sli_latency_ms` (histogram), `spindle_slo_target`. Adapt names to your recording rules.\\n\\n**Offline alternative:** `node scripts/slo/report.mjs --demo --json --window day,7d,28d` and `node scripts/sre/errorbudget/budget.mjs --demo --json`; render with `scripts/dashboards/build.mjs`. SLO definitions: `docs/slo/service-level-objectives.md`. Policy thresholds: `docs/sre/error-budget.md`."
+      },
+      "datasource": null
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Budget remaining ($window)",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min by (service) (spindle_error_budget_remaining_pct{service=~\"$service\",window=\"$window\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 25 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Burn rate ($window)",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max by (service) (spindle_error_budget_burn_rate{service=~\"$service\",window=\"$window\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 2 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "SLI attainment vs target ($window)",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min by (service) (spindle_sli_availability_ratio{service=~\"$service\",window=\"$window\"})",
+          "legendFormat": "{{service}} attainment"
+        },
+        {
+          "refId": "B",
+          "expr": "min by (service) (spindle_slo_target{service=~\"$service\"})",
+          "legendFormat": "{{service}} target"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.99,
+          "max": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0.999 },
+              { "color": "green", "value": 0.9995 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Availability SLI ratio over time",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "spindle_sli_availability_ratio{service=~\"$service\"}",
+          "legendFormat": "{{service}}"
+        },
+        {
+          "refId": "B",
+          "expr": "min by (service) (spindle_slo_target{service=~\"$service\"})",
+          "legendFormat": "{{service}} target"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.995,
+          "max": 1,
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": ".* target" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+              { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "min"]
+        },
+        "tooltip": { "mode": "multi", "sort": "asc" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Error budget burn rate",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "spindle_error_budget_burn_rate{service=~\"$service\",window=\"$window\"}",
+          "legendFormat": "{{service}}"
+        },
+        {
+          "refId": "B",
+          "expr": "vector(1)",
+          "legendFormat": "1x (pace line)"
+        },
+        {
+          "refId": "C",
+          "expr": "vector(2)",
+          "legendFormat": "2x (alert line)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "(1x|2x).*" },
+            "properties": [
+              { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latency percentiles (SLI threshold per service)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.50, sum by (le, service) (rate(spindle_sli_latency_ms_bucket{service=~\"$service\"}[5m])))",
+          "legendFormat": "{{service}} p50"
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(spindle_sli_latency_ms_bucket{service=~\"$service\"}[5m])))",
+          "legendFormat": "{{service}} p95"
+        },
+        {
+          "refId": "C",
+          "expr": "histogram_quantile(0.99, sum by (le, service) (rate(spindle_sli_latency_ms_bucket{service=~\"$service\"}[5m])))",
+          "legendFormat": "{{service}} p99"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 0 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["lastNotNull", "max"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      }
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Error budget remaining by service ($window)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "min by (service) (spindle_error_budget_remaining_pct{service=~\"$service\",window=\"$window\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 25 },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Budget status snapshot",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "spindle_error_budget_remaining_pct{service=~\"$service\",window=\"$window\"}",
+          "legendFormat": "{{service}}"
+        },
+        {
+          "refId": "B",
+          "expr": "spindle_error_budget_burn_rate{service=~\"$service\",window=\"$window\"}",
+          "legendFormat": "{{service}}"
+        },
+        {
+          "refId": "C",
+          "expr": "spindle_slo_policy{service=~\"$service\",window=\"$window\"}",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": { "excludeByName": { "Time": true, "__name__": true }, "renameByName": {} }
+        }
+      ],
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "options": { "showHeader": true, "cellHeight": "sm" }
+    }
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "annotations": { "list": [] }
+}

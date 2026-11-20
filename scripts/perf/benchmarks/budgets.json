@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "_comment": "Performance budgets enforced by scripts/perf/benchmarks/compare.mjs check. maxJsKb is the approximate client JS payload per route (summed from client-reference-manifest chunks, see lib/core.mjs); values are uncompressed bytes and include shared framework chunks. Calibrated against the current Turbopack build — revisit after major dependency or routing changes. Runtime values align with lighthouserc.json assertions.",
+  "regression": {
+    "percent": 5,
+    "absoluteKbSlack": 25
+  },
+  "bundle": {
+    "default": { "maxJsKb": 1000 },
+    "routes": {
+      "/": { "maxJsKb": 400 },
+      "/docs": { "maxJsKb": 400 },
+      "/docs/[slug]": { "maxJsKb": 400 },
+      "/collaboration": { "maxJsKb": 400 },
+      "/pricing": { "maxJsKb": 400 },
+      "/sign-in": { "maxJsKb": 300 },
+      "/sign-up": { "maxJsKb": 300 },
+      "/app": { "maxJsKb": 500 }
+    }
+  },
+  "runtime": {
+    "ttfbMs": 800,
+    "fcpMs": 1800,
+    "lcpMs": 2500,
+    "tbtMs": 200,
+    "cls": 0.1,
+    "inpMs": 200
+  }
+}

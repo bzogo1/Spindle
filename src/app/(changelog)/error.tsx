@@ -22,7 +22,7 @@ export default function ChangelogError({
           <ChangelogThemeToggle />
         </div>
       </div>
-      <div className="cl-shell cl-content">
+      <main id="main-content" tabIndex={-1} className="cl-shell cl-content">
         <div className="cl-state">
           <p className="cl-state-code">Unexpected error</p>
           <h1 className="cl-state-title">This page hit a snag.</h1>
@@ -63,7 +63,7 @@ export default function ChangelogError({
             </span>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

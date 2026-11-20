@@ -1,29 +1,31 @@
 "use client"
 
+import { useLanguage } from "@/components/i18n/language-provider"
+import { requestPasswordReset } from "@/lib/auth/auth-client"
+
 import { EmailLinkForm } from "./email-link-form"
+
+/** sessionStorage scope keeping the password-reset cooldown separate from other auth flows. */
+const RESET_PASSWORD_COOLDOWN_KEY = "spindle:auth:resend-cooldown:reset-password"
 
 /** Standalone `/reset-password` request card content. */
 export function ResetRequestPanel() {
+  const { t } = useLanguage()
   return (
     <>
-      <span className="auth-eyebrow">Account recovery</span>
-      <h1 className="auth-title">Reset your password</h1>
-      <p className="auth-desc">
-        Enter the work email on your Spindle account. If it matches, we&apos;ll send a link to
-        choose a new password.
-      </p>
+      <span className="auth-eyebrow">{t("auth.recoveryEyebrow")}</span>
+      <h1 className="auth-title">{t("auth.resetRequest.title")}</h1>
+      <p className="auth-desc">{t("auth.resetRequest.description")}</p>
 
       <EmailLinkForm
         idPrefix="reset"
-        submitLabel="Send reset link"
-        sentTitle="Check your inbox"
-        sentMessage={(email) => (
-          <>
-            We sent a reset link to <strong>{email}</strong>. The link expires in 30 minutes.
-          </>
-        )}
+        cooldownKey={RESET_PASSWORD_COOLDOWN_KEY}
+        submitLabel={t("auth.sendResetLink")}
+        sentTitle={t("auth.checkInbox")}
+        sentMessage={(email) => t("auth.resetRequest.sentMessage", { email })}
+        onRequest={(email) => requestPasswordReset(email)}
         backHref="/"
-        backLabel="Back to Spindle"
+        backLabel={t("auth.backToSpindle")}
       />
     </>
   )

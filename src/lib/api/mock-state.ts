@@ -23,7 +23,9 @@ function paramsFrom(search?: string) {
 export function getMockState(search?: string): MockStateMode {
   if (!mockStateControlsEnabled()) return "ready"
 
-  const raw = paramsFrom(search).get("mock") ?? paramsFrom(search).get("mockState")
+  // `demo` is accepted as an alias so `?demo=loading` works for demos/screenshots.
+  const params = paramsFrom(search)
+  const raw = params.get("mock") ?? params.get("mockState") ?? params.get("demo")
   switch (raw) {
     case "loading":
       return "loading"
@@ -39,7 +41,12 @@ export function getMockState(search?: string): MockStateMode {
 export function getMockLatencyMs(search?: string) {
   if (!mockStateControlsEnabled()) return 0
 
-  const raw = paramsFrom(search).get("mockLatency") ?? paramsFrom(search).get("mockDelay")
+  const params = paramsFrom(search)
+  const raw =
+    params.get("mockLatency") ??
+    params.get("mockDelay") ??
+    params.get("demoLatency") ??
+    params.get("demoDelay")
   const parsed = raw === null ? Number.NaN : Number(raw)
   if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_LATENCY_MS
   return Math.min(Math.round(parsed), MAX_LATENCY_MS)

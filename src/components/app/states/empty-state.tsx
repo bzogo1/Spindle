@@ -94,13 +94,13 @@ export function EmptyState({
       aria-labelledby={titleId}
       aria-describedby={body ? bodyId : undefined}
       className={cn(
-        "flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed bg-card/60 px-6 py-12 text-center",
+        "bg-card/60 flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed px-6 py-12 text-center",
         className,
       )}
     >
       <div
         aria-hidden="true"
-        className="grid size-12 place-items-center rounded-full bg-muted text-muted-foreground"
+        className="bg-muted text-muted-foreground grid size-12 place-items-center rounded-full"
       >
         {icon ?? <Inbox className="size-5" />}
       </div>
@@ -109,7 +109,7 @@ export function EmptyState({
           {title}
         </h2>
         {body ? (
-          <div id={bodyId} className="text-sm leading-6 text-muted-foreground">
+          <div id={bodyId} className="text-muted-foreground text-sm leading-6">
             {body}
           </div>
         ) : null}

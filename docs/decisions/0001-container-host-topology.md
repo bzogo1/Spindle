@@ -1,6 +1,6 @@
 # ADR 0001 — Container host topology
 
-- **Status:** Accepted. The host stack is checked in under `infra/`; the §7 container-network check has run, and the tunnel leg still needs to run on the DEV-11 origin.
+- **Status:** Accepted. The host stack is checked in under `infra/`; the §7 checks have run in a dev sandbox and once on a dev workstation including a quick-tunnel WebSocket leg, and both still need to run on the DEV-11 origin.
 - **Date:** 2026-11-19
 - **Issues:** DEV-7 (this decision), DEV-11 (production hosting), DEV-102 (lab orchestration driver),
   DEV-103 (workspace sync), DEV-96 (agent sandbox), DEV-15 (backups), DEV-50 (edge lockdown)
@@ -268,14 +268,32 @@ automates the container-network half; the tunnel leg still needs a signed sessio
 The container-network half ran on 2026-11-19 against a rootless Docker Engine 29.10.0 in a development
 sandbox, not on the origin: the probe container started on `spindle-lab` with no published port,
 Caddy upgraded a WebSocket and echoed a frame, an orchestrator-like container resolved `ws-probe`
-over the network, and warm start to first byte was 1.0–1.9 s across runs (target < 20 s). The tunnel leg has not run
-and still has to be recorded on DEV-11.
+over the network, and warm start to first byte was 1.0–1.9 s across runs (target < 20 s).
 
 The run also showed that `host.docker.internal` resolves to the Docker bridge gateway on Linux and
 cannot reach a service bound to `127.0.0.1`, so a host-loopback lab proxy would be unreachable
 from a connector container. The route is therefore `lab-proxy:7000` on the internal `spindle`
 network. The checked-in script now runs that route directly: the proxy and a connector-side client
 share `spindle`, and a session-like container with no published port sits on `spindle-lab`.
+
+A second run on 2026-11-19 exercised the tunnel leg end-to-end on a development workstation
+(rootless Docker Engine 29.10.0, the same version as the sandbox run) behind a Cloudflare quick
+tunnel (`cloudflared tunnel --url`, which needs no account). The connector ran as a container on
+`spindle` pointed at `ws-probe-proxy:7000`, matching the production route:
+
+- `GET /lab/probe/health` through `https://<random>.trycloudflare.com`: HTTP 200.
+- WebSocket upgrade and echo through `wss://<random>.trycloudflare.com/lab/probe/ws`: PASS via
+  `scripts/hosting/ws-probe.mjs`. `wscat` produced no output in that environment, so the repo's
+  own probe client was the authoritative check.
+- Warm start to first byte: 1.2 s.
+- Idle lifetime: a WebSocket with no traffic was closed by the edge at ~125 s (code 1006),
+  consistent with Cloudflare's ~100 s idle limit; the same socket with a 30 s ping stayed open
+  past 150 s. This confirms the lab proxy must send its own ping every 30 s as specified in §5.1.
+
+This validates the edge → tunnel → proxy → session-container path, but it is not the DEV-11
+origin: the host is a workstation, the tunnel is an ephemeral quick tunnel rather than the named
+`tunnel run` with DNS routes, and the proxy is the §7 probe Caddyfile, not the DEV-102 lab proxy
+with token verification. The leg still has to be repeated on the Hetzner origin.
 
 ```bash
 # 1. Start a container with no published port on the lab network.

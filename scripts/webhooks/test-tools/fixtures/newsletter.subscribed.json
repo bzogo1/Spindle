@@ -1,0 +1,15 @@
+{
+  "id": "evt_test_mwol38ff2c1yc8m",
+  "type": "newsletter.subscribed",
+  "apiVersion": "2025-01",
+  "created": "2026-11-20T06:14:15.915Z",
+  "livemode": false,
+  "idempotencyKey": "idem_mwol38ff_o3f1dccj",
+  "data": {
+    "object": {
+      "email": "grace@example.com",
+      "source": "footer",
+      "consent": true
+    }
+  }
+}

@@ -11,6 +11,7 @@ import {
   cookieRegistry,
   essentialOnlyChoices,
   hasConsent,
+  hasPrivacySignal,
   onConsentChange,
   onOpenCookieSettings,
   openCookieSettings,
@@ -134,12 +135,92 @@ describe("consent store", () => {
     expect(readConsent().decided).toBe(false)
   })
 
+  it("finds the consent cookie among other cookies", () => {
+    document.cookie = "other_cookie=1; Path=/"
+    document.cookie = "theme=dark; Path=/"
+    writeConsent(acceptAllChoices())
+
+    expect(readConsent()).toMatchObject({ decided: true, analytics: true, replay: true })
+    expect(hasConsent("replay")).toBe(true)
+  })
+
+  it("decodes percent-encoded cookie payloads", () => {
+    const payload = JSON.stringify({
+      version: CONSENT_VERSION,
+      timestamp: "2026-11-19T12:00:00.000Z",
+      analytics: true,
+      replay: false,
+    })
+    setConsentCookie(encodeURIComponent(payload))
+
+    expect(readConsent()).toMatchObject({
+      decided: true,
+      analytics: true,
+      replay: false,
+    })
+  })
+
+  it("treats non-boolean flags and non-string timestamps as undecided-safe", () => {
+    setConsentCookie(
+      encodeURIComponent(
+        JSON.stringify({
+          version: CONSENT_VERSION,
+          timestamp: "2026-11-19T12:00:00.000Z",
+          analytics: "yes",
+          replay: 1,
+        }),
+      ),
+    )
+
+    // Decided, but only strict `true` counts as consent.
+    expect(readConsent()).toMatchObject({ decided: true, analytics: false, replay: false })
+    expect(hasConsent("analytics")).toBe(false)
+
+    setConsentCookie(
+      encodeURIComponent(
+        JSON.stringify({
+          version: CONSENT_VERSION,
+          timestamp: 1732012800000,
+          analytics: true,
+          replay: true,
+        }),
+      ),
+    )
+    expect(readConsent().decided).toBe(false)
+  })
+
   it("clears the stored choice", () => {
     writeConsent(acceptAllChoices())
     clearConsent()
 
     expect(readConsent().decided).toBe(false)
     expect(hasConsent("analytics")).toBe(false)
+  })
+})
+
+describe("privacy signals", () => {
+  function stubSignal(key: "globalPrivacyControl" | "doNotTrack", value: unknown) {
+    Object.defineProperty(window.navigator, key, { value, configurable: true })
+  }
+
+  afterEach(() => {
+    stubSignal("globalPrivacyControl", undefined)
+    stubSignal("doNotTrack", undefined)
+  })
+
+  it("is false without Global Privacy Control or Do Not Track", () => {
+    stubSignal("globalPrivacyControl", false)
+    stubSignal("doNotTrack", "0")
+    expect(hasPrivacySignal()).toBe(false)
+  })
+
+  it("is true for Global Privacy Control or Do Not Track", () => {
+    stubSignal("globalPrivacyControl", true)
+    expect(hasPrivacySignal()).toBe(true)
+
+    stubSignal("globalPrivacyControl", false)
+    stubSignal("doNotTrack", "1")
+    expect(hasPrivacySignal()).toBe(true)
   })
 })
 

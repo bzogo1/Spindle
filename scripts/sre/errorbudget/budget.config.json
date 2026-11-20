@@ -1,0 +1,7 @@
+{
+  "$comment": "Defaults for scripts/sre/errorbudget/budget.mjs. All fields optional; CLI flags override. See docs/sre/error-budget.md.",
+  "service": "spindle",
+  "target": 99.9,
+  "windows": ["30d", "7d"],
+  "threshold": null
+}

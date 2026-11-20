@@ -105,3 +105,18 @@
     gap: 10px 22px;
   }
 }
+
+/* ==========================================================================
+   LIGHT THEME — translucent-white fills are dark-theme tints; on a light
+   surface they disappear, so remap them to dark-ink washes.
+   ========================================================================== */
+:root:not(.dark) .a11y-status--open {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .a11y-status--partial {
+  border-color: rgba(138, 90, 30, 0.35);
+  background: rgba(138, 90, 30, 0.08);
+}
+:root:not(.dark) .a11y-content code {
+  background: rgba(15, 25, 18, 0.05);
+}

@@ -72,6 +72,10 @@ const fixtureUsage = {
   requests: 10,
   tokens: 1000,
   costUsd: 0.5,
+  daily: [
+    { date: "2026-11-01T00:00:00.000Z", requests: 6, tokens: 600, costUsd: 0.3 },
+    { date: "2026-11-02T00:00:00.000Z", requests: 4, tokens: 400, costUsd: 0.2 },
+  ],
 }
 
 const fixtureProjectSummary = {
@@ -118,6 +122,28 @@ const fixtureDashboard = {
   generatedAt: "2026-11-19T12:00:00.000Z",
 }
 
+const fixtureRunLogEntry = {
+  id: "runlog_01",
+  projectId: "prj_01",
+  projectName: "Fixture Project",
+  prompt: "do a thing",
+  status: "running" as const,
+  actor: { id: fixtureUser.id, name: fixtureUser.name ?? fixtureUser.email },
+  createdAt: "2026-11-19T12:00:00.000Z",
+  startedAt: "2026-11-19T12:00:01.000Z",
+  finishedAt: null,
+  steps: [],
+  approval: null,
+  summary: null,
+}
+
+const fixtureWorkspaceMember = {
+  id: "usr_02",
+  email: "teammate@example.com",
+  name: "Teammate",
+  createdAt: "2026-11-19T12:00:00.000Z",
+}
+
 const fixtureProjectHome = {
   project: {
     ...fixtureProject,
@@ -140,6 +166,117 @@ const fixtureProjectHome = {
   activity: fixtureDashboard.activity,
   storageBytes: 2048,
   generatedAt: "2026-11-19T12:00:00.000Z",
+}
+
+/* Workspace fixtures — ids mirror the mock store seeds (file-tidal,
+ * channel-field-notes, lab-rstudio, agent-run-101, …) so the same inputs
+ * exercise both adapters. */
+
+const fixtureWorkspaceProject = {
+  id: fixtureProject.id,
+  name: fixtureProject.name,
+  owner: fixtureUser.name ?? fixtureUser.email,
+  storageLimitBytes: 5 * 1024 * 1024 * 1024,
+}
+
+const fixtureFileNode = {
+  id: "file-tidal",
+  name: "tidal-2026.csv",
+  kind: "file" as const,
+  parentId: "folder-data",
+  mimeType: "text/csv",
+  sizeBytes: 2_418_304,
+  owner: "Mara",
+  updatedAt: "2026-11-19T08:42:00.000Z",
+}
+
+const fixtureFolderNode = {
+  id: "folder-data",
+  name: "data",
+  kind: "folder" as const,
+  parentId: null,
+  mimeType: "inode/directory",
+  sizeBytes: 0,
+  owner: "Mara",
+  updatedAt: "2026-11-18T16:20:00.000Z",
+}
+
+const fixtureFilesWorkspace = {
+  project: fixtureWorkspaceProject,
+  files: [fixtureFolderNode, fixtureFileNode],
+  uploads: [],
+  storage: { usedBytes: 2_418_304, limitBytes: 5 * 1024 * 1024 * 1024 },
+}
+
+const fixtureChatWorkspace = {
+  project: fixtureWorkspaceProject,
+  activeChannelId: "channel-field-notes",
+  anonymous: false,
+  botEnabled: true,
+  channels: [
+    { id: "channel-field-notes", name: "field-notes", kind: "channel", memberCount: 8 },
+    { id: "channel-data-cleaning", name: "data-cleaning", kind: "channel", memberCount: 5 },
+  ],
+  messages: [
+    {
+      id: "msg-1",
+      channelId: "channel-field-notes",
+      authorId: "user-mara",
+      authorName: "Mara",
+      anonymous: false,
+      body: "New survey batch is in /data.",
+      createdAt: "2026-11-19T09:14:00.000Z",
+      status: "sent" as const,
+    },
+  ],
+  members: [{ id: "user-mara", name: "Mara", online: true }],
+  typing: [],
+}
+
+const fixtureLabWorkspace = {
+  project: fixtureWorkspaceProject,
+  activeEnvironmentId: "lab-rstudio",
+  environments: [
+    {
+      id: "lab-rstudio",
+      name: "RStudio",
+      kind: "rstudio" as const,
+      status: "running" as const,
+      title: "coastal-resilience / analysis.R",
+      statusLabel: "Kernel idle",
+      lastActiveAt: "2026-11-19T09:20:00.000Z",
+    },
+    {
+      id: "lab-jupyter",
+      name: "JupyterLab",
+      kind: "jupyter" as const,
+      status: "stopped" as const,
+      title: "coastal-resilience / analysis.ipynb",
+      statusLabel: "Python 3.12 · stopped",
+      lastActiveAt: null,
+    },
+  ],
+}
+
+const fixtureAgentWorkspace = {
+  project: fixtureWorkspaceProject,
+  quota: { dailyLimit: 20, bonus: 50, used: 14 },
+  config: { model: "spindle-1" as const, scope: "project" as const },
+  activeRunId: "agent-run-101",
+  runs: [
+    {
+      id: "agent-run-101",
+      prompt: "tidy the export",
+      status: "succeeded" as const,
+      steps: [],
+      diff: null,
+      createdAt: "2026-11-19T10:00:00.000Z",
+      finishedAt: "2026-11-19T10:05:00.000Z",
+      summary: "Done.",
+      retryOf: null,
+      config: { model: "spindle-1" as const, scope: "project" as const },
+    },
+  ],
 }
 
 function json(body: unknown, status = 200): Response {
@@ -165,6 +302,26 @@ function createStubFetch() {
     [`PATCH /projects/${fixtureProject.id}`]: (body) =>
       json({ ...fixtureProject, ...(body as object) }),
     [`DELETE /projects/${fixtureProject.id}`]: () => new Response(null, { status: 204 }),
+    "GET /workspace/members": () => json([fixtureUser, fixtureWorkspaceMember]),
+    [`POST /projects/${fixtureProject.id}/members`]: (body) =>
+      json(
+        {
+          id: "member_new",
+          user: fixtureWorkspaceMember,
+          role: (body as { role?: string } | undefined)?.role ?? "member",
+          joinedAt: "2026-11-19T12:00:00.000Z",
+        },
+        201,
+      ),
+    [`PATCH /projects/${fixtureProject.id}/members/member_new`]: () =>
+      json({
+        id: "member_new",
+        user: fixtureWorkspaceMember,
+        role: "admin",
+        joinedAt: "2026-11-19T12:00:00.000Z",
+      }),
+    [`DELETE /projects/${fixtureProject.id}/members/member_new`]: () =>
+      new Response(null, { status: 204 }),
     "GET /files": () => json([fixtureFile]),
     [`GET /files/${fixtureFile.id}`]: () => json(fixtureFile),
     [`DELETE /files/${fixtureFile.id}`]: () => new Response(null, { status: 204 }),
@@ -187,6 +344,81 @@ function createStubFetch() {
     "GET /usage/summary": () => json(fixtureUsage),
     "GET /dashboard": () => json(fixtureDashboard),
     [`GET /projects/${fixtureProject.id}/home`]: () => json(fixtureProjectHome),
+    [`POST /dashboard/agent-runs/${fixtureRunLogEntry.id}/cancel`]: () =>
+      json({
+        ...fixtureRunLogEntry,
+        status: "cancelled",
+        finishedAt: "2026-11-19T12:05:00.000Z",
+        summary: "Run cancelled.",
+      }),
+    // Mirrors the mock fixture: runlog_03 is already finished, so cancelling
+    // it is a conflict rather than a transition.
+    "POST /dashboard/agent-runs/runlog_03/cancel": () =>
+      errorJson(409, "conflict", "Run is not active."),
+
+    /* WorkspaceApi — canonical `/projects/:id/workspace/<screen>` scheme. */
+    [`GET /projects/${fixtureProject.id}/workspace/files`]: () => json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/folders`]: () =>
+      json(fixtureFilesWorkspace),
+    [`PATCH /projects/${fixtureProject.id}/workspace/files/nodes/file-tidal`]: () =>
+      json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/nodes/move`]: () =>
+      json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/nodes/trash`]: () =>
+      json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/nodes/file-tidal/versions/ver-tidal-v1/restore`]:
+      () => json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/uploads`]: () =>
+      json({ accepted: ["upload-101"], rejected: [], workspace: fixtureFilesWorkspace }, 201),
+    [`POST /projects/${fixtureProject.id}/workspace/files/uploads/tick`]: () =>
+      json(fixtureFilesWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/files/uploads/upload-101/actions`]: () =>
+      json(fixtureFilesWorkspace),
+
+    [`GET /projects/${fixtureProject.id}/workspace/chat`]: () => json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/channels/channel-data-cleaning/select`]:
+      () => json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/anonymous`]: () =>
+      json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/bot`]: () => json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/channels`]: () =>
+      json(fixtureChatWorkspace, 201),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/messages/msg-1/reactions`]: () =>
+      json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/messages`]: () =>
+      json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/messages/settle`]: () =>
+      json(fixtureChatWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/chat/messages/msg-1/retry`]: () =>
+      json(fixtureChatWorkspace),
+
+    [`GET /projects/${fixtureProject.id}/workspace/lab`]: () => json(fixtureLabWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/lab/environments/lab-jupyter/select`]: () =>
+      json(fixtureLabWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/lab/environments/lab-jupyter/start`]: () =>
+      json(fixtureLabWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/lab/environments/lab-jupyter/complete`]: () =>
+      json(fixtureLabWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/lab/environments/lab-jupyter/stop`]: () =>
+      json(fixtureLabWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/lab/environments/lab-rstudio/ping`]: () =>
+      json(fixtureLabWorkspace),
+
+    [`GET /projects/${fixtureProject.id}/workspace/agent`]: () => json(fixtureAgentWorkspace),
+    [`PATCH /projects/${fixtureProject.id}/workspace/agent/config`]: (body) =>
+      json({
+        ...fixtureAgentWorkspace,
+        config: body,
+      }),
+    [`POST /projects/${fixtureProject.id}/workspace/agent/runs`]: () => json(fixtureAgentWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/agent/runs/agent-run-101/retry`]: () =>
+      json(fixtureAgentWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/agent/runs/agent-run-101/cancel`]: () =>
+      json(fixtureAgentWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/agent/runs/advance`]: () =>
+      json(fixtureAgentWorkspace),
+    [`POST /projects/${fixtureProject.id}/workspace/agent/runs/agent-run-101/review`]: () =>
+      json(fixtureAgentWorkspace),
   }
 
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -277,9 +509,88 @@ describe.each(Object.keys(adapters))("ApiClient contract — %s adapter", (name)
     await expect(client.projects.deleteProject(created.id)).resolves.toBeUndefined()
   })
 
+  it("transfers project ownership through updateProject (mock adapter)", async () => {
+    const client = createMockClient()
+
+    const before = await client.dashboard.getProjectHome("prj_01")
+    expect(before.project.owner.id).toBe("usr_01")
+    expect(before.project.members.some((member) => member.user.id === "usr_02")).toBe(true)
+
+    await client.projects.updateProject("prj_01", { ownerId: "usr_02" })
+
+    const after = await client.dashboard.getProjectHome("prj_01")
+    expect(after.project.owner.id).toBe("usr_02")
+    expect(after.project.members.find((member) => member.user.id === "usr_02")?.role).toBe("owner")
+    // The previous owner stays on as a regular member.
+    expect(after.project.members.find((member) => member.user.id === "usr_01")?.role).toBe("member")
+
+    // Non-members cannot be promoted to owner.
+    await expect(
+      client.projects.updateProject("prj_01", { ownerId: "usr_missing" }),
+    ).rejects.toMatchObject({ status: 422 })
+
+    // A rejected transfer must not persist sibling field changes either.
+    const nameBefore = (await client.projects.getProject("prj_01")).name
+    await expect(
+      client.projects.updateProject("prj_01", {
+        name: "Should Not Persist",
+        ownerId: "usr_missing",
+      }),
+    ).rejects.toMatchObject({ status: 422 })
+    expect((await client.projects.getProject("prj_01")).name).toBe(nameBefore)
+  })
+
+  it("manages project members", async () => {
+    const client = make()
+
+    const roster = await client.dashboard.listWorkspaceMembers()
+    expect(roster.length).toBeGreaterThan(0)
+
+    const home = await client.dashboard.getProjectHome("prj_01")
+    const memberUserIds = new Set(home.project.members.map((member) => member.user.id))
+    const candidate = roster.find((user) => !memberUserIds.has(user.id))
+    expect(candidate).toBeDefined()
+
+    const added = await client.projects.addProjectMember("prj_01", {
+      userId: candidate!.id,
+      role: "member",
+    })
+    expect(added.user.id).toBe(candidate!.id)
+    expect(added.role).toBe("member")
+
+    const promoted = await client.projects.updateProjectMemberRole("prj_01", added.id, "admin")
+    expect(promoted.role).toBe("admin")
+
+    // Role updates may re-key the membership id, so remove via the fresh row.
+    await expect(
+      client.projects.removeProjectMember("prj_01", promoted.id),
+    ).resolves.toBeUndefined()
+
+    // Only the mock adapter persists mutations; its reads reflect them.
+    if (name === "mock") {
+      const after = await client.dashboard.getProjectHome("prj_01")
+      expect(after.project.members.some((member) => member.user.id === candidate!.id)).toBe(false)
+    }
+  })
+
+  it("clones a project from an existing one", async () => {
+    const client = make()
+    const source = (await client.projects.listProjects())[0]
+
+    const clone = await client.projects.createProject({
+      name: `${source.name} (copy)`,
+      cloneFromProjectId: source.id,
+    })
+
+    expect(clone.name).toBe(`${source.name} (copy)`)
+    expect(clone.id).not.toBe(source.id)
+  })
+
   it("normalizes missing resources to ApiError 404", async () => {
     const client = make()
     await expectApiError(client.projects.getProject("missing-id"))
+    await expectApiError(client.projects.addProjectMember("missing-id", { userId: "usr_x" }))
+    await expectApiError(client.projects.removeProjectMember("missing-id", "mem_x"))
     await expectApiError(client.files.getFile("missing-id"))
     await expectApiError(client.lab.getLabSession("missing-id"))
     await expectApiError(client.agent.getAgentRun("missing-id"))
@@ -372,6 +683,174 @@ describe.each(Object.keys(adapters))("ApiClient contract — %s adapter", (name)
 
     await expectApiError(client.dashboard.getProjectHome("missing-id"))
   })
+
+  it("cancels an agent run log entry", async () => {
+    const client = make()
+
+    const cancelled = await client.dashboard.cancelAgentRunLogEntry("runlog_01")
+    expect(cancelled.status).toBe("cancelled")
+    expect(cancelled.finishedAt).not.toBeNull()
+
+    // Only the mock adapter persists mutations; its reads reflect the
+    // transition on the next fetch (the HTTP stub is stateless).
+    if (name === "mock") {
+      const entries = await client.dashboard.listAgentRunLog()
+      expect(entries.find((entry) => entry.id === "runlog_01")?.status).toBe("cancelled")
+    }
+
+    await expectApiError(client.dashboard.cancelAgentRunLogEntry("missing-id"))
+
+    const conflict = await client.dashboard
+      .cancelAgentRunLogEntry("runlog_03")
+      .catch((error: unknown) => error)
+    expect(conflict).toBeInstanceOf(ApiError)
+    expect((conflict as ApiError).status).toBe(409)
+    expect((conflict as ApiError).code).toBe("conflict")
+  })
+
+  it("serves the files workspace and applies file mutations", async () => {
+    const client = make()
+
+    const workspace = await client.workspace.getFiles("prj_01")
+    expect(workspace.project.id).toBe("prj_01")
+    expect(workspace.files.length).toBeGreaterThan(0)
+    expect(workspace.storage.limitBytes).toBeGreaterThan(0)
+
+    const folder = await client.workspace.createFolder("prj_01", {
+      parentId: null,
+      name: "contract-folder",
+    })
+    expect(folder.files).toEqual(expect.any(Array))
+
+    const renamed = await client.workspace.renameFileNode("prj_01", {
+      id: "file-tidal",
+      name: "tidal-renamed.csv",
+    })
+    expect(renamed.files).toEqual(expect.any(Array))
+
+    const moved = await client.workspace.moveFileNodes("prj_01", {
+      ids: ["file-survey"],
+      targetFolderId: "folder-archive",
+    })
+    expect(moved.files).toEqual(expect.any(Array))
+
+    const trashed = await client.workspace.trashFileNodes("prj_01", { ids: ["file-figure"] })
+    expect(trashed.files).toEqual(expect.any(Array))
+
+    const restored = await client.workspace.restoreFileNodeVersion("prj_01", {
+      id: "file-tidal",
+      versionId: "ver-tidal-v1",
+    })
+    expect(restored.files).toEqual(expect.any(Array))
+
+    const added = await client.workspace.addUploads("prj_01", {
+      parentId: null,
+      files: [{ name: "contract-upload.csv", sizeBytes: 128, mimeType: "text/csv" }],
+    })
+    expect(added.accepted.length).toBe(1)
+    expect(added.rejected).toEqual([])
+
+    const ticked = await client.workspace.tickUploads("prj_01")
+    expect(ticked.uploads).toEqual(expect.any(Array))
+
+    await expect(
+      client.workspace.updateUpload("prj_01", added.accepted[0], "cancel"),
+    ).resolves.toMatchObject({ files: expect.any(Array) })
+  })
+
+  it("serves the chat workspace and applies channel mutations", async () => {
+    const client = make()
+
+    const workspace = await client.workspace.getChat("prj_01")
+    expect(workspace.channels.length).toBeGreaterThan(0)
+    expect(workspace.activeChannelId).toEqual(expect.any(String))
+    expect(workspace.members).toEqual(expect.any(Array))
+
+    const selected = await client.workspace.selectChatChannel("prj_01", "channel-data-cleaning")
+    expect(selected.channels).toEqual(expect.any(Array))
+
+    const anonymous = await client.workspace.setChatAnonymous("prj_01", true)
+    expect(anonymous).toMatchObject({ channels: expect.any(Array) })
+
+    const botToggled = await client.workspace.setChatBotEnabled("prj_01", false)
+    expect(botToggled).toMatchObject({ channels: expect.any(Array) })
+
+    const created = await client.workspace.createChatChannel("prj_01", {
+      name: "contract-channel",
+    })
+    expect(created.channels).toEqual(expect.any(Array))
+
+    const reacted = await client.workspace.toggleChatReaction("prj_01", "msg-1", "🔥")
+    expect(reacted.messages).toEqual(expect.any(Array))
+
+    const sent = await client.workspace.sendChannelMessage("prj_01", {
+      channelId: "channel-field-notes",
+      body: "contract ping",
+    })
+    expect(sent.messages).toEqual(expect.any(Array))
+
+    const settled = await client.workspace.settleChannelMessages("prj_01")
+    expect(settled.messages).toEqual(expect.any(Array))
+  })
+
+  it("serves the lab workspace and drives environment lifecycle", async () => {
+    const client = make()
+
+    const workspace = await client.workspace.getLab("prj_01")
+    expect(workspace.environments.length).toBeGreaterThan(0)
+    expect(workspace.activeEnvironmentId).toEqual(expect.any(String))
+
+    // lab-jupyter starts stopped: select → start → complete → stop.
+    await expect(
+      client.workspace.selectLabEnvironment("prj_01", "lab-jupyter"),
+    ).resolves.toMatchObject({ environments: expect.any(Array) })
+    await expect(
+      client.workspace.startLabEnvironment("prj_01", "lab-jupyter"),
+    ).resolves.toMatchObject({ environments: expect.any(Array) })
+    await expect(
+      client.workspace.completeLabEnvironmentStart("prj_01", "lab-jupyter"),
+    ).resolves.toMatchObject({ environments: expect.any(Array) })
+    await expect(
+      client.workspace.stopLabEnvironment("prj_01", "lab-jupyter"),
+    ).resolves.toMatchObject({ environments: expect.any(Array) })
+    // lab-rstudio is seeded running, so ping succeeds.
+    await expect(
+      client.workspace.pingLabEnvironment("prj_01", "lab-rstudio"),
+    ).resolves.toMatchObject({ environments: expect.any(Array) })
+  })
+
+  it("serves the agent workspace and manages runs end to end", async () => {
+    const client = make()
+
+    const workspace = await client.workspace.getAgent("prj_01")
+    expect(workspace.quota.dailyLimit).toBeGreaterThan(0)
+    expect(workspace.runs).toEqual(expect.any(Array))
+
+    const configured = await client.workspace.updateAgentConfig("prj_01", {
+      model: "spindle-1-mini",
+      scope: "files",
+    })
+    expect(configured.config).toMatchObject({ model: "spindle-1-mini", scope: "files" })
+
+    const started = await client.workspace.startAgentRun("prj_01", "contract prompt")
+    const runId = started.activeRunId ?? started.runs.at(-1)?.id
+    expect(runId).toEqual(expect.any(String))
+
+    // The mock needs one advance per step before the diff waits for review.
+    for (let i = 0; i < 4; i += 1) {
+      await client.workspace.advanceAgentRuns("prj_01")
+    }
+    const reviewed = await client.workspace.reviewAgentDiff("prj_01", runId!, "approved")
+    expect(reviewed.runs).toEqual(expect.any(Array))
+
+    const second = await client.workspace.startAgentRun("prj_01", "second prompt")
+    const secondRunId = second.activeRunId ?? second.runs.at(-1)?.id
+    expect(secondRunId).toEqual(expect.any(String))
+
+    await client.workspace.cancelAgentRun("prj_01", secondRunId!)
+    const retried = await client.workspace.retryAgentRun("prj_01", secondRunId!)
+    expect(retried.runs.length).toBeGreaterThan(0)
+  })
 })
 
 describe("mock adapter specifics", () => {
@@ -395,6 +874,172 @@ describe("mock adapter specifics", () => {
     await expectApiError(client.projects.deleteProject("missing-id"))
     await expectApiError(client.files.deleteFile("missing-id"))
     await expectApiError(client.agent.cancelAgentRun("missing-id"))
+  })
+
+  it("rejects retrying a chat message that is not failed", async () => {
+    const client = createMockClient()
+    // msg-1 is seeded "sent"; only "failed" messages can be retried.
+    await expect(client.workspace.retryChannelMessage("prj_01", "msg-1")).rejects.toMatchObject({
+      status: 409,
+      code: "conflict",
+    })
+  })
+
+  it("retries a seeded failed chat message back to sending", async () => {
+    const client = createMockClient()
+    // msg-6 is seeded "failed" so the retry path has a real target.
+    const retried = await client.workspace.retryChannelMessage("prj_01", "msg-6")
+    const message = retried.messages.find((candidate) => candidate.id === "msg-6")
+    expect(message?.status).toBe("sending")
+
+    // A second retry conflicts while the message is still in flight.
+    await expect(client.workspace.retryChannelMessage("prj_01", "msg-6")).rejects.toMatchObject({
+      status: 409,
+      code: "conflict",
+    })
+
+    const settled = await client.workspace.settleChannelMessages("prj_01")
+    expect(settled.messages.find((candidate) => candidate.id === "msg-6")?.status).toBe("sent")
+  })
+
+  it("applies the project template when creating a project", async () => {
+    const client = createMockClient()
+
+    const project = await client.projects.createProject({
+      name: "Reef Census",
+      templateId: "field-study",
+    })
+    expect(project.templateId).toBe("field-study")
+
+    const home = await client.dashboard.getProjectHome(project.id)
+    expect(home.files.map((file) => file.path).sort()).toEqual([
+      "field-protocol.md",
+      "observations/log.csv",
+      "samples/inventory.csv",
+      "sites/sites.geojson",
+    ])
+
+    const workspace = await client.workspace.getFiles(project.id)
+    const names = workspace.files.map((node) => node.name)
+    expect(names).toEqual(expect.arrayContaining(["sites", "observations", "samples"]))
+    expect(names).toContain("field-protocol.md")
+
+    const chat = await client.workspace.getChat(project.id)
+    expect(chat.channels.map((channel) => channel.name)).toEqual([
+      "general",
+      "field-crew",
+      "logistics",
+    ])
+  })
+
+  it("clones a project's files, visibility, and workspace state", async () => {
+    const client = createMockClient()
+
+    // Materialize the source workspace stores so the clone copies live state.
+    await client.workspace.getFiles("prj_01")
+    await client.workspace.getChat("prj_01")
+    await client.workspace.getLab("prj_01")
+
+    const clone = await client.projects.createProject({
+      name: "Coastal Resilience (copy)",
+      cloneFromProjectId: "prj_01",
+    })
+
+    // File records are duplicated under the new project id.
+    const home = await client.dashboard.getProjectHome(clone.id)
+    const sourceHome = await client.dashboard.getProjectHome("prj_01")
+    expect(home.files.map((file) => file.path).sort()).toEqual(
+      sourceHome.files.map((file) => file.path).sort(),
+    )
+    for (const file of home.files) expect(file.projectId).toBe(clone.id)
+
+    // The visibility profile carries over; the clone is owned by the session user.
+    expect(home.project.visibility).toBe("workspace")
+    expect(home.project.owner.id).toBe("usr_01")
+
+    // The workspace store was cloned: same file tree, threads, and environments.
+    const files = await client.workspace.getFiles(clone.id)
+    const sourceFiles = await client.workspace.getFiles("prj_01")
+    expect(files.files.map((node) => node.name).sort()).toEqual(
+      sourceFiles.files.map((node) => node.name).sort(),
+    )
+    const chat = await client.workspace.getChat(clone.id)
+    const sourceChat = await client.workspace.getChat("prj_01")
+    expect(chat.channels.map((channel) => channel.name)).toEqual(
+      sourceChat.channels.map((channel) => channel.name),
+    )
+    const lab = await client.workspace.getLab(clone.id)
+    const sourceLab = await client.workspace.getLab("prj_01")
+    expect(lab.environments.map((env) => env.id)).toEqual(
+      sourceLab.environments.map((env) => env.id),
+    )
+    expect(lab.project.name).toBe("Coastal Resilience (copy)")
+  })
+
+  it("clones a never-opened project with the same seeded workspace", async () => {
+    const client = createMockClient()
+
+    // prj_01 is cloned without any prior workspace read, so its store was
+    // never materialized — the clone must still get the rich demo seed
+    // rather than an empty "blank" workspace.
+    const clone = await client.projects.createProject({
+      name: "Coastal Resilience (copy)",
+      cloneFromProjectId: "prj_01",
+    })
+    expect(clone.templateId).toBeUndefined()
+
+    const sourceFiles = await client.workspace.getFiles("prj_01")
+    const cloneFiles = await client.workspace.getFiles(clone.id)
+    expect(cloneFiles.files.length).toBeGreaterThan(0)
+    expect(cloneFiles.files.map((node) => node.name).sort()).toEqual(
+      sourceFiles.files.map((node) => node.name).sort(),
+    )
+
+    const sourceChat = await client.workspace.getChat("prj_01")
+    const cloneChat = await client.workspace.getChat(clone.id)
+    expect(cloneChat.channels.map((channel) => channel.name)).toEqual(
+      sourceChat.channels.map((channel) => channel.name),
+    )
+    expect(cloneChat.messages).toHaveLength(sourceChat.messages.length)
+
+    const sourceLab = await client.workspace.getLab("prj_01")
+    const cloneLab = await client.workspace.getLab(clone.id)
+    expect(cloneLab.environments.map((env) => env.id)).toEqual(
+      sourceLab.environments.map((env) => env.id),
+    )
+  })
+
+  it("keeps cloned project profiles private to each mock client", async () => {
+    const clientA = createMockClient()
+    const clientB = createMockClient()
+
+    // Both clients mint the same next id ("prj_04"); before the per-client
+    // profile copy, clientA's clone wrote into the shared fixture record and
+    // clientB's unrelated project inherited the clone's visibility profile.
+    const cloneA = await clientA.projects.createProject({
+      name: "A copy",
+      cloneFromProjectId: "prj_01",
+    })
+    const homeA = await clientA.dashboard.getProjectHome(cloneA.id)
+    expect(homeA.project.visibility).toBe("workspace")
+
+    const fresh = await clientB.projects.createProject({ name: "B fresh" })
+    const homeB = await clientB.dashboard.getProjectHome(fresh.id)
+    expect(homeB.project.visibility).toBe("private")
+    expect(homeB.project.id).toBe(fresh.id)
+  })
+
+  it("falls back to the blank template for unknown template ids", async () => {
+    const client = createMockClient()
+
+    const project = await client.projects.createProject({
+      name: "Plain",
+      templateId: "not-a-template",
+    })
+    expect(project.templateId).toBe("blank")
+
+    const workspace = await client.workspace.getFiles(project.id)
+    expect(workspace.files).toHaveLength(0)
   })
 })
 
@@ -421,6 +1066,50 @@ describe("http adapter transport details", () => {
     await client.files.listFiles("prj_42")
     const [url] = fetchMock.mock.calls[0] as unknown as [string]
     expect(url).toContain("projectId=prj_42")
+  })
+
+  it("routes every workspace call through /projects/:id/workspace/<screen>", async () => {
+    const { fetchMock, calls } = createStubFetch()
+    vi.stubGlobal("fetch", fetchMock)
+    const client = createHttpClient({ baseUrl: API_BASE })
+
+    await client.workspace.getFiles("prj_01")
+    await client.workspace.createFolder("prj_01", { parentId: null, name: "x" })
+    await client.workspace.renameFileNode("prj_01", { id: "file-tidal", name: "y.csv" })
+    await client.workspace.getChat("prj_01")
+    await client.workspace.sendChannelMessage("prj_01", {
+      channelId: "channel-field-notes",
+      body: "hi",
+    })
+    await client.workspace.retryChannelMessage("prj_01", "msg-1")
+    await client.workspace.getLab("prj_01")
+    await client.workspace.startLabEnvironment("prj_01", "lab-jupyter")
+    await client.workspace.getAgent("prj_01")
+    await client.workspace.updateAgentConfig("prj_01", {
+      model: "spindle-1",
+      scope: "project",
+    })
+    await client.workspace.startAgentRun("prj_01", "prompt")
+    await client.workspace.cancelAgentRun("prj_01", "agent-run-101")
+    await client.workspace.advanceAgentRuns("prj_01")
+    await client.workspace.reviewAgentDiff("prj_01", "agent-run-101", "approved")
+
+    expect(calls.map((call) => `${call.method} ${call.url}`)).toEqual([
+      "GET /projects/prj_01/workspace/files",
+      "POST /projects/prj_01/workspace/files/folders",
+      "PATCH /projects/prj_01/workspace/files/nodes/file-tidal",
+      "GET /projects/prj_01/workspace/chat",
+      "POST /projects/prj_01/workspace/chat/messages",
+      "POST /projects/prj_01/workspace/chat/messages/msg-1/retry",
+      "GET /projects/prj_01/workspace/lab",
+      "POST /projects/prj_01/workspace/lab/environments/lab-jupyter/start",
+      "GET /projects/prj_01/workspace/agent",
+      "PATCH /projects/prj_01/workspace/agent/config",
+      "POST /projects/prj_01/workspace/agent/runs",
+      "POST /projects/prj_01/workspace/agent/runs/agent-run-101/cancel",
+      "POST /projects/prj_01/workspace/agent/runs/advance",
+      "POST /projects/prj_01/workspace/agent/runs/agent-run-101/review",
+    ])
   })
 
   it("maps a 401 session response to null and rethrows other failures", async () => {

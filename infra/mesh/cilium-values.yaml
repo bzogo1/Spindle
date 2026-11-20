@@ -1,0 +1,74 @@
+# Reference only — NOT DEPLOYED.
+#
+# Cilium Helm values sketch for a hypothetical future Kubernetes deployment
+# (see docs/architecture/service-mesh-evaluation.md). Preferred over Linkerd
+# in that scenario because eBPF service mesh needs no per-pod sidecars —
+# important if session containers ever share the cluster, since each sidecar
+# would eat into the 2 GB/session budget.
+#
+# The current production topology is single-host Docker Compose with the
+# standard Docker bridge; Cilium is not in the datapath and these values
+# cannot be applied here. Do not run `cilium install` against anything.
+#
+# Example usage on a FUTURE cluster:
+#   helm install cilium cilium/cilium --version 1.16.x \
+#     --namespace kube-system --values infra/mesh/cilium-values.yaml
+
+k8sServiceHost: "REPLACE_WITH_API_SERVER"
+k8sServicePort: "6443"
+
+# mTLS between all cluster services; Hubble gives L7 flow observability
+# without extra agents.
+mesh:
+  enabled: true
+  authMode: "strict" # require mTLS; "default" during migration
+  encryptNode: true
+  # Transparent encryption keeps Postgres/Valkey wire protocols unchanged.
+
+encryption:
+  enabled: true
+  type: wireguard # or ipsec; wireguard is simpler to operate
+
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: true # read-only UI; front with Cloudflare Access later
+  metrics:
+    enableOpenMetrics: true
+    enabled:
+      - dns
+      - drop
+      - tcp
+      - flow
+      - port-distribution
+      - icmp
+      - httpV2
+
+# L7 network policy sketch (translate to CiliumNetworkPolicy when needed):
+#   apiVersion: cilium.io/v2
+#   kind: CiliumNetworkPolicy
+#   metadata: {name: app-to-worker-only, namespace: spindle}
+#   spec:
+#     endpointSelector:
+#       matchLabels: {app: worker}
+#     ingress:
+#       - fromEndpoints:
+#           - matchLabels: {app: app}
+#       - fromEndpoints:
+#           - matchLabels: {k8s:io.kubernetes.pod.namespace: kube-system}
+#     egress: []
+#   # Postgres/Valkey get their own deny-all-ingress policies so only app and
+#   # worker labels can reach them — the K8s equivalent of today's compose
+#   # network split.
+
+# Resource limits sized for a small cluster; session workloads stay on
+# dedicated nodes or namespaces excluded from mesh injection via:
+#   labels:
+#     cilium.io/mesh: disabled   # on session pod templates, if ever needed
+
+operator:
+  replicas: 1
+prometheus:
+  enabled: true # ServiceMonitor for kube-prometheus-stack

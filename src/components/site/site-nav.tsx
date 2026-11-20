@@ -34,81 +34,76 @@ import {
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
+import { useLanguage } from "@/components/i18n/language-provider"
+import { SITE_SEARCH_OPEN_EVENT } from "@/lib/site-search"
 import { cn } from "@/lib/utils"
 
-/* One link source drives the desktop menus and the mobile panel. */
+import styles from "./site-command-menu.module.css"
+
+/* One link source drives the desktop menus and the mobile panel.
+ *
+ * Link copy is translated: `id` maps to `nav.link.<id>` (title) and
+ * `nav.link.<id>.desc` (description) in the i18n dictionaries. */
 
 type NavLinkItem = {
-  title: string
-  description: string
+  id: string
   href: string
   icon: LucideIcon
 }
 
 const productLinks: NavLinkItem[] = [
   {
-    title: "Workspace overview",
-    description: "Every project gets one home",
+    id: "workspaceOverview",
     href: "/#platform",
     icon: Layers3,
   },
   {
-    title: "Files",
-    description: "5 GB free, 100+ inline previews",
+    id: "files",
     href: "/#files",
     icon: FolderOpen,
   },
   {
-    title: "The Lab",
-    description: "Notebooks, R, SQL, canvas, graphs, and math",
+    id: "lab",
     href: "/lab",
     icon: FlaskConical,
   },
   {
-    title: "Lab notebook preview",
-    description: "The Lab section on the homepage",
+    id: "labPreview",
     href: "/#lab",
     icon: NotebookPen,
   },
   {
-    title: "Local search",
-    description: "Academic and Basic modes, self-hosted",
+    id: "localSearch",
     href: "/#search",
     icon: Search,
   },
   {
-    title: "Automations",
-    description: "Text it, build it, or write the cron",
+    id: "automations",
     href: "/automations",
     icon: Workflow,
   },
   {
-    title: "Agent",
-    description: "Edits files, moves them, runs autonomously",
+    id: "agent",
     href: "/agent",
     icon: Bot,
   },
   {
-    title: "Team chat",
-    description: "Project channels, optional anonymity",
+    id: "teamChat",
     href: "/collaboration#chat",
     icon: MessagesSquare,
   },
   {
-    title: "Collaboration",
-    description: "Live cursors, roles, and shared editing",
+    id: "collaboration",
     href: "/collaboration",
     icon: Users,
   },
   {
-    title: "Infrastructure",
-    description: "Private by design, from TLS to storage",
+    id: "infrastructure",
     href: "/infrastructure",
     icon: ShieldCheck,
   },
   {
-    title: "All features",
-    description: "The whole platform on one page",
+    id: "allFeatures",
     href: "/platform",
     icon: Sparkles,
   },
@@ -116,26 +111,22 @@ const productLinks: NavLinkItem[] = [
 
 const solutionLinks: NavLinkItem[] = [
   {
-    title: "Individual researchers",
-    description: "A calm place for one project",
+    id: "researchers",
     href: "/solutions#researchers",
     icon: NotebookPen,
   },
   {
-    title: "Research labs",
-    description: "Shared kernels, notes, and results",
+    id: "labs",
     href: "/solutions#labs",
     icon: FlaskConical,
   },
   {
-    title: "Research teams",
-    description: "Channels, roles, and live presence",
+    id: "teams",
     href: "/solutions#teams",
     icon: Users,
   },
   {
-    title: "Institutions",
-    description: "Central billing and easy onboarding",
+    id: "institutions",
     href: "/solutions#institutions",
     icon: Building2,
   },
@@ -143,42 +134,40 @@ const solutionLinks: NavLinkItem[] = [
 
 const resourceLinks: NavLinkItem[] = [
   {
-    title: "Documentation",
-    description: "Set up a workspace and learn the tools",
+    id: "documentation",
     href: "/docs",
     icon: BookOpen,
   },
   {
-    title: "Quickstart",
-    description: "Your first project in a few minutes",
+    id: "quickstart",
     href: "/docs/quickstart",
     icon: Zap,
   },
   {
-    title: "Guides",
-    description: "Recipes for search, automations, and lab",
+    id: "guides",
     href: "/docs/guides",
     icon: FileText,
   },
   {
-    title: "Changelog",
-    description: "What shipped and what changed",
+    id: "changelog",
     href: "/changelog",
     icon: Newspaper,
   },
-  { title: "FAQ", description: "Practical questions, answered", href: "/#faq", icon: CircleHelp },
+  {
+    id: "faq",
+    href: "/docs/faq",
+    icon: CircleHelp,
+  },
 ]
 
 const companyLinks: NavLinkItem[] = [
   {
-    title: "About",
-    description: "What Spindle is and why we built it",
+    id: "about",
     href: "/about",
     icon: Sparkles,
   },
   {
-    title: "Contact",
-    description: "Talk to us about your lab",
+    id: "contact",
     href: "/about#contact",
     icon: Mail,
   },
@@ -207,6 +196,7 @@ function isCurrentLink(href: string, path: string, hash: string) {
 }
 
 function NavCard({ link, current }: { link: NavLinkItem; current: boolean }) {
+  const { t } = useLanguage()
   const Icon = link.icon
 
   return (
@@ -221,8 +211,8 @@ function NavCard({ link, current }: { link: NavLinkItem; current: boolean }) {
             <Icon className="size-4" aria-hidden="true" />
           </span>
           <span className="ui-nav-card-text">
-            <span className="ui-nav-card-title">{link.title}</span>
-            <span className="ui-nav-card-desc">{link.description}</span>
+            <span className="ui-nav-card-title">{t(`nav.link.${link.id}`)}</span>
+            <span className="ui-nav-card-desc">{t(`nav.link.${link.id}.desc`)}</span>
           </span>
         </a>
       </NavigationMenuLink>
@@ -231,24 +221,25 @@ function NavCard({ link, current }: { link: NavLinkItem; current: boolean }) {
 }
 
 function NavGroup({
-  label,
+  labelKey,
   links,
   path,
   hash,
   wide = false,
 }: {
-  label: string
+  labelKey: string
   links: NavLinkItem[]
   path: string
   hash: string
   wide?: boolean
 }) {
+  const { t } = useLanguage()
   const hasCurrent = links.some((link) => isCurrentLink(link.href, path, hash))
 
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className={cn("ui-nav-trigger", hasCurrent && "is-current")}>
-        {label}
+        {t(labelKey)}
       </NavigationMenuTrigger>
       <NavigationMenuContent className={cn("ui-nav-content", wide && "ui-nav-content--wide")}>
         <ul className={cn("ui-nav-grid", wide && "ui-nav-grid--wide")}>
@@ -263,13 +254,14 @@ function NavGroup({
 
 export function MainNav() {
   const { path, hash } = useSiteLocation()
+  const { t } = useLanguage()
   const pricingCurrent = isCurrentLink("/pricing", path, hash)
 
   return (
     <NavigationMenu className="ui-main-nav" aria-label="Main navigation">
       <NavigationMenuList className="ui-nav-list">
-        <NavGroup label="Product" links={productLinks} path={path} hash={hash} wide />
-        <NavGroup label="Solutions" links={solutionLinks} path={path} hash={hash} />
+        <NavGroup labelKey="nav.product" links={productLinks} path={path} hash={hash} wide />
+        <NavGroup labelKey="nav.solutions" links={solutionLinks} path={path} hash={hash} />
         <NavigationMenuItem>
           <NavigationMenuLink
             asChild
@@ -281,12 +273,12 @@ export function MainNav() {
             )}
           >
             <a href="/pricing" aria-current={pricingCurrent ? "page" : undefined}>
-              Pricing
+              {t("nav.pricing")}
             </a>
           </NavigationMenuLink>
         </NavigationMenuItem>
-        <NavGroup label="Resources" links={resourceLinks} path={path} hash={hash} />
-        <NavGroup label="Company" links={companyLinks} path={path} hash={hash} />
+        <NavGroup labelKey="nav.resources" links={resourceLinks} path={path} hash={hash} />
+        <NavGroup labelKey="nav.company" links={companyLinks} path={path} hash={hash} />
       </NavigationMenuList>
       <NavigationMenuIndicator />
     </NavigationMenu>
@@ -294,27 +286,43 @@ export function MainNav() {
 }
 
 const mobileGroups = [
-  { label: "Product", links: productLinks },
-  { label: "Solutions", links: solutionLinks },
-  { label: "Resources", links: resourceLinks },
-  { label: "Company", links: companyLinks },
+  { labelKey: "nav.product", links: productLinks },
+  { labelKey: "nav.solutions", links: solutionLinks },
+  { labelKey: "nav.resources", links: resourceLinks },
+  { labelKey: "nav.company", links: companyLinks },
 ]
 
 export function MobileNav() {
   const { path, hash } = useSiteLocation()
+  const { t } = useLanguage()
+  const pricingCurrent = isCurrentLink("/pricing", path, hash)
 
   // The toggle button lives in the header; script.js owns its open state.
   function closeMobileNav() {
     document.getElementById("mobileNav")?.classList.remove("open")
-    document.getElementById("menuToggle")?.setAttribute("aria-expanded", "false")
-    document.getElementById("menuToggle")?.setAttribute("aria-label", "Open menu")
+    const toggle = document.getElementById("menuToggle")
+    toggle?.setAttribute("aria-expanded", "false")
+    toggle?.setAttribute("aria-label", t("nav.openMenu"))
+  }
+
+  /* Mobile devices have no ⌘K — the palette opens via the header's
+     SiteCommandMenu listening for this event. */
+  function openSiteSearch() {
+    closeMobileNav()
+    window.dispatchEvent(new Event(SITE_SEARCH_OPEN_EVENT))
   }
 
   return (
     <div className="ui-mobile-nav">
+      <div className="ui-mobile-group">
+        <button type="button" className={styles.mobileSearch} onClick={openSiteSearch}>
+          <Search className="size-3.5" aria-hidden="true" />
+          {t("nav.searchSite")}
+        </button>
+      </div>
       {mobileGroups.map((group) => (
-        <div className="ui-mobile-group" key={group.label}>
-          <p className="ui-mobile-group-label">{group.label}</p>
+        <div className="ui-mobile-group" key={group.labelKey}>
+          <p className="ui-mobile-group-label">{t(group.labelKey)}</p>
           {group.links.map((link) => {
             const current = isCurrentLink(link.href, path, hash)
             const Icon = link.icon
@@ -327,15 +335,27 @@ export function MobileNav() {
                 onClick={closeMobileNav}
               >
                 <Icon className="size-3.5" aria-hidden="true" />
-                {link.title}
+                {t(`nav.link.${link.id}`)}
               </a>
             )
           })}
         </div>
       ))}
       <div className="ui-mobile-group">
-        <a href="/pricing" className="ui-mobile-link" onClick={closeMobileNav}>
-          Pricing
+        <a
+          href="/pricing"
+          className={cn("ui-mobile-link", pricingCurrent && "is-current")}
+          aria-current={pricingCurrent ? "page" : undefined}
+          onClick={closeMobileNav}
+        >
+          {t("nav.pricing")}
+        </a>
+      </div>
+      {/* The header hides its "Start free" button on phone widths, so the
+          primary CTA lives here instead. */}
+      <div className="ui-mobile-group">
+        <a href="/sign-up" className="btn btn--primary btn--full" onClick={closeMobileNav}>
+          {t("auth.startFree")}
         </a>
       </div>
     </div>

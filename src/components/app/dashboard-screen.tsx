@@ -1,39 +1,52 @@
 "use client"
 
-import { useMemo, useState, type FormEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import {
   Bot,
-  Files,
   FlaskConical,
   FolderKanban,
   HardDrive,
+  MessageSquare,
   Plus,
   Search,
-  Sparkles,
+  SlidersHorizontal,
+  Upload,
 } from "lucide-react"
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { ScreenState } from "@/components/app/states/screen-state"
-import { EmptyState } from "@/components/app/states/empty-state"
-import { api, useMutation, useWorkspaceDashboard } from "@/lib/api"
-import type { CreateProjectInput, ProjectSummary } from "@/lib/api/types"
+import { ProjectSwitcher } from "@/components/app/project-switcher"
+import { EmptyState } from "@/components/dashboard/empty-state"
+import { OnboardingResumeBanner } from "@/components/onboarding/onboarding-resume-banner"
+import {
+  NoProjectsEmptyState,
+  SearchNoResultsEmptyState,
+} from "@/components/dashboard/empty-states"
+import { useWorkspaceDashboard } from "@/lib/api"
+import { mergeActivityEvents } from "@/lib/activity/client"
+import { useActivityEvents } from "@/lib/activity/use-activity-events"
+import type { ProjectSummary, User } from "@/lib/api/types"
 
+import { ActivityFeed } from "./activity-feed"
+import { CopyButton } from "./copy-button"
+import { dashboardShareHref, parseDashboardShareParams } from "./dashboard-share"
+import {
+  DASHBOARD_SIDEBAR_WIDGET_IDS,
+  DashboardCustomizeDialog,
+  useDashboardWidgets,
+  type DashboardWidgetId,
+} from "./dashboard-widgets"
+import { NewProjectDialog } from "./new-project-dialog"
 import { formatBytes, formatRelativeTime } from "./format"
+import { OPEN_NEW_PROJECT_EVENT, OPEN_NEW_PROJECT_STORAGE_KEY } from "./new-project-events"
+import { useDashboardLayout, type DashboardProjectSort } from "./dashboard-layout"
 
-type ProjectSort = "updated" | "name" | "created" | "files"
+type ProjectSort = DashboardProjectSort
 
 const SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
   { value: "updated", label: "Recently updated" },
@@ -70,134 +83,142 @@ function sortProjects(projects: ProjectSummary[], sort: ProjectSort) {
   })
 }
 
-function ProjectCard({ project }: { project: ProjectSummary }) {
-  return (
-    <Link href={`/projects/${project.id}`} className="app-project-card">
-      <div className="app-project-card-head">
-        <span className="app-project-card-icon" aria-hidden="true">
-          <FolderKanban />
-        </span>
-        <Badge variant="outline" className="app-project-visibility">
-          {project.visibility}
-        </Badge>
-      </div>
-      <h3>{project.name}</h3>
-      <p>{project.description ?? "No description yet."}</p>
-      <dl className="app-project-card-meta">
-        <div>
-          <dt>Owner</dt>
-          <dd>{project.owner.name ?? project.owner.email}</dd>
-        </div>
-        <div>
-          <dt>Updated</dt>
-          <dd>{formatRelativeTime(projectTimestamp(project))}</dd>
-        </div>
-        <div>
-          <dt>Files</dt>
-          <dd>{project.fileCount}</dd>
-        </div>
-        <div>
-          <dt>Lab</dt>
-          <dd>{project.labSessionCount}</dd>
-        </div>
-        <div>
-          <dt>Agent</dt>
-          <dd>{project.agentRunCount}</dd>
-        </div>
-        <div>
-          <dt>Storage</dt>
-          <dd>{formatBytes(project.storageBytes)}</dd>
-        </div>
-      </dl>
-    </Link>
-  )
+function userInitial(user: User) {
+  return (user.name?.trim().charAt(0) || user.email.charAt(0)).toUpperCase()
 }
 
-function NewProjectDialog({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const router = useRouter()
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const createProject = useMutation((input: CreateProjectInput) =>
-    api.projects.createProject(input),
-  )
+function userLabel(user: User) {
+  return user.name ?? user.email
+}
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    try {
-      const project = await createProject.mutate({
-        name: name.trim(),
-        description: description.trim() || undefined,
-      })
-      setName("")
-      setDescription("")
-      onOpenChange(false)
-      router.push(`/projects/${project.id}`)
-    } catch {
-      // The mutation state surfaces the error inside the dialog.
-    }
+function MemberStack({ project }: { project: ProjectSummary }) {
+  const members = project.members ?? []
+  const visible = members.slice(0, 4)
+  const extra = Math.max(project.memberCount - visible.length, 0)
+
+  if (visible.length === 0) {
+    return <span className="app-member-stack-count">{project.memberCount} members</span>
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New project</DialogTitle>
-          <DialogDescription>
-            Create a mock project home with files, lab sessions, chat, and agent runs.
-          </DialogDescription>
-        </DialogHeader>
-        <form className="app-form" onSubmit={submit}>
-          <div className="app-field">
-            <label htmlFor="new-project-name">Name</label>
-            <Input
-              id="new-project-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Coastal resilience"
-              required
-              maxLength={80}
-              autoFocus
-            />
+    <span className="app-member-stack" aria-label={`${project.memberCount} members`}>
+      {visible.map((member) => (
+        <span
+          key={member.id}
+          className="app-avatar app-member-avatar"
+          title={userLabel(member)}
+          aria-hidden="true"
+        >
+          {userInitial(member)}
+        </span>
+      ))}
+      {extra > 0 ? <span className="app-member-stack-count">+{extra}</span> : null}
+    </span>
+  )
+}
+
+const PROJECT_CARD_ACTIONS = [
+  { label: "Files", href: (id: string) => `/projects/${id}/files` },
+  { label: "Lab", href: (id: string) => `/projects/${id}/lab` },
+  { label: "Chat", href: (id: string) => `/projects/${id}/chat` },
+] as const
+
+function ProjectCard({ project }: { project: ProjectSummary }) {
+  return (
+    <article className="app-project-card">
+      <Link href={`/projects/${project.id}`} className="app-project-card-open">
+        <div className="app-project-card-head">
+          <span className="app-project-card-icon" aria-hidden="true">
+            <FolderKanban />
+          </span>
+          <Badge variant="outline" className="app-project-visibility">
+            {project.visibility}
+          </Badge>
+        </div>
+        <h3>{project.name}</h3>
+        <p>{project.description ?? "No description yet."}</p>
+        <dl className="app-project-card-meta">
+          <div>
+            <dt>Owner</dt>
+            <dd>{project.owner.name ?? project.owner.email}</dd>
           </div>
-          <div className="app-field">
-            <label htmlFor="new-project-description">Description</label>
-            <textarea
-              id="new-project-description"
-              className="app-textarea"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="What is this project for?"
-              rows={3}
-              maxLength={240}
-            />
+          <div>
+            <dt>Updated</dt>
+            <dd>{formatRelativeTime(projectTimestamp(project))}</dd>
           </div>
-          {createProject.error ? (
-            <p className="app-form-error" role="alert">
-              {createProject.error.message}
-            </p>
-          ) : null}
-          <DialogFooter>
-            <Button type="submit" disabled={createProject.isLoading || !name.trim()}>
-              {createProject.isLoading ? "Creating…" : "Create project"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <div>
+            <dt>Files</dt>
+            <dd>{project.fileCount}</dd>
+          </div>
+          <div>
+            <dt>Lab</dt>
+            <dd>{project.labSessionCount}</dd>
+          </div>
+          <div>
+            <dt>Agent</dt>
+            <dd>{project.agentRunCount}</dd>
+          </div>
+          <div>
+            <dt>Storage</dt>
+            <dd>{formatBytes(project.storageBytes)}</dd>
+          </div>
+        </dl>
+        <div className="app-project-card-members">
+          <MemberStack project={project} />
+        </div>
+      </Link>
+      <div className="app-project-card-actions" aria-label={`Quick actions for ${project.name}`}>
+        {PROJECT_CARD_ACTIONS.map((action) => (
+          <Link key={action.label} href={action.href(project.id)} className="app-card-action">
+            {action.label}
+          </Link>
+        ))}
+      </div>
+    </article>
   )
 }
 
 export function DashboardScreen() {
   const query = useWorkspaceDashboard()
+  // Workspace-wide live activity (no project filter) merged into the feed.
+  const liveActivity = useActivityEvents()
   const [search, setSearch] = useState("")
-  const [sort, setSort] = useState<ProjectSort>("updated")
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  // Shareable-link params (`?widgets=`/`?sort=`) override the persisted
+  // layout for this view without overwriting it (see `dashboard-share.ts`).
+  // Keyed on the serialized query — `useSearchParams()` may hand back a new
+  // object each render, and the parsed config feeds hook effect deps.
+  const shareQuery = searchParams.toString()
+  const shareParams = useMemo(
+    () => parseDashboardShareParams(new URLSearchParams(shareQuery)),
+    [shareQuery],
+  )
+  // Sort order persists across reloads and syncs across tabs (localStorage).
+  const { sort, setSort } = useDashboardLayout(shareParams.sort)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
+  const [customizeOpen, setCustomizeOpen] = useState(false)
+  const widgets = useDashboardWidgets(shareParams.widgets)
+
+  // The command menu's "New project" action reaches this screen either through
+  // the window event (already mounted) or the storage flag (navigated here).
+  useEffect(() => {
+    function openNewProject() {
+      try {
+        sessionStorage.removeItem(OPEN_NEW_PROJECT_STORAGE_KEY)
+      } catch {
+        // Storage can be unavailable (private mode).
+      }
+      setNewProjectOpen(true)
+    }
+    try {
+      if (sessionStorage.getItem(OPEN_NEW_PROJECT_STORAGE_KEY)) openNewProject()
+    } catch {
+      // Storage can be unavailable (private mode).
+    }
+    window.addEventListener(OPEN_NEW_PROJECT_EVENT, openNewProject)
+    return () => window.removeEventListener(OPEN_NEW_PROJECT_EVENT, openNewProject)
+  }, [])
 
   const filteredProjects = useMemo(() => {
     if (!query.data) return []
@@ -217,7 +238,6 @@ export function DashboardScreen() {
   const totals = useMemo(() => {
     const projects = query.data?.projects ?? []
     return {
-      files: projects.reduce((total, project) => total + project.fileCount, 0),
       labSessions: projects.reduce((total, project) => total + project.labSessionCount, 0),
       agentRuns: projects.reduce((total, project) => total + project.agentRunCount, 0),
       members: projects.reduce((total, project) => total + project.memberCount, 0),
@@ -233,231 +253,283 @@ export function DashboardScreen() {
       isRetrying={query.isRetrying}
       onRetry={query.refetch}
     >
-      {(dashboard) => (
-        <div className="app-page app-dashboard">
-          <header className="app-dashboard-header">
-            <div className="app-dashboard-heading">
-              <p className="app-eyebrow">{dashboard.workspace.name}</p>
-              <h1>Dashboard</h1>
-              <p className="app-page-lede">
-                Welcome back, {dashboard.user.name ?? dashboard.user.email}. Here is what needs
-                attention across {dashboard.workspace.name}.
-              </p>
-            </div>
-            <Button type="button" onClick={() => setNewProjectOpen(true)}>
-              <Plus aria-hidden="true" />
-              New project
-            </Button>
-          </header>
+      {(dashboard) => {
+        const activity = mergeActivityEvents(dashboard.activity, liveActivity)
+        const sidebarWidgetOrder = widgets.config.order.filter(
+          (id) =>
+            (DASHBOARD_SIDEBAR_WIDGET_IDS as readonly string[]).includes(id) &&
+            widgets.isVisible(id),
+        )
 
-          <section className="app-stat-grid" aria-label="Workspace summary">
-            <article className="app-stat-card">
-              <span>Projects</span>
-              <strong>{dashboard.projects.length}</strong>
-              <small>{totals.members} members across projects</small>
-            </article>
-            <article className="app-stat-card">
-              <span>Files</span>
-              <strong>{totals.files}</strong>
-              <small>{formatBytes(dashboard.storage.fileBytes)} stored</small>
-            </article>
-            <article className="app-stat-card">
-              <span>Lab sessions</span>
-              <strong>{totals.labSessions}</strong>
-              <small>{totals.agentRuns} agent runs</small>
-            </article>
-            <article className="app-stat-card">
-              <span>Storage</span>
-              <strong>{formatBytes(dashboard.storage.usedBytes)}</strong>
-              <small>{formatBytes(dashboard.storage.availableBytes)} available</small>
-            </article>
-          </section>
-
-          <div className="app-dashboard-columns">
-            <section className="app-panel" aria-labelledby="projects-heading">
-              <div className="app-panel-head">
-                <div>
-                  <h2 id="projects-heading">Projects</h2>
-                  <p>Search, sort, and open a project home.</p>
-                </div>
-                <div className="app-toolbar">
-                  <label className="app-search-field">
-                    <Search aria-hidden="true" />
-                    <span className="sr-only">Search projects</span>
-                    <Input
-                      type="search"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Search projects"
-                      aria-label="Search projects"
+        function renderSidebarWidget(id: DashboardWidgetId) {
+          switch (id) {
+            case "activity":
+              return (
+                <section key={id} className="app-panel" aria-labelledby="activity-heading">
+                  <div className="app-panel-head">
+                    <div>
+                      <h2 id="activity-heading">Recent activity</h2>
+                      <p>Latest project, file, lab, chat, and agent events.</p>
+                    </div>
+                  </div>
+                  {activity.length === 0 ? (
+                    <EmptyState
+                      title="No recent activity"
+                      description="Activity will appear here as projects, files, runs, and sessions change."
+                      primaryAction={{
+                        label: "New project",
+                        onClick: () => setNewProjectOpen(true),
+                      }}
                     />
-                  </label>
-                  <label className="app-sort-field">
-                    <span className="sr-only">Sort projects</span>
-                    <select
-                      value={sort}
-                      onChange={(event) => setSort(event.target.value as ProjectSort)}
-                      aria-label="Sort projects"
+                  ) : (
+                    <ActivityFeed events={activity} />
+                  )}
+                </section>
+              )
+            case "storage":
+              return (
+                <section key={id} className="app-panel" aria-labelledby="storage-heading">
+                  <div className="app-panel-head">
+                    <div>
+                      <h2 id="storage-heading">Storage</h2>
+                      <p>Workspace files and compute checkpoints.</p>
+                    </div>
+                    <span className="app-panel-head-actions">
+                      <Link className="app-panel-link" href="/dashboard/usage">
+                        Usage &amp; plan
+                      </Link>
+                      <HardDrive aria-hidden="true" className="app-panel-icon" />
+                    </span>
+                  </div>
+                  <div className="app-storage">
+                    <div className="app-storage-row">
+                      <span>Used</span>
+                      <strong>{formatBytes(dashboard.storage.usedBytes)}</strong>
+                    </div>
+                    <Progress value={storagePercent} aria-label="Storage used" />
+                    <div className="app-storage-row app-storage-row--muted">
+                      <span>{formatBytes(dashboard.storage.availableBytes)} available</span>
+                      <span>{storagePercent.toFixed(0)}%</span>
+                    </div>
+                    <dl className="app-storage-breakdown">
+                      <div>
+                        <dt>Files</dt>
+                        <dd>{formatBytes(dashboard.storage.fileBytes)}</dd>
+                      </div>
+                      <div>
+                        <dt>Compute</dt>
+                        <dd>{formatBytes(dashboard.storage.computeBytes)}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </section>
+              )
+            case "quick-actions":
+              return (
+                <section key={id} className="app-panel" aria-labelledby="quick-actions-heading">
+                  <div className="app-panel-head">
+                    <div>
+                      <h2 id="quick-actions-heading">Quick actions</h2>
+                      <p>Jump straight into a task.</p>
+                    </div>
+                  </div>
+                  <div className="app-quick-actions">
+                    <button
+                      type="button"
+                      className="app-quick-link"
+                      onClick={() => setNewProjectOpen(true)}
                     >
-                      {SORT_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                      <Plus aria-hidden="true" />
+                      <span>
+                        <strong>New project</strong>
+                        <small>Create a project workspace</small>
+                      </span>
+                    </button>
+                    <Link href="/app/files" className="app-quick-link">
+                      <Upload aria-hidden="true" />
+                      <span>
+                        <strong>Upload file</strong>
+                        <small>Add files to a project</small>
+                      </span>
+                    </Link>
+                    <Link href="/app/lab" className="app-quick-link">
+                      <FlaskConical aria-hidden="true" />
+                      <span>
+                        <strong>Run lab tool</strong>
+                        <small>Start a lab session</small>
+                      </span>
+                    </Link>
+                    <Link href="/app/chat" className="app-quick-link">
+                      <MessageSquare aria-hidden="true" />
+                      <span>
+                        <strong>Open chat</strong>
+                        <small>Message your team and agents</small>
+                      </span>
+                    </Link>
+                  </div>
+                </section>
+              )
+            default:
+              return null
+          }
+        }
+
+        return (
+          <div className="app-page app-dashboard">
+            <header className="app-dashboard-header">
+              <div className="app-dashboard-heading">
+                <ProjectSwitcher
+                  projects={dashboard.projects}
+                  onCreateProject={() => setNewProjectOpen(true)}
+                />
+                <p className="app-eyebrow">{dashboard.workspace.name}</p>
+                <h1>Dashboard</h1>
+                <p className="app-page-lede">
+                  Welcome back, {dashboard.user.name ?? dashboard.user.email}. Here is what needs
+                  attention across {dashboard.workspace.name}.
+                </p>
+              </div>
+              <div className="app-dashboard-header-actions">
+                <CopyButton
+                  // Evaluated lazily on click so `window` is only touched in
+                  // the browser; encodes the current widget/layout state.
+                  text={() =>
+                    dashboardShareHref(
+                      { widgets: widgets.config, sort },
+                      pathname,
+                      window.location.search,
+                    )
+                  }
+                  label="Copy link"
+                />
+                <Button type="button" variant="outline" onClick={() => setCustomizeOpen(true)}>
+                  <SlidersHorizontal aria-hidden="true" />
+                  Customize
+                </Button>
+                <Button type="button" onClick={() => setNewProjectOpen(true)}>
+                  <Plus aria-hidden="true" />
+                  New project
+                </Button>
+              </div>
+            </header>
+
+            <OnboardingResumeBanner />
+
+            {widgets.isVisible("stats") && (
+              <section className="app-stat-grid" aria-label="Workspace summary">
+                <article className="app-stat-card">
+                  <span className="app-stat-card-label">
+                    <FolderKanban aria-hidden="true" />
+                    Projects
+                  </span>
+                  <strong>{dashboard.projects.length}</strong>
+                  <small>{totals.members} members across projects</small>
+                </article>
+                <article className="app-stat-card">
+                  <span className="app-stat-card-label">
+                    <HardDrive aria-hidden="true" />
+                    Storage used
+                  </span>
+                  <strong>{formatBytes(dashboard.storage.usedBytes)}</strong>
+                  <small>{formatBytes(dashboard.storage.availableBytes)} available</small>
+                </article>
+                <article className="app-stat-card">
+                  <span className="app-stat-card-label">
+                    <Bot aria-hidden="true" />
+                    Agent runs
+                  </span>
+                  <strong>{totals.agentRuns}</strong>
+                  <small>{totals.labSessions} lab sessions</small>
+                </article>
+              </section>
+            )}
+
+            {(widgets.isVisible("projects") ||
+              widgets.config.order.some(
+                (id) =>
+                  (DASHBOARD_SIDEBAR_WIDGET_IDS as readonly string[]).includes(id) &&
+                  widgets.isVisible(id),
+              )) && (
+              <div className="app-dashboard-columns">
+                {widgets.isVisible("projects") && (
+                  <section className="app-panel" aria-labelledby="projects-heading">
+                    <div className="app-panel-head">
+                      <div>
+                        <h2 id="projects-heading">Projects</h2>
+                        <p>Search, sort, and open a project home.</p>
+                      </div>
+                      <div className="app-toolbar">
+                        <label className="app-search-field">
+                          <Search aria-hidden="true" />
+                          <span className="sr-only">Search projects</span>
+                          <Input
+                            type="search"
+                            value={search}
+                            onChange={(event) => setSearch(event.target.value)}
+                            placeholder="Search projects"
+                            aria-label="Search projects"
+                          />
+                        </label>
+                        <label className="app-sort-field">
+                          <span className="sr-only">Sort projects</span>
+                          <select
+                            value={sort}
+                            onChange={(event) => setSort(event.target.value as ProjectSort)}
+                            aria-label="Sort projects"
+                          >
+                            {SORT_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+
+                    {dashboard.projects.length === 0 ? (
+                      <NoProjectsEmptyState
+                        primaryAction={{
+                          label: "New project",
+                          onClick: () => setNewProjectOpen(true),
+                        }}
+                      />
+                    ) : filteredProjects.length === 0 ? (
+                      <SearchNoResultsEmptyState
+                        query={search.trim()}
+                        title="No matching projects"
+                        description={`Nothing matches “${search.trim()}”. Try a different name, owner, or visibility.`}
+                        primaryAction={{
+                          label: "Clear search",
+                          variant: "secondary",
+                          onClick: () => setSearch(""),
+                        }}
+                      />
+                    ) : (
+                      <div className="app-project-grid">
+                        {filteredProjects.map((project) => (
+                          <ProjectCard key={project.id} project={project} />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                <div className="app-dashboard-side">
+                  {sidebarWidgetOrder.map((id) => renderSidebarWidget(id))}
                 </div>
               </div>
+            )}
 
-              {dashboard.projects.length === 0 ? (
-                <EmptyState
-                  icon={<FolderKanban aria-hidden="true" />}
-                  title="No projects yet"
-                  body="Create a project to start collecting files, running lab sessions, and working with the agent."
-                  primaryAction={{
-                    label: "New project",
-                    onClick: () => setNewProjectOpen(true),
-                  }}
-                />
-              ) : filteredProjects.length === 0 ? (
-                <EmptyState
-                  title="No matching projects"
-                  body={`Nothing matches “${search.trim()}”. Try a different name, owner, or visibility.`}
-                  primaryAction={{
-                    label: "Clear search",
-                    variant: "secondary",
-                    onClick: () => setSearch(""),
-                  }}
-                />
-              ) : (
-                <div className="app-project-grid">
-                  {filteredProjects.map((project) => (
-                    <ProjectCard key={project.id} project={project} />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <div className="app-dashboard-side">
-              <section className="app-panel" aria-labelledby="activity-heading">
-                <div className="app-panel-head">
-                  <div>
-                    <h2 id="activity-heading">Recent activity</h2>
-                    <p>Latest project, file, lab, chat, and agent events.</p>
-                  </div>
-                </div>
-                {dashboard.activity.length === 0 ? (
-                  <EmptyState
-                    title="No recent activity"
-                    body="Activity will appear here as projects, files, runs, and sessions change."
-                    primaryAction={{
-                      label: "New project",
-                      onClick: () => setNewProjectOpen(true),
-                    }}
-                  />
-                ) : (
-                  <ol className="app-activity-list">
-                    {dashboard.activity.map((event) => (
-                      <li key={event.id}>
-                        <span className={`app-activity-kind is-${event.kind}`}>{event.kind}</span>
-                        <div>
-                          <p>
-                            <strong>{event.actor.name}</strong> {event.summary}
-                            {event.target ? ` ${event.target}` : ""}
-                          </p>
-                          <small>
-                            {event.projectId ? (
-                              <Link href={`/projects/${event.projectId}`}>
-                                {event.projectName ?? "Project"}
-                              </Link>
-                            ) : (
-                              (event.projectName ?? "Workspace")
-                            )}
-                            {" · "}
-                            {formatRelativeTime(event.createdAt)}
-                          </small>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </section>
-
-              <section className="app-panel" aria-labelledby="storage-heading">
-                <div className="app-panel-head">
-                  <div>
-                    <h2 id="storage-heading">Storage</h2>
-                    <p>Workspace files and compute checkpoints.</p>
-                  </div>
-                  <HardDrive aria-hidden="true" className="app-panel-icon" />
-                </div>
-                <div className="app-storage">
-                  <div className="app-storage-row">
-                    <span>Used</span>
-                    <strong>{formatBytes(dashboard.storage.usedBytes)}</strong>
-                  </div>
-                  <Progress value={storagePercent} aria-label="Storage used" />
-                  <div className="app-storage-row app-storage-row--muted">
-                    <span>{formatBytes(dashboard.storage.availableBytes)} available</span>
-                    <span>{storagePercent.toFixed(0)}%</span>
-                  </div>
-                  <dl className="app-storage-breakdown">
-                    <div>
-                      <dt>Files</dt>
-                      <dd>{formatBytes(dashboard.storage.fileBytes)}</dd>
-                    </div>
-                    <div>
-                      <dt>Compute</dt>
-                      <dd>{formatBytes(dashboard.storage.computeBytes)}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </section>
-
-              <section className="app-panel" aria-labelledby="quick-links-heading">
-                <div className="app-panel-head">
-                  <div>
-                    <h2 id="quick-links-heading">Quick links</h2>
-                    <p>Jump into the workspace tools.</p>
-                  </div>
-                </div>
-                <nav className="app-quick-links" aria-label="Workspace quick links">
-                  <Link href="/app/files" className="app-quick-link">
-                    <Files aria-hidden="true" />
-                    <span>
-                      <strong>Files</strong>
-                      <small>Browse project files</small>
-                    </span>
-                  </Link>
-                  <Link href="/app/lab" className="app-quick-link">
-                    <FlaskConical aria-hidden="true" />
-                    <span>
-                      <strong>Lab</strong>
-                      <small>Open compute sessions</small>
-                    </span>
-                  </Link>
-                  <Link href="/app/agent" className="app-quick-link">
-                    <Bot aria-hidden="true" />
-                    <span>
-                      <strong>Agent</strong>
-                      <small>Review runs and diffs</small>
-                    </span>
-                  </Link>
-                  <Link href="/app/chat" className="app-quick-link">
-                    <Sparkles aria-hidden="true" />
-                    <span>
-                      <strong>Chat</strong>
-                      <small>Project conversations</small>
-                    </span>
-                  </Link>
-                </nav>
-              </section>
-            </div>
+            <DashboardCustomizeDialog
+              open={customizeOpen}
+              onOpenChange={setCustomizeOpen}
+              widgets={widgets}
+            />
+            <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
           </div>
-
-          <NewProjectDialog open={newProjectOpen} onOpenChange={setNewProjectOpen} />
-        </div>
-      )}
+        )
+      }}
     </ScreenState>
   )
 }

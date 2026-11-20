@@ -1,58 +1,54 @@
 "use client"
 
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
-import {
-  Bot,
-  Check,
-  ChevronLeft,
-  ChevronsUpDown,
-  Files,
-  FlaskConical,
-  FolderKanban,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  MessageSquare,
-  Moon,
-  Search,
-  Settings,
-  Sun,
-} from "lucide-react"
-import { Dialog as DialogPrimitive } from "radix-ui"
+import { ChevronLeft, Menu, Moon, Search, Sun } from "lucide-react"
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { useMockSession } from "@/components/app/mock-session-provider"
+import { Toaster } from "@/components/ui/toast"
+import { useAppTheme } from "@/components/app/use-app-theme"
+import { UserMenu } from "@/components/app/user-menu"
+import { WorkspaceSwitcher } from "@/components/workspaces/workspace-switcher"
+import { NAV_ITEMS } from "@/components/app/nav-items"
+import { MobileNavDrawer } from "@/components/app/mobile-nav-drawer"
+import { KeyboardShortcuts } from "@/components/app/keyboard-shortcuts"
+import { MessagesBell } from "./messages-bell"
+import { NotificationBell } from "./notification-bell"
+import { ForcedResetBanner } from "@/components/auth/forced-reset-banner"
+import { ImpersonationBanner } from "@/components/admin/impersonation-banner"
 
-const THEME_KEY = "spindle-app-theme"
-
-type NavItem = {
-  label: string
-  href: string
-  icon: ReactNode
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard aria-hidden="true" /> },
-  { label: "Projects", href: "/projects", icon: <FolderKanban aria-hidden="true" /> },
-  { label: "Files", href: "/app/files", icon: <Files aria-hidden="true" /> },
-  { label: "Lab", href: "/app/lab", icon: <FlaskConical aria-hidden="true" /> },
-  { label: "Chat", href: "/app/chat", icon: <MessageSquare aria-hidden="true" /> },
-  { label: "Agent", href: "/app/agent", icon: <Bot aria-hidden="true" /> },
-  { label: "Settings", href: "/app/settings", icon: <Settings aria-hidden="true" /> },
-]
+/**
+ * The ⌘K palette and its search providers are the heaviest part of the app
+ * shell, so they load as a separate client chunk after hydration instead of
+ * riding in the shell's initial bundle. `ssr: false` is allowed here because
+ * AppShell is a Client Component. The loading fallback renders the same
+ * trigger button so the top bar does not shift while the chunk arrives.
+ */
+const CommandMenu = dynamic(
+  () => import("@/components/app/command-menu").then((mod) => mod.CommandMenu),
+  {
+    ssr: false,
+    loading: () => (
+      <button type="button" className="app-search-trigger">
+        <Search aria-hidden="true" />
+        <span className="app-search-label">Search</span>
+        <kbd className="app-search-kbd" aria-hidden="true">
+          ⌘K
+        </kbd>
+      </button>
+    ),
+  },
+)
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+/** Title shown in the top bar for the current section. */
+function pageTitle(pathname: string) {
+  if (pathname.startsWith("/projects/")) return "Project"
+  return NAV_ITEMS.find((item) => isActive(pathname, item.href))?.label ?? "Spindle"
 }
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
@@ -99,52 +95,8 @@ function Brand() {
   )
 }
 
-function WorkspaceSwitcher() {
-  const { workspace, workspaces, switchWorkspace } = useMockSession()
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="app-workspace-trigger" aria-label="Switch workspace">
-        <span className="app-workspace-name">{workspace?.name ?? "Workspace"}</span>
-        <ChevronsUpDown className="app-workspace-caret" aria-hidden="true" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="app-menu">
-        <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {workspaces.map((option) => (
-          <DropdownMenuItem
-            key={option.slug}
-            onSelect={() => switchWorkspace(option)}
-            className="app-menu-item"
-          >
-            <span className="app-menu-item-label">{option.name}</span>
-            {option.slug === workspace?.slug ? (
-              <Check className="app-menu-check" aria-hidden="true" />
-            ) : null}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 function ThemeToggle() {
-  const [dark, setDark] = useState(true)
-
-  useEffect(() => {
-    setDark(document.documentElement.classList.contains("dark"))
-  }, [])
-
-  function toggle() {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle("dark", next)
-    try {
-      localStorage.setItem(THEME_KEY, next ? "dark" : "light")
-    } catch {
-      // Storage can be unavailable (private mode); the class still applies.
-    }
-  }
+  const { dark, toggle } = useAppTheme()
 
   return (
     <button
@@ -158,99 +110,41 @@ function ThemeToggle() {
   )
 }
 
-function SearchDialog() {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault()
-        setOpen((current) => !current)
-      }
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [])
-
-  return (
-    <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <button
-        type="button"
-        className="app-search-trigger"
-        onClick={() => setOpen(true)}
-        aria-label="Search"
-      >
-        <Search aria-hidden="true" />
-        <span className="app-search-label">Search</span>
-        <kbd className="app-search-kbd" aria-hidden="true">
-          ⌘K
-        </kbd>
-      </button>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="app-overlay" />
-        <DialogPrimitive.Content className="app-search-dialog" aria-describedby={undefined}>
-          <DialogPrimitive.Title className="sr-only">Search</DialogPrimitive.Title>
-          <Input
-            autoFocus
-            placeholder="Search projects, files, and conversations…"
-            aria-label="Search"
-          />
-          <p className="app-search-hint">
-            Search is not wired up in the mock shell — this dialog is a placeholder for the real
-            command palette.
-          </p>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
-  )
-}
-
-function AccountMenu() {
-  const { user, signOut } = useMockSession()
-  const initial = user?.name?.trim().charAt(0).toUpperCase() ?? "?"
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger className="app-account-trigger" aria-label="Account menu">
-        <span className="app-avatar" aria-hidden="true">
-          {initial}
-        </span>
-        <span className="app-account-name">{user?.name ?? "Account"}</span>
-        <ChevronsUpDown className="app-workspace-caret" aria-hidden="true" />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="app-menu">
-        <DropdownMenuLabel>
-          <span className="app-menu-user-name">{user?.name}</span>
-          <span className="app-menu-user-email">{user?.email}</span>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild className="app-menu-item">
-          <Link href="/app/settings">
-            <Settings aria-hidden="true" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={signOut} className="app-menu-item">
-          <LogOut aria-hidden="true" />
-          Sign out
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 /**
  * Authenticated app shell: collapsible sidebar, top bar with workspace
  * switcher / search / account / theme controls, and a mobile drawer built on
  * Radix Dialog so it gets a focus trap and Escape handling for free.
  */
+/**
+ * Polite live region announcing client-side route changes to screen readers
+ * (WCAG 4.1.3 Status Messages). Skips the initial render so page load is not
+ * announced twice.
+ */
+function RouteAnnouncer() {
+  const pathname = usePathname()
+  const [announcement, setAnnouncement] = useState("")
+  const previousPathname = useRef(pathname)
+
+  useEffect(() => {
+    if (previousPathname.current === pathname) return
+    previousPathname.current = pathname
+    setAnnouncement(`Navigated to ${pageTitle(pathname)}`)
+  }, [pathname])
+
+  return (
+    <div role="status" aria-live="polite" className="sr-only">
+      {announcement}
+    </div>
+  )
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
-    <div className={`app-shell${collapsed ? " is-collapsed" : ""}`}>
+    <div className={`app-shell${collapsed ? "is-collapsed" : ""}`}>
       <aside className="app-sidebar">
         <div className="app-sidebar-head">
           <Brand />
@@ -270,9 +164,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="app-body-col">
+        {/* Self-fetching: renders only while an admin impersonation is live. */}
+        <ImpersonationBanner />
+        <ForcedResetBanner />
         <header className="app-topbar">
-          <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-            <DialogPrimitive.Trigger asChild>
+          <MobileNavDrawer
+            open={drawerOpen}
+            onOpenChange={setDrawerOpen}
+            trigger={
               <button
                 type="button"
                 className="app-icon-button app-drawer-trigger"
@@ -280,35 +179,35 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <Menu aria-hidden="true" />
               </button>
-            </DialogPrimitive.Trigger>
-            <DialogPrimitive.Portal>
-              <DialogPrimitive.Overlay className="app-overlay" />
-              <DialogPrimitive.Content className="app-drawer" aria-describedby={undefined}>
-                <div className="app-drawer-head">
-                  <DialogPrimitive.Title className="app-drawer-title">
-                    Navigation
-                  </DialogPrimitive.Title>
-                  <DialogPrimitive.Close className="app-icon-button" aria-label="Close navigation">
-                    <ChevronLeft aria-hidden="true" />
-                  </DialogPrimitive.Close>
-                </div>
-                <nav aria-label="App navigation">
-                  <NavList onNavigate={() => setDrawerOpen(false)} />
-                </nav>
-              </DialogPrimitive.Content>
-            </DialogPrimitive.Portal>
-          </DialogPrimitive.Root>
+            }
+          >
+            <div className="app-drawer-brand">
+              <Brand />
+            </div>
+            <nav aria-label="App navigation">
+              <NavList onNavigate={() => setDrawerOpen(false)} />
+            </nav>
+          </MobileNavDrawer>
+
+          <span className="app-topbar-title">{pageTitle(pathname)}</span>
 
           <WorkspaceSwitcher />
           <div className="app-topbar-actions">
-            <SearchDialog />
+            <CommandMenu />
+            <NotificationBell />
+            <MessagesBell />
             <ThemeToggle />
-            <AccountMenu />
+            <UserMenu />
           </div>
         </header>
 
-        <main className="app-content">{children}</main>
+        <main id="main-content" tabIndex={-1} className="app-content">
+          {children}
+        </main>
       </div>
+      <RouteAnnouncer />
+      <KeyboardShortcuts />
+      <Toaster />
     </div>
   )
 }

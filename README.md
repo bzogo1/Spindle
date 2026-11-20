@@ -125,6 +125,18 @@ screens live at `/projects/[projectId]/*`, while the standalone tools that would
 marketing pages (`/lab`, `/agent`) are namespaced under `/app/*` (`/app/files`, `/app/lab`,
 `/app/chat`, `/app/agent`, `/app/settings`). The whole group is `noindex` while it is mocked.
 
+Every authenticated screen reads through the `ApiClient` selected by `NEXT_PUBLIC_API_MODE`, so
+changing the mode swaps the data source for the dashboard, project, files, lab, chat, and agent
+screens alike. In mock mode they render the success case by default. Append `?mock=loading`,
+`?mock=empty`, or `?mock=error` to any app URL (development and test only, while
+`NEXT_PUBLIC_API_MODE=mock`) to see that screen's skeleton, zero-data, and failed-load
+presentations; add `?mockLatency=<ms>` to hold the loading state long enough to inspect it.
+`src/lib/api/mock-state.ts` owns the controls and `useApiQuery` applies them to every screen query.
+The files, lab, chat, and agent screens use the workspace hooks built on it, which call
+`api.workspace` and forward each request's `AbortSignal` so in-flight work is cancelled on unmount.
+Loading panels announce `role="status"`, error panels use `role="alert"` with a support reference,
+and retry re-runs the fetch in place.
+
 The "session" is a plain cookie named `spindle_mock_session` (30-day `Max-Age`, base64url JSON)
 written by `src/lib/auth/mock-session.ts`. There is no backend: `/?signin=1` opens the marketing
 auth dialog, and signing in stores a mock user/workspace cookie. The `(app)` layout guard redirects
@@ -148,7 +160,8 @@ and [`docs/runbooks/secrets-rotation.md`](docs/runbooks/secrets-rotation.md).
 npm run secrets:check              # names and shape, never values
 npm run secrets:check -- --production  # require every production name
 npm run secrets:verify-rotation    # both keys accepted for session, edge, worker
-npm run secrets:scan               # no committed .env files, keys, or tokens
+npm run secrets:drill              # ephemeral B2/edge overlap rehearsal
+npm run secrets:scan               # no repository .env files, keys, or tokens
 ```
 
 `src/lib/secrets/keyring.ts` signs with the current key and verifies with the previous key during a

@@ -13,12 +13,21 @@ function resetConsentCookie() {
   document.cookie = `${CONSENT_COOKIE}=; Path=/; Max-Age=0`
 }
 
+function stubPrivacySignal(value: boolean) {
+  Object.defineProperty(window.navigator, "globalPrivacyControl", {
+    value,
+    configurable: true,
+  })
+}
+
 beforeEach(() => {
   resetConsentCookie()
+  stubPrivacySignal(false)
 })
 
 afterEach(() => {
   resetConsentCookie()
+  stubPrivacySignal(false)
 })
 
 describe("CookieConsent", () => {
@@ -40,16 +49,16 @@ describe("CookieConsent", () => {
     const user = userEvent.setup()
     render(<CookieConsent />)
 
-    await user.click(await screen.findByRole("button", { name: "Cookie settings" }))
+    await user.click(await screen.findByRole("button", { name: "Customize" }))
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument()
-    expect(screen.getByRole("checkbox", { name: /^Essential/ })).toBeDisabled()
+    expect(screen.getByRole("switch", { name: /^Essential/ })).toBeDisabled()
 
-    const analytics = screen.getByRole("checkbox", { name: /^Analytics/ })
+    const analytics = screen.getByRole("switch", { name: /^Analytics/ })
     expect(analytics).not.toBeChecked()
     await user.click(analytics)
 
-    expect(screen.getByRole("checkbox", { name: /^Session replay/ })).not.toBeChecked()
+    expect(screen.getByRole("switch", { name: /^Session replay/ })).not.toBeChecked()
     await user.click(screen.getByRole("button", { name: "Save choices" }))
 
     expect(readConsent()).toMatchObject({
@@ -62,6 +71,19 @@ describe("CookieConsent", () => {
     })
   })
 
+  it("lists every registry key in the dialog's policy table", async () => {
+    const user = userEvent.setup()
+    render(<CookieConsent />)
+
+    await user.click(await screen.findByRole("button", { name: "Customize" }))
+
+    const table = await screen.findByRole("table")
+    expect(table).toHaveTextContent("spindle_consent")
+    expect(table).toHaveTextContent("spindle-site-theme")
+    expect(table).toHaveTextContent("sentryReplaySession")
+    expect(table).toHaveTextContent("Lifetime")
+  })
+
   it("opens the settings dialog for a returning visitor without a banner", async () => {
     const user = userEvent.setup()
     render(<CookieConsent />)
@@ -72,6 +94,20 @@ describe("CookieConsent", () => {
     window.dispatchEvent(new Event("spindle:open-cookie-settings"))
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument()
-    expect(screen.getByRole("checkbox", { name: /^Analytics/ })).toBeChecked()
+    expect(screen.getByRole("switch", { name: /^Analytics/ })).toBeChecked()
+  })
+
+  it("records essential-only consent when the browser sends Global Privacy Control", async () => {
+    stubPrivacySignal(true)
+    render(<CookieConsent />)
+
+    await waitFor(() => {
+      expect(readConsent()).toMatchObject({
+        decided: true,
+        analytics: false,
+        replay: false,
+      })
+    })
+    expect(screen.queryByRole("region", { name: "Cookies on Spindle" })).not.toBeInTheDocument()
   })
 })

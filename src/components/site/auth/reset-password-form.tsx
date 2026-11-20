@@ -3,12 +3,13 @@
 import { useRef, useState, type FormEvent } from "react"
 import { ArrowLeft } from "lucide-react"
 
+import { useLanguage } from "@/components/i18n/language-provider"
 import { Button } from "@/components/ui/button"
 
 import { TextField } from "./field"
 import { mockSendEmailLink } from "./mock-auth"
 import { useAuthForm } from "./use-auth-form"
-import { validateEmail } from "./validation"
+import { VALIDATION_PARAMS, validateEmail } from "./validation"
 
 type ResetValues = { email: string }
 
@@ -26,6 +27,7 @@ type ResetPasswordFormProps = {
 
 /** Password-reset request form; the shell swaps in the "link sent" step. */
 export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
+  const { t } = useLanguage()
   const { values, errors, formError, setFormError, setField, handleBlur, validateAll, fieldRef } =
     useAuthForm<ResetValues>({ email: "" }, validate, [...FIELD_ORDER])
   const [loading, setLoading] = useState(false)
@@ -42,7 +44,7 @@ export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
       await mockSendEmailLink(email)
       onSent(email)
     } catch {
-      setFormError("Something went wrong. Check your connection and try again.")
+      setFormError(t("auth.error.connection"))
     } finally {
       submittingRef.current = false
       setLoading(false)
@@ -54,7 +56,7 @@ export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
       className="auth-form"
       onSubmit={handleSubmit}
       aria-busy={loading}
-      aria-label="Reset password"
+      aria-label={t("auth.resetPassword")}
       noValidate
     >
       {formError ? (
@@ -66,7 +68,7 @@ export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
       <fieldset className="auth-fields" disabled={loading}>
         <TextField
           id="auth-reset-email"
-          label="Work email"
+          label={t("auth.workEmail")}
           name="email"
           type="email"
           inputMode="email"
@@ -75,7 +77,7 @@ export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
           value={values.email}
           onChange={(value) => setField("email", value)}
           onBlur={handleBlur("email")}
-          error={errors.email}
+          error={errors.email ? t(errors.email, VALIDATION_PARAMS) : undefined}
           autoFocus
           inputRef={fieldRef("email")}
         />
@@ -83,17 +85,17 @@ export function ResetPasswordForm({ onSent, onBack }: ResetPasswordFormProps) {
         <Button type="submit" className="ui-btn-primary auth-submit" disabled={loading}>
           {loading ? (
             <>
-              <span className="auth-spinner" aria-hidden="true" /> Sending link…
+              <span className="auth-spinner" aria-hidden="true" /> {t("auth.sendingLink")}
             </>
           ) : (
-            "Send reset link"
+            t("auth.sendResetLink")
           )}
         </Button>
       </fieldset>
 
       <div className="auth-links">
         <button type="button" className="auth-link-button" onClick={onBack}>
-          <ArrowLeft aria-hidden="true" className="auth-link-icon" /> Back to sign in
+          <ArrowLeft aria-hidden="true" className="auth-link-icon" /> {t("auth.backToSignIn")}
         </button>
       </div>
     </form>

@@ -22,8 +22,16 @@
   inset: -220px 0 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 46% 46% at 74% 22%, rgba(200, 240, 131, 0.1), transparent 70%),
-    radial-gradient(ellipse 34% 40% at 18% 68%, rgba(150, 216, 173, 0.05), transparent 72%);
+    radial-gradient(
+      ellipse 46% 46% at 74% 22%,
+      color-mix(in srgb, var(--accent) 10%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 34% 40% at 18% 68%,
+      color-mix(in srgb, var(--mint) 5%, transparent),
+      transparent 72%
+    );
 }
 .collab-hero-grid-lines {
   position: absolute;
@@ -54,7 +62,7 @@
   margin: 4px 0 24px;
 }
 .collab-gradient-text {
-  background: linear-gradient(100deg, var(--accent) 5%, var(--mint) 58%, #7fbfa2 100%);
+  background: linear-gradient(100deg, var(--accent) 5%, var(--mint) 58%, var(--mint) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -89,8 +97,8 @@
   border-radius: 50%;
   background: var(--accent);
   box-shadow:
-    0 0 0 4px rgba(200, 240, 131, 0.11),
-    0 0 16px rgba(200, 240, 131, 0.55);
+    0 0 0 4px color-mix(in srgb, var(--accent) 11%, transparent),
+    0 0 16px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 .collab-hero-actions {
   display: flex;
@@ -127,13 +135,16 @@
 }
 .collab-globe-halo {
   position: absolute;
-  width: 430px;
-  height: 430px;
+  /* Cap at the stage's own width so the glow can't push the document
+     wider than the viewport on phones; aspect-ratio keeps it circular. */
+  width: min(430px, 100%);
+  height: auto;
+  aspect-ratio: 1;
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(200, 240, 131, 0.14) 0%,
-    rgba(150, 216, 173, 0.06) 42%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 0%,
+    color-mix(in srgb, var(--mint) 6%, transparent) 42%,
     transparent 70%
   );
   filter: blur(30px);
@@ -248,20 +259,20 @@
   font-family: var(--mono);
   font-size: 8px;
   letter-spacing: 0.02em;
-  color: #0f150e;
+  color: var(--ui-primary-foreground);
   font-weight: 500;
 }
 .presence-avatar--lime {
-  background: #c8f083;
+  background: var(--accent);
 }
 .presence-avatar--mint {
-  background: #96d8ad;
+  background: var(--mint);
 }
 .presence-avatar--teal {
-  background: #7fb6c9;
+  background: var(--ui-chart-4);
 }
 .presence-avatar--violet {
-  background: #b6a4d8;
+  background: var(--ui-chart-5);
 }
 .presence-stack {
   display: flex;
@@ -278,14 +289,14 @@
   font-family: var(--mono);
   font-size: 7px;
   font-style: normal;
-  color: #10150f;
+  color: var(--ui-primary-foreground);
 }
 .presence-stack i:first-child {
   margin-left: 0;
-  background: #96d8ad;
+  background: var(--mint);
 }
 .presence-stack i:nth-child(2) {
-  background: #7fb6c9;
+  background: var(--ui-chart-4);
 }
 .presence-stack i:last-child {
   background: var(--surface-3);
@@ -303,7 +314,7 @@
   border-radius: 7px;
   border: 1px solid var(--accent-line);
   background: rgba(18, 24, 17, 0.92);
-  box-shadow: 0 0 30px rgba(200, 240, 131, 0.08);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .latency-chip strong {
   font-family: var(--mono);
@@ -374,7 +385,11 @@
   grid-template-columns: repeat(4, 1fr);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: linear-gradient(180deg, rgba(200, 240, 131, 0.04), rgba(20, 23, 21, 0.65));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 4%, transparent),
+    rgba(20, 23, 21, 0.65)
+  );
   margin: 16px 0 0;
   overflow: hidden;
 }
@@ -456,14 +471,14 @@
   overflow-wrap: anywhere;
 }
 .collab-code .tok-key {
-  color: #d8b98a;
+  color: var(--amber);
 }
 
 .collab-visual {
   position: relative;
 }
 .doc-window {
-  background: #121512;
+  background: var(--surface);
 }
 .doc-toolbar {
   display: flex;
@@ -482,7 +497,7 @@
   width: 21px;
   height: 21px;
   font-size: 7px;
-  border: 2px solid #121512;
+  border: 2px solid var(--surface);
   margin-left: -6px;
 }
 .doc-avatars .presence-avatar:first-child {
@@ -503,9 +518,14 @@
   font-family: var(--mono);
   font-size: 11.5px;
   line-height: 2.15;
-  color: #cfd9cd;
+  color: var(--text-muted);
   background:
-    radial-gradient(circle at 85% 10%, rgba(200, 240, 131, 0.035), transparent 42%), #121512;
+    radial-gradient(
+      circle at 85% 10%,
+      color-mix(in srgb, var(--accent) 3.5%, transparent),
+      transparent 42%
+    ),
+    var(--surface);
   overflow: hidden;
 }
 .doc-line {
@@ -520,7 +540,7 @@
 .doc-ln {
   width: 18px;
   flex: none;
-  color: #4c554d;
+  color: var(--text-dim);
   text-align: right;
   user-select: none;
 }
@@ -532,23 +552,23 @@
   letter-spacing: -0.02em;
 }
 .doc-line strong {
-  color: #d6f2a2;
+  color: var(--accent-hover);
   font-weight: 500;
 }
 .doc-line .doc-muted {
-  color: #657067;
+  color: var(--text-dim);
 }
 .doc-selection {
-  background: rgba(200, 240, 131, 0.13);
-  box-shadow: 0 0 0 1px rgba(200, 240, 131, 0.18);
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 2px;
-  color: #e3f4d0;
+  color: var(--accent-hover);
 }
 .doc-line--active {
-  color: #e5eadf;
+  color: var(--text-muted);
 }
 .doc-typing {
-  color: #d9f2b2;
+  color: var(--accent-hover);
 }
 .doc-caret {
   display: inline-block;
@@ -604,7 +624,7 @@
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--cursor-color);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
   font-family: var(--font);
   font-size: 9px;
   font-weight: 600;
@@ -618,7 +638,7 @@
 .remote-cursor--theo {
   top: 154px;
   left: 35%;
-  --cursor-color: #96d8ad;
+  --cursor-color: var(--mint);
   animation: cursor-b 9s ease-in-out infinite;
 }
 @keyframes cursor-a {
@@ -700,8 +720,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #96d8ad;
-  box-shadow: 0 0 0 3px rgba(150, 216, 173, 0.13);
+  background: var(--mint);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mint) 13%, transparent);
 }
 
 /* --------------------------------------------------------------------------
@@ -721,7 +741,7 @@
   min-width: 0;
 }
 .chat-window {
-  background: #121512;
+  background: var(--surface);
 }
 .chat-layout {
   display: flex;
@@ -786,11 +806,11 @@
   font-size: 12px;
   text-align: left;
   transition:
-    background 0.15s,
-    color 0.15s;
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 .chat-channel > span:first-child {
-  color: #69746b;
+  color: var(--text-dim);
   width: 9px;
 }
 .chat-channel:hover {
@@ -821,7 +841,7 @@
   flex: none;
 }
 .presence-dot--away {
-  background: #7a837b;
+  background: var(--text-muted);
 }
 
 .anon-toggle {
@@ -836,8 +856,8 @@
   background: rgba(255, 255, 255, 0.018);
   text-align: left;
   transition:
-    border-color 0.18s,
-    background 0.18s;
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 .anon-toggle:hover {
   border-color: var(--accent-line);
@@ -851,10 +871,10 @@
   height: 16px;
   flex: none;
   border-radius: 10px;
-  background: #313931;
+  background: var(--surface-3);
   border: 1px solid var(--border-strong);
   position: relative;
-  transition: background 0.18s;
+  transition: background var(--transition-normal);
 }
 .anon-switch i {
   position: absolute;
@@ -863,10 +883,10 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #9aa49c;
+  background: var(--text-muted);
   transition:
-    transform 0.2s,
-    background 0.2s;
+    transform var(--transition-normal),
+    background var(--transition-normal);
 }
 .anon-toggle[aria-pressed="true"] .anon-switch {
   background: var(--accent);
@@ -874,7 +894,7 @@
 }
 .anon-toggle[aria-pressed="true"] .anon-switch i {
   transform: translateX(12px);
-  background: #11160f;
+  background: var(--ui-primary-foreground);
 }
 .anon-toggle strong {
   display: block;
@@ -923,19 +943,24 @@
   padding: 16px 15px 8px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: #343c34 transparent;
+  scrollbar-color: var(--surface-3) transparent;
 }
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #343c34;
+  background: var(--surface-3);
   border-radius: 4px;
 }
 .chat-msg {
   display: flex;
   gap: 10px;
   margin-bottom: 18px;
+}
+/* `#anonMessage` is toggled via the `hidden` attribute; the class sets
+   display:flex, so the attribute needs a qualified rule to keep winning. */
+.chat-msg[hidden] {
+  display: none;
 }
 .chat-avatar {
   width: 26px;
@@ -946,16 +971,16 @@
   border-radius: 6px;
   font-family: var(--mono);
   font-size: 8px;
-  color: #11160f;
+  color: var(--ui-primary-foreground);
 }
 .chat-avatar--lime {
-  background: #c8f083;
+  background: var(--accent);
 }
 .chat-avatar--mint {
-  background: #96d8ad;
+  background: var(--mint);
 }
 .chat-avatar--teal {
-  background: #7fb6c9;
+  background: var(--ui-chart-4);
 }
 .chat-avatar--anon {
   background: var(--surface-3);
@@ -984,7 +1009,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
-  color: #c3cdc2;
+  color: var(--text-muted);
 }
 .chat-msg code {
   font-family: var(--mono);
@@ -992,13 +1017,13 @@
   color: var(--mint);
   padding: 1px 4px;
   border-radius: 3px;
-  background: rgba(150, 216, 173, 0.09);
+  background: color-mix(in srgb, var(--mint) 9%, transparent);
 }
 .chat-msg--anon .chat-msg-meta strong {
   color: var(--accent);
 }
 .chat-msg--anon p {
-  color: #d8e8cf;
+  color: var(--text-muted);
 }
 .chat-typing {
   display: flex;
@@ -1055,6 +1080,7 @@
 }
 .chat-composer:focus-within {
   border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .chat-composer input {
   flex: 1;
@@ -1066,7 +1092,7 @@
   color: var(--text);
 }
 .chat-composer input::placeholder {
-  color: #667067;
+  color: var(--text-dim);
 }
 .chat-composer button {
   width: 26px;
@@ -1077,7 +1103,7 @@
   border: 0;
   border-radius: 5px;
   background: var(--accent);
-  color: #11160f;
+  color: var(--ui-primary-foreground);
 }
 .chat-composer button:hover {
   background: var(--accent-hover);
@@ -1119,7 +1145,7 @@
   width: 6px !important;
   height: 6px !important;
   border-radius: 50%;
-  background: #3a443a;
+  background: var(--surface-3);
   padding: 0 !important;
   border: 0 !important;
 }
@@ -1147,11 +1173,11 @@
   0%,
   100% {
     opacity: 0.45;
-    box-shadow: 0 0 0 rgba(200, 240, 131, 0);
+    box-shadow: 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 10px rgba(200, 240, 131, 0.8);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 80%, transparent);
   }
 }
 
@@ -1174,14 +1200,18 @@
 }
 .anon-card {
   padding: 18px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--accent-line);
-  background: linear-gradient(135deg, rgba(200, 240, 131, 0.09), rgba(150, 216, 173, 0.025));
+  background: linear-gradient(
+    135deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--mint) 2.5%, transparent)
+  );
   margin-bottom: 30px;
-  transition: box-shadow 0.2s;
+  transition: box-shadow var(--transition-normal);
 }
 .anon-card.is-on {
-  box-shadow: 0 0 34px rgba(200, 240, 131, 0.09);
+  box-shadow: 0 0 34px var(--accent-soft);
 }
 .anon-card-head {
   display: flex;
@@ -1197,7 +1227,7 @@
   margin: 0 0 14px;
   font-size: 12.5px;
   line-height: 1.65;
-  color: #c7d3c3;
+  color: var(--text-muted);
 }
 .anon-card-action {
   display: inline-flex;
@@ -1272,8 +1302,8 @@
   height: auto;
   display: block;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #0b0e0c;
+  border-radius: var(--radius);
+  background: var(--bg);
 }
 .nym-figure figcaption {
   margin-top: 9px;
@@ -1352,11 +1382,12 @@
   outline: 0;
 }
 .invite-field input::placeholder {
-  color: #667067;
+  color: var(--text-dim);
 }
 .invite-field input:focus,
 .invite-select select:focus {
   border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .invite-select {
   position: relative;
@@ -1415,7 +1446,7 @@
   border-radius: 50%;
   font-family: var(--mono);
   font-size: 8px;
-  color: #11160f;
+  color: var(--ui-primary-foreground);
 }
 .member-identity strong {
   display: block;
@@ -1451,8 +1482,8 @@
 }
 .role-pill--manager {
   color: var(--mint);
-  border-color: rgba(150, 216, 173, 0.3);
-  background: rgba(150, 216, 173, 0.08);
+  border-color: color-mix(in srgb, var(--mint) 30%, transparent);
+  background: color-mix(in srgb, var(--mint) 8%, transparent);
 }
 .member-role {
   width: 100%;
@@ -1468,6 +1499,7 @@
 }
 .member-role:focus {
   border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
 }
 .member-status {
   display: inline-flex;
@@ -1483,7 +1515,7 @@
   background: var(--accent);
 }
 .member-status--pending i {
-  background: #a88955;
+  background: var(--amber);
 }
 .member-remove {
   width: 25px;
@@ -1496,8 +1528,8 @@
   color: var(--text-dim);
 }
 .member-remove:hover:not(:disabled) {
-  color: #e3a09a;
-  background: rgba(224, 113, 120, 0.09);
+  color: var(--ui-destructive);
+  background: color-mix(in srgb, var(--ui-destructive) 9%, transparent);
 }
 .member-remove:disabled {
   opacity: 0.35;
@@ -1526,8 +1558,8 @@
   opacity: 0;
   transform: translateY(-4px);
   transition:
-    opacity 0.2s,
-    transform 0.2s;
+    opacity var(--transition-normal),
+    transform var(--transition-normal);
 }
 .role-toast.is-visible {
   opacity: 1;
@@ -1586,7 +1618,7 @@
 .role-tabs button.is-active {
   background: var(--accent-soft);
   color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent-line);
+  box-shadow: var(--shadow-active-inset);
 }
 .permission-list {
   display: grid;
@@ -1598,7 +1630,7 @@
   padding: 9px 0;
   border-bottom: 1px solid var(--border);
   font-size: 11.5px;
-  color: #c8d1c6;
+  color: var(--text-muted);
 }
 .permission-row:last-child {
   border-bottom: 0;
@@ -1614,7 +1646,7 @@
   background: var(--accent-soft);
 }
 .permission-row .perm-mark--off {
-  color: #5c665d;
+  color: var(--text-dim);
   background: rgba(255, 255, 255, 0.03);
 }
 .permission-row small {
@@ -1653,7 +1685,7 @@
   margin-left: auto;
   font-family: var(--mono);
   font-size: 9px;
-  color: #5c665d;
+  color: var(--text-dim);
 }
 .audit-dot {
   width: 6px;
@@ -1663,7 +1695,7 @@
   background: var(--accent);
 }
 .audit-dot--soft {
-  background: #4c554d;
+  background: var(--text-dim);
 }
 
 /* --------------------------------------------------------------------------
@@ -1679,7 +1711,7 @@
   border-top: 1px solid var(--border);
   background: radial-gradient(
     ellipse 46% 58% at 50% 56%,
-    rgba(200, 240, 131, 0.055),
+    color-mix(in srgb, var(--accent) 5.5%, transparent),
     transparent 72%
   );
 }
@@ -1690,8 +1722,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(200, 240, 131, 0.16) 0%,
-    rgba(150, 216, 173, 0.07) 42%,
+    color-mix(in srgb, var(--accent) 16%, transparent) 0%,
+    color-mix(in srgb, var(--mint) 7%, transparent) 42%,
     transparent 70%
   );
   filter: blur(34px);
@@ -1899,4 +1931,203 @@
   .route-strip.is-live .route-node {
     animation: none !important;
   }
+}
+
+/* ==========================================================================
+   NYM NOISE GENERATING MIXNET DIAGRAM (top of Collaboration page)
+   ========================================================================== */
+
+.nym-diagram-section {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 48px 0 0;
+  overflow: hidden;
+}
+
+.nym-wrap {
+  max-width: 916px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.nym-header {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.nym-logo {
+  font-family: var(--font);
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  flex: none;
+}
+
+.nym-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 0;
+  flex: 1;
+}
+
+.nym-stage {
+  position: relative;
+  min-height: 482px;
+  display: grid;
+  place-items: center;
+}
+
+.nym-svg {
+  width: 100%;
+  max-width: 916px;
+  height: auto;
+  display: block;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.nym-label {
+  fill: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.nym-caption {
+  fill: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.nym-sign {
+  fill: var(--accent);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .nym-diagram-section {
+    padding-top: 32px;
+  }
+  .nym-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .nym-stage {
+    min-height: 520px;
+  }
+}
+
+/* ==========================================================================
+   LIGHT THEME — surfaces that were hardcoded dark. Inner text already uses
+   the theme tokens, so only the opaque panel backgrounds need remapping.
+   ========================================================================== */
+:root:not(.dark) .presence-float {
+  background: rgba(255, 255, 255, 0.94);
+}
+:root:not(.dark) .latency-chip {
+  background: rgba(255, 255, 255, 0.92);
+}
+:root:not(.dark) .comment-pin {
+  background: rgba(255, 255, 255, 0.95);
+}
+:root:not(.dark) .speed-strip {
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface));
+}
+:root:not(.dark) .presence-stack i {
+  border-color: var(--bg);
+}
+:root:not(.dark) .doc-typing {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* ==========================================================================
+   LIGHT THEME — controls and inner panels with hardcoded dark/white-alpha
+   fills. White-alpha washes are invisible on light surfaces (no hover/active
+   feedback, washed-out fields); black fills read as muddy patches.
+   ========================================================================== */
+:root:not(.dark) .collab-hero-grid-lines {
+  background-image:
+    linear-gradient(rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 25, 18, 0.05) 1px, transparent 1px);
+}
+
+/* Invite/member controls: subtle inset field on the light card surface. */
+:root:not(.dark) .invite-field input,
+:root:not(.dark) .invite-select select,
+:root:not(.dark) .chat-composer,
+:root:not(.dark) .anon-toggle {
+  background: var(--surface-2);
+}
+
+/* Recessed tracks/pills. */
+:root:not(.dark) .role-tabs,
+:root:not(.dark) .chat-rail {
+  background: var(--surface-2);
+}
+:root:not(.dark) .role-pill,
+:root:not(.dark) .perm-mark--off {
+  background: var(--surface-3);
+}
+
+/* Header strips and hover washes that were white-alpha. */
+:root:not(.dark) .doc-toolbar,
+:root:not(.dark) .member-head {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .member-row:hover {
+  background: rgba(15, 25, 18, 0.03);
+}
+:root:not(.dark) .chat-channel:hover {
+  background: rgba(15, 25, 18, 0.05);
+}
+
+/* ==========================================================================
+   Nym mixnet diagram — the SVG keeps its dark-mode neon palette via
+   presentation attributes; these attribute selectors remap each hardcoded
+   hex to the light palette (CSS fill/stroke override presentation
+   attributes, and fill/stroke inherit through the <g> wrappers).
+   ========================================================================== */
+:root:not(.dark) .nym-svg [fill="#14e76f"] {
+  fill: var(--accent);
+}
+:root:not(.dark) .nym-svg [stroke="#14e76f"] {
+  stroke: var(--accent);
+}
+:root:not(.dark) .nym-svg [fill="#d8f7a6"] {
+  fill: var(--accent-hover);
+}
+:root:not(.dark) .nym-svg [fill="#121512"],
+:root:not(.dark) .nym-svg [fill="#0f1211"],
+:root:not(.dark) .nym-svg [fill="#161b19"] {
+  fill: var(--surface);
+}
+:root:not(.dark) .nym-svg [fill="#0b0e0c"],
+:root:not(.dark) .nym-svg [fill="#3a443a"] {
+  fill: var(--surface-3);
+}
+:root:not(.dark) .nym-svg [stroke="#4c554d"] {
+  stroke: rgba(15, 25, 18, 0.35);
+}
+:root:not(.dark) .nym-svg [stroke="#6d766e"] {
+  stroke: rgba(15, 25, 18, 0.45);
+}
+:root:not(.dark) .nym-svg [stroke="#2a332d"] {
+  stroke: rgba(15, 25, 18, 0.2);
+}
+
+/* Decorative orbit hairline that was white-alpha (invisible on light). */
+:root:not(.dark) .collab-orbit-line--soft {
+  stroke: rgba(15, 25, 18, 0.12);
 }

@@ -222,7 +222,7 @@ const features = [
   { icon: FlaskConical, title: "A lab that boots with it", body: "RStudio, JupyterLab, VS Code, and a terminal, already connected to your project files.", href: "#lab" },
   { icon: Search, title: "Local search", body: "Academic and Basic modes run through a SearXNG instance hosted alongside Spindle.", href: "#search" },
   { icon: FolderOpen, title: "Files, viewed in place", body: "5 GB free, a clean file manager, and inline previews for more than 100 formats.", href: "#files" },
-  { icon: MessagesSquare, title: "Team chat", body: "Channels live inside each project, with an optional Anonymous mode routed through Nym.", href: "#chat" },
+  { icon: MessagesSquare, title: "Team chat", body: "Channels live inside each project, with an optional Anonymous mode (Nym Mixnet routing planned).", href: "#chat" },
 ]
 
 function FeatureCards() {
@@ -310,7 +310,7 @@ function AnonymousSwitch() {
       <Switch checked={checked} onCheckedChange={toggle} className="ui-switch" aria-label="Anonymous mode" />
       <div>
         <strong>Anonymous mode</strong>
-        <small>{checked ? "On · Nym Mixnet" : "Off · normal project chat"}</small>
+        <small>{checked ? "On · pseudonymous display" : "Off · normal project chat"}</small>
       </div>
     </div>
   )

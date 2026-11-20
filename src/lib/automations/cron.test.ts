@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { humanizeCron } from "./cron"
+import { humanizeCron, nextCronRuns } from "./cron"
 
 describe("humanizeCron", () => {
   it("describes a daily time", () => {
@@ -56,5 +56,73 @@ describe("humanizeCron", () => {
       valid: false,
       text: "One or more fields are outside their valid range",
     })
+  })
+})
+
+describe("nextCronRuns", () => {
+  it("returns the next daily occurrence after the start time", () => {
+    const from = new Date(2026, 0, 5, 10, 0, 0) // Mon Jan 5 2026, 10:00
+    const runs = nextCronRuns("0 9 * * *", 2, from)
+    expect(runs).toHaveLength(2)
+    expect(runs[0]).toEqual(new Date(2026, 0, 6, 9, 0, 0))
+    expect(runs[1]).toEqual(new Date(2026, 0, 7, 9, 0, 0))
+  })
+
+  it("includes today when the run is still ahead", () => {
+    const from = new Date(2026, 0, 5, 8, 0, 0)
+    const runs = nextCronRuns("0 9 * * *", 1, from)
+    expect(runs[0]).toEqual(new Date(2026, 0, 5, 9, 0, 0))
+  })
+
+  it("honours weekday lists and intervals", () => {
+    const from = new Date(2026, 0, 5, 12, 0, 0) // Monday
+    const weekly = nextCronRuns("30 9 * * 3", 1, from)
+    expect(weekly[0].getDay()).toBe(3) // Wednesday
+    expect(weekly[0].getHours()).toBe(9)
+    expect(weekly[0].getMinutes()).toBe(30)
+
+    const interval = nextCronRuns("*/15 * * * *", 3, from)
+    expect(interval).toHaveLength(3)
+    expect(interval[0].getMinutes()).toBe(15)
+    expect(interval[1].getMinutes()).toBe(30)
+  })
+
+  it("returns an empty list for invalid expressions", () => {
+    expect(nextCronRuns("not a cron", 3)).toEqual([])
+    expect(nextCronRuns("0 25 * * *", 3)).toEqual([])
+  })
+})
+
+describe("nextCronRuns dom+dow OR semantics", () => {
+  it("ORs day-of-month and day-of-week when both are restricted", () => {
+    // "0 9 1 * 1" = 09:00 on the 1st of the month OR every Monday (POSIX).
+    const from = new Date(2026, 0, 6, 10, 0, 0) // Tue Jan 6 2026, 10:00
+    const runs = nextCronRuns("0 9 1 * 1", 4, from)
+    expect(runs).toHaveLength(4)
+    // Mondays win first.
+    expect(runs[0]).toEqual(new Date(2026, 0, 12, 9, 0, 0))
+    expect(runs[1]).toEqual(new Date(2026, 0, 19, 9, 0, 0))
+    expect(runs[2]).toEqual(new Date(2026, 0, 26, 9, 0, 0))
+    // Then the 1st of February (a Sunday — dom match despite not Monday).
+    expect(runs[3]).toEqual(new Date(2026, 1, 1, 9, 0, 0))
+    expect(runs[3].getDay()).toBe(0)
+  })
+
+  it("still ANDs when only one day field is restricted", () => {
+    const from = new Date(2026, 0, 6, 10, 0, 0)
+    // dow only: next Monday.
+    const dowOnly = nextCronRuns("0 9 * * 1", 1, from)
+    expect(dowOnly[0]).toEqual(new Date(2026, 0, 12, 9, 0, 0))
+    // dom only: next 1st of month (Feb 1).
+    const domOnly = nextCronRuns("0 9 1 * *", 1, from)
+    expect(domOnly[0]).toEqual(new Date(2026, 1, 1, 9, 0, 0))
+  })
+})
+
+describe("humanizeCron dom+dow", () => {
+  it("describes both restricted day fields as alternatives", () => {
+    expect(humanizeCron("0 9 1 * 1").text).toBe(
+      "At 09:00 AM, on day 1 of the month or every Monday",
+    )
   })
 })

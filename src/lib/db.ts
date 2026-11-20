@@ -1,15 +1,25 @@
 import { PrismaPg } from "@prisma/adapter-pg"
+import type { Pool } from "pg"
+
 import { PrismaClient } from "@/generated/prisma/client"
 import { resolveDatabaseUrl } from "@/lib/database-url"
+import {
+  buildPoolConfig,
+  checkPoolHealth,
+  createDatabasePool,
+  registerPoolShutdown,
+  type PoolHealth,
+} from "@/lib/db/pool"
 import { getServerEnv } from "@/lib/env.server"
 
-// Reuse the client across hot reloads in development instead of opening a new
-// connection pool for every module evaluation.
-const globalForPrisma = globalThis as unknown as {
+// Reuse the pool and client across hot reloads in development instead of
+// opening a new connection pool for every module evaluation.
+const globalForDb = globalThis as unknown as {
   prisma: PrismaClient | undefined
+  databasePool: Pool | undefined
 }
 
-function createPrismaClient(): PrismaClient {
+function createDatabasePoolSingleton(): Pool {
   const connectionString = resolveDatabaseUrl()
 
   if (!connectionString) {
@@ -18,13 +28,29 @@ function createPrismaClient(): PrismaClient {
     )
   }
 
-  return new PrismaClient({
-    adapter: new PrismaPg({ connectionString }),
-  })
+  const pool = createDatabasePool(buildPoolConfig(connectionString))
+  registerPoolShutdown(pool)
+  return pool
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+function createPrismaClient(pool: Pool): PrismaClient {
+  // The pool is owned by this module (and `globalThis` in dev), so the adapter
+  // must not end it when the Prisma client is disposed.
+  return new PrismaClient({ adapter: new PrismaPg(pool) })
+}
+
+export const databasePool = globalForDb.databasePool ?? createDatabasePoolSingleton()
+export const prisma = globalForDb.prisma ?? createPrismaClient(databasePool)
 
 if (getServerEnv().NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma
+  globalForDb.databasePool = databasePool
+  globalForDb.prisma = prisma
+}
+
+/**
+ * Readiness probe: `SELECT 1` through the shared pool with a timeout. Returns
+ * a result object instead of throwing so it can back a `/api/health` route.
+ */
+export async function checkDatabaseHealth(timeoutMs?: number): Promise<PoolHealth> {
+  return checkPoolHealth(databasePool, timeoutMs)
 }

@@ -1,0 +1,262 @@
+name: PR preview
+
+# Per-PR preview deployments. On every push to a pull request the workflow
+# ships the PR head to a dedicated preview host over SSH and runs
+# scripts/preview/deploy.mjs there: the app is built once per PR into its own
+# directory and served with `next start` on a port allocated per PR number.
+# Closing the PR tears the preview down; a weekly schedule runs `gc` as a
+# safety net for previews whose teardown never ran (e.g. deleted branches).
+#
+# This workflow assumes a persistent preview host — a `next start` process
+# cannot outlive the GitHub runner job that spawned it, so previews are hosted
+# on PREVIEW_HOST (see docs/preview/README.md for host requirements and the
+# secrets/variables it needs).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  schedule:
+    # Weekly GC sweep for orphaned previews (Monday 04:17 UTC).
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+# One group per PR: a new push supersedes an in-flight deploy, and the
+# `closed` event cancels any running deploy before teardown starts.
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PREVIEW_ROOT: /srv/spindle-preview
+
+jobs:
+  deploy:
+    name: Deploy preview
+    # Fork PRs get a read-only token and no secrets; previews are limited to
+    # branches in this repository. `closed` is handled by the teardown job.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      PREVIEW_HOST: ${{ secrets.PREVIEW_HOST }}
+      PREVIEW_USER: ${{ secrets.PREVIEW_USER }}
+      PREVIEW_PUBLIC_HOST: ${{ vars.PREVIEW_PUBLIC_HOST }}
+      PREVIEW_SITE_URL_TEMPLATE: ${{ vars.PREVIEW_SITE_URL_TEMPLATE }}
+      PREVIEW_ENV_FILE: ${{ secrets.PREVIEW_ENV_FILE }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check preview script syntax
+        run: node --check scripts/preview/deploy.mjs
+
+      - name: Validate preview configuration
+        run: |
+          set -euo pipefail
+          for name in PREVIEW_HOST PREVIEW_USER PREVIEW_PUBLIC_HOST; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::${name} is not configured (secret or variable)."
+              echo "See docs/preview/README.md for the required configuration."
+              exit 1
+            fi
+          done
+
+      - name: Configure SSH
+        env:
+          PREVIEW_SSH_KEY: ${{ secrets.PREVIEW_SSH_KEY }}
+          PREVIEW_KNOWN_HOSTS: ${{ secrets.PREVIEW_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PREVIEW_SSH_KEY}" || -z "${PREVIEW_KNOWN_HOSTS}" ]]; then
+            echo "::error::PREVIEW_SSH_KEY and PREVIEW_KNOWN_HOSTS are required."
+            exit 1
+          fi
+          umask 077
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "${PREVIEW_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 0600 ~/.ssh/id_ed25519
+          printf '%s\n' "${PREVIEW_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+
+      - name: Package PR source
+        run: |
+          set -euo pipefail
+          # `git archive` ships tracked files only — node_modules/.next are
+          # rebuilt on the host, and PR-only untracked files never reach it.
+          git archive --format=tar.gz -o "${RUNNER_TEMP}/pr-${PR_NUMBER}.tar.gz" HEAD
+
+      - name: Upload source and deploy script environment
+        run: |
+          set -euo pipefail
+          APP_DIR="${PREVIEW_ROOT}/apps/pr-${PR_NUMBER}"
+          # Recreate the app dir so files deleted between pushes do not linger.
+          # The previous preview's server is still running at this point but is
+          # stopped by deploy.mjs via the PID recorded in the state dir.
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "install -d -m 0755 '${PREVIEW_ROOT}/state' '${PREVIEW_ROOT}/env' && \
+             rm -rf '${APP_DIR}' && install -d -m 0755 '${APP_DIR}'"
+          scp "${RUNNER_TEMP}/pr-${PR_NUMBER}.tar.gz" \
+            "${PREVIEW_USER}@${PREVIEW_HOST}:/tmp/pr-${PR_NUMBER}.tar.gz"
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "tar -xzf '/tmp/pr-${PR_NUMBER}.tar.gz' -C '${APP_DIR}' && rm -f '/tmp/pr-${PR_NUMBER}.tar.gz'"
+
+      # Env layering (later wins, matching deploy.mjs readEnvFile): the
+      # PREVIEW_ENV_FILE secret carries app-level config (e.g.
+      # NEXT_PUBLIC_MOCK_AUTH=1); the workflow vars below always win so the
+      # public URL can never be overridden by the secret.
+      - name: Write preview env file
+        run: |
+          set -euo pipefail
+          ENV_FILE="${RUNNER_TEMP}/preview.env"
+          : > "${ENV_FILE}"
+          if [[ -n "${PREVIEW_ENV_FILE:-}" ]]; then
+            printf '%s\n' "${PREVIEW_ENV_FILE}" >> "${ENV_FILE}"
+          fi
+          {
+            echo "PREVIEW_PUBLIC_HOST=${PREVIEW_PUBLIC_HOST}"
+            if [[ -n "${PREVIEW_SITE_URL_TEMPLATE:-}" ]]; then
+              echo "PREVIEW_SITE_URL_TEMPLATE=${PREVIEW_SITE_URL_TEMPLATE}"
+            fi
+          } >> "${ENV_FILE}"
+          scp "${ENV_FILE}" \
+            "${PREVIEW_USER}@${PREVIEW_HOST}:${PREVIEW_ROOT}/env/pr-${PR_NUMBER}.env"
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "chmod 0600 '${PREVIEW_ROOT}/env/pr-${PR_NUMBER}.env'"
+
+      - name: Deploy on preview host
+        run: |
+          set -euo pipefail
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "cd '${PREVIEW_ROOT}/apps/pr-${PR_NUMBER}' && \
+             node scripts/preview/deploy.mjs deploy \
+               --pr '${PR_NUMBER}' \
+               --app-dir '${PREVIEW_ROOT}/apps/pr-${PR_NUMBER}' \
+               --state-dir '${PREVIEW_ROOT}/state' \
+               --env-file '${PREVIEW_ROOT}/env/pr-${PR_NUMBER}.env'"
+
+      - name: Report preview URL
+        run: |
+          set -euo pipefail
+          URL=$(ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "cat '${PREVIEW_ROOT}/state/pr-${PR_NUMBER}.url'")
+          {
+            echo "### PR preview"
+            echo ""
+            echo "- URL: ${URL}"
+            echo "- Host path: \`${PREVIEW_ROOT}/apps/pr-${PR_NUMBER}\`"
+            echo "- Log: \`${PREVIEW_ROOT}/state/pr-${PR_NUMBER}.log\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice::Preview for PR #${PR_NUMBER}: ${URL}"
+
+  teardown:
+    name: Tear down preview
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      PREVIEW_HOST: ${{ secrets.PREVIEW_HOST }}
+      PREVIEW_USER: ${{ secrets.PREVIEW_USER }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate preview configuration
+        run: |
+          set -euo pipefail
+          for name in PREVIEW_HOST PREVIEW_USER; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::${name} is not configured (secret)."
+              exit 1
+            fi
+          done
+
+      - name: Configure SSH
+        env:
+          PREVIEW_SSH_KEY: ${{ secrets.PREVIEW_SSH_KEY }}
+          PREVIEW_KNOWN_HOSTS: ${{ secrets.PREVIEW_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PREVIEW_SSH_KEY}" || -z "${PREVIEW_KNOWN_HOSTS}" ]]; then
+            echo "::error::PREVIEW_SSH_KEY and PREVIEW_KNOWN_HOSTS are required."
+            exit 1
+          fi
+          umask 077
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "${PREVIEW_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 0600 ~/.ssh/id_ed25519
+          printf '%s\n' "${PREVIEW_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+
+      # deploy.mjs lives inside each per-PR app dir, so it is copied to a
+      # scratch path on the host — teardown must also work when the app dir
+      # is already gone. It only needs --state-dir/--app-dir/--pr.
+      - name: Stop server and remove app directory
+        run: |
+          set -euo pipefail
+          scp scripts/preview/deploy.mjs \
+            "${PREVIEW_USER}@${PREVIEW_HOST}:/tmp/preview-deploy.mjs"
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "node /tmp/preview-deploy.mjs teardown \
+               --pr '${PR_NUMBER}' \
+               --app-dir '${PREVIEW_ROOT}/apps/pr-${PR_NUMBER}' \
+               --state-dir '${PREVIEW_ROOT}/state'; \
+             rc=\$?; rm -f /tmp/preview-deploy.mjs; exit \$rc"
+
+  gc:
+    name: Garbage-collect stale previews
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      PREVIEW_HOST: ${{ secrets.PREVIEW_HOST }}
+      PREVIEW_USER: ${{ secrets.PREVIEW_USER }}
+      PREVIEW_GC_MAX_AGE_HOURS: ${{ vars.PREVIEW_GC_MAX_AGE_HOURS || '72' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          PREVIEW_SSH_KEY: ${{ secrets.PREVIEW_SSH_KEY }}
+          PREVIEW_KNOWN_HOSTS: ${{ secrets.PREVIEW_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PREVIEW_SSH_KEY}" || -z "${PREVIEW_KNOWN_HOSTS}" ]]; then
+            echo "::error::PREVIEW_SSH_KEY and PREVIEW_KNOWN_HOSTS are required."
+            exit 1
+          fi
+          umask 077
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "${PREVIEW_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 0600 ~/.ssh/id_ed25519
+          printf '%s\n' "${PREVIEW_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/known_hosts
+
+      # gc only reads state files and signals PIDs — it does not need the app
+      # checkout, so the script is copied to a scratch path on the host.
+      - name: Run gc on preview host
+        run: |
+          set -euo pipefail
+          scp scripts/preview/deploy.mjs \
+            "${PREVIEW_USER}@${PREVIEW_HOST}:/tmp/preview-deploy.mjs"
+          ssh "${PREVIEW_USER}@${PREVIEW_HOST}" \
+            "node /tmp/preview-deploy.mjs gc \
+               --state-dir '${PREVIEW_ROOT}/state' \
+               --max-age-hours '${PREVIEW_GC_MAX_AGE_HOURS:-72}' && \
+             rm -f /tmp/preview-deploy.mjs"

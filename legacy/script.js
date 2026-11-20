@@ -886,7 +886,7 @@
   function updateChatRoute() {
     const thread = chatThreads[activeThread];
     if (!chatRoute || !thread) return;
-    chatRoute.textContent = anonEnabled ? 'Anonymous · Nym Mixnet' : thread.route;
+    chatRoute.textContent = anonEnabled ? 'Anonymous · pseudonymous' : thread.route;
   }
 
   function renderChatThread(key) {
@@ -918,7 +918,7 @@
         anon: true,
         name: 'Anonymous',
         time: 'now',
-        text: 'Routing this message through the Nym Mixnet…'
+        text: 'Posting anonymously in this thread…'
       }), chatComposer);
     }
 
@@ -963,7 +963,7 @@
   function setAnonymous(enabled) {
     anonEnabled = enabled;
     if (anonToggle) anonToggle.setAttribute('aria-pressed', String(enabled));
-    if (anonStatus) anonStatus.textContent = enabled ? 'On · Nym Mixnet' : 'Off · normal project chat';
+    if (anonStatus) anonStatus.textContent = enabled ? 'On · pseudonymous display' : 'Off · normal project chat';
     if (routeStrip) routeStrip.classList.toggle('is-live', enabled);
     updateChatRoute();
     renderChatThread(activeThread);

@@ -17,6 +17,7 @@ const GUIDE_IDS = [
   "agent",
   "collaboration",
   "automations",
+  "developers",
   "guides",
   "faq",
 ]
@@ -37,6 +38,7 @@ describe("docs content helpers", () => {
     expect(navigation.map((section) => section.title)).toEqual([
       "Getting started",
       "Using Spindle",
+      "Platform",
       "More",
     ])
     expect(navigation[0].guides.map((guide) => guide.id)).toEqual(["quickstart", "workspaces"])

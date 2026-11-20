@@ -83,7 +83,7 @@
 }
 .infra-gradient-text {
   color: var(--accent);
-  background: linear-gradient(100deg, #e4ffb4 0%, var(--accent) 46%, #7fc9a0 100%);
+  background: linear-gradient(100deg, var(--accent-hover) 0%, var(--accent) 46%, var(--mint) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -166,7 +166,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+  box-shadow: var(--shadow-glow-md);
 }
 .infra-seal-ticks {
   position: absolute;
@@ -174,7 +174,7 @@
   border-radius: 50%;
   background: repeating-conic-gradient(
     from 0deg,
-    rgba(200, 240, 131, 0.24) 0deg 1deg,
+    var(--accent-line) 0deg 1deg,
     transparent 1deg 15deg
   );
   mask: radial-gradient(transparent 68%, black 69%, black 71%, transparent 72%);
@@ -369,7 +369,7 @@
   border-radius: 50%;
   background: var(--accent);
   flex: none;
-  box-shadow: 0 0 0 3px rgba(200, 240, 131, 0.12);
+  box-shadow: var(--shadow-pulse-ring);
   animation: infra-live 2s ease-in-out infinite;
 }
 @keyframes infra-live {
@@ -383,7 +383,7 @@
   position: relative;
   height: 520px;
   overflow: hidden;
-  background-color: #0f1210;
+  background-color: var(--bg);
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
@@ -510,7 +510,7 @@
   gap: 11px;
   padding: 14px 13px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: linear-gradient(150deg, rgba(24, 28, 25, 0.97), rgba(16, 19, 17, 0.97));
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.34);
   transition:
@@ -657,8 +657,8 @@
   background: transparent;
   color: var(--text-muted);
   transition:
-    background 0.22s,
-    color 0.22s;
+    background var(--transition-normal),
+    color var(--transition-normal);
 }
 .infra-trace-steps li:last-child .infra-trace-step {
   border-right: 0;
@@ -796,7 +796,7 @@
 .infra-console {
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, #141816, #0f1210);
+  background: linear-gradient(160deg, var(--surface), var(--bg));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
   overflow: hidden;
 }
@@ -850,7 +850,7 @@
   color: var(--text-dim);
 }
 .infra-console-line code {
-  color: #cfd8cd;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -930,9 +930,9 @@
   background: rgba(255, 255, 255, 0.014);
   overflow: hidden;
   transition:
-    border-color 0.2s,
-    background 0.2s,
-    transform 0.2s;
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    transform var(--transition-normal);
 }
 .infra-defense-card:hover {
   border-color: var(--border-strong);
@@ -1028,7 +1028,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: var(--shadow-glow-sm);
   animation: infra-dot-travel 2.2s linear infinite;
 }
 @keyframes infra-dot-travel {
@@ -1063,7 +1063,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(ellipse at 50% 48%, rgba(200, 240, 131, 0.05), transparent 62%), #0f1210;
+    radial-gradient(ellipse at 50% 48%, rgba(200, 240, 131, 0.05), transparent 62%), var(--bg);
   display: grid;
   place-items: center;
 }
@@ -1095,7 +1095,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
+  box-shadow: var(--shadow-glow-md);
 }
 .infra-vault-core {
   position: relative;
@@ -1106,7 +1106,7 @@
   justify-items: center;
   gap: 6px;
   border: 1px solid var(--accent-line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(160deg, rgba(31, 38, 32, 0.97), rgba(14, 17, 15, 0.98));
   box-shadow:
     0 22px 60px rgba(0, 0, 0, 0.5),
@@ -1228,7 +1228,7 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(ellipse 420px 260px at 88% -20%, rgba(200, 240, 131, 0.09), transparent 70%),
+    radial-gradient(ellipse 420px 260px at 88% -20%, var(--accent-soft), transparent 70%),
     linear-gradient(120deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.006));
 }
 .infra-guarantee::after {
@@ -1515,4 +1515,147 @@
   .infra-console-cursor {
     animation: none !important;
   }
+}
+
+/* ==========================================================================
+   LIGHT THEME — surfaces that were hardcoded dark. Inner text already uses
+   the theme tokens, so only the opaque panel backgrounds need remapping.
+   ========================================================================== */
+:root:not(.dark) .infra-seal-core,
+:root:not(.dark) .infra-node,
+:root:not(.dark) .infra-vault-core {
+  background: linear-gradient(160deg, var(--surface), var(--surface-2));
+}
+:root:not(.dark) .infra-seal-satellite,
+:root:not(.dark) .infra-vault-file {
+  background: rgba(255, 255, 255, 0.92);
+}
+:root:not(.dark) .infra-map-toolbar,
+:root:not(.dark) .infra-trace {
+  background: rgba(246, 247, 245, 0.88);
+}
+:root:not(.dark) .infra-defense-flow span {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — SVG route strokes, corner brackets, and grid hairlines
+   were white/pale-green tuned for dark surfaces and vanish on light panels.
+   ========================================================================== */
+:root:not(.dark) .infra-route {
+  stroke: rgba(15, 25, 18, 0.16);
+}
+:root:not(.dark) .infra-route--flow {
+  stroke: rgba(63, 100, 24, 0.55);
+  filter: drop-shadow(0 0 4px rgba(63, 100, 24, 0.25));
+}
+:root:not(.dark) .infra-seal-ring--inner {
+  border-color: rgba(15, 25, 18, 0.12);
+}
+:root:not(.dark) .infra-map-stage {
+  background-image:
+    linear-gradient(to right, rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    radial-gradient(ellipse 50% 55% at 50% 50%, rgba(63, 100, 24, 0.05), transparent 75%);
+}
+:root:not(.dark) .infra-vault-grid {
+  background-image:
+    linear-gradient(to right, rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 25, 18, 0.05) 1px, transparent 1px);
+}
+:root:not(.dark) .infra-node-icon {
+  background: rgba(15, 25, 18, 0.04);
+}
+:root:not(.dark) .infra-defense-card {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .infra-defense-card:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* ==========================================================================
+   LIGHT THEME (cont.) — white-alpha hairlines/fills and pale-accent rings,
+   glows and corner brackets tuned for dark surfaces.
+   ========================================================================== */
+:root:not(.dark) .infra-hero-wash {
+  background:
+    radial-gradient(ellipse 620px 400px at 72% 24%, rgba(63, 100, 24, 0.07), transparent 70%),
+    radial-gradient(ellipse 480px 320px at 12% 8%, rgba(47, 125, 107, 0.04), transparent 72%);
+}
+:root:not(.dark) .infra-hero-grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(15, 25, 18, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 25, 18, 0.05) 1px, transparent 1px);
+}
+:root:not(.dark) .infra-kicker-dot {
+  box-shadow: 0 0 0 4px rgba(63, 100, 24, 0.12);
+}
+
+/* Seal diagram: rings, core ring shadow and satellite chrome. */
+:root:not(.dark) .infra-seal-ring {
+  border-color: rgba(63, 100, 24, 0.18);
+}
+:root:not(.dark) .infra-seal-ring--inner {
+  box-shadow:
+    inset 0 0 60px rgba(63, 100, 24, 0.04),
+    0 0 80px rgba(63, 100, 24, 0.03);
+}
+:root:not(.dark) .infra-seal-core {
+  box-shadow:
+    0 0 0 1px rgba(15, 25, 18, 0.05),
+    0 24px 70px rgba(15, 25, 18, 0.2),
+    inset 0 1px rgba(15, 25, 18, 0.06);
+}
+
+/* Trust strip and defense band fills. */
+:root:not(.dark) .infra-trust-strip {
+  background: rgba(15, 25, 18, 0.02);
+}
+:root:not(.dark) .infra-defense-band {
+  background: linear-gradient(100deg, rgba(63, 100, 24, 0.04), rgba(15, 25, 18, 0.015) 55%);
+}
+:root:not(.dark) .infra-defense-card::after {
+  background: linear-gradient(135deg, transparent 49%, rgba(63, 100, 24, 0.09) 50%);
+}
+
+/* Map stage corner brackets, scan band and active-node glow. */
+:root:not(.dark) .infra-map-stage::after {
+  border-color: rgba(63, 100, 24, 0.45);
+}
+:root:not(.dark) .infra-map-scan {
+  background: linear-gradient(180deg, transparent 0%, rgba(63, 100, 24, 0.05) 48%, transparent 52%);
+}
+:root:not(.dark) .infra-node.is-active {
+  box-shadow:
+    0 0 0 1px rgba(63, 100, 24, 0.16),
+    0 0 36px rgba(63, 100, 24, 0.12),
+    0 14px 38px rgba(15, 25, 18, 0.2);
+}
+:root:not(.dark) .infra-node--storage {
+  border-color: rgba(47, 125, 79, 0.32);
+}
+:root:not(.dark) .infra-trace-step:hover {
+  background: rgba(15, 25, 18, 0.04);
+}
+
+/* Vault diagram: ambient radial, dashed ring, core ring shadow. */
+:root:not(.dark) .infra-vault {
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(63, 100, 24, 0.05), transparent 62%), var(--bg);
+}
+:root:not(.dark) .infra-vault-ring {
+  border-color: rgba(63, 100, 24, 0.25);
+}
+:root:not(.dark) .infra-vault-core {
+  box-shadow:
+    0 22px 60px rgba(15, 25, 18, 0.25),
+    inset 0 1px rgba(15, 25, 18, 0.06);
+}
+:root:not(.dark) .infra-guarantee {
+  background:
+    radial-gradient(ellipse 420px 260px at 88% -20%, var(--accent-soft), transparent 70%),
+    linear-gradient(120deg, rgba(15, 25, 18, 0.02), rgba(15, 25, 18, 0.008));
+}
+:root:not(.dark) .infra-guarantee::after {
+  background: linear-gradient(225deg, rgba(63, 100, 24, 0.1), transparent 60%);
 }

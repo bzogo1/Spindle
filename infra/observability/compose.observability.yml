@@ -1,0 +1,100 @@
+# OPTIONAL local observability stack — NOT deployed by default.
+#
+# This compose file is a standalone project (`spindle-observability`). It is
+# NOT referenced by compose.yaml or infra/origin/compose.yaml and nothing in
+# CI starts it. Bring it up only when you want a local Loki + Prometheus +
+# Grafana stack to inspect Spindle logs and log-derived metrics:
+#
+#   cd infra/observability
+#   docker compose -f compose.observability.yml up -d
+#
+# All published ports bind to 127.0.0.1 only — nothing here is reachable from
+# the network. See docs/observability/stack.md for the full architecture.
+#
+# Data flow this stack enables:
+#   pino stdout -> ship.mjs --sink http -> Loki (logs)
+#   ship.mjs --sink file -> logs/ship.jsonl -> serve-metrics.mjs -> Prometheus -> Grafana
+
+name: spindle-observability
+
+services:
+  # --- Log store ---------------------------------------------------------
+  # Single-binary Loki, local filesystem storage, 14-day retention.
+  # Config: ./loki-config.yaml (same shape as docs/observability/log-aggregation.md).
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    ports:
+      - "127.0.0.1:3100:3100" # Loki push/query API + /ready
+
+  # --- Metrics store -----------------------------------------------------
+  # Prometheus scrapes the log-metrics exporter (and the self-metrics of the
+  # other services). Alert rules: ./prometheus/rules/spindle-alerts.yml.
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090" # Prometheus UI + /api/v1
+    depends_on:
+      - loki
+      - log-metrics-exporter
+
+  # --- Metrics exporter --------------------------------------------------
+  # Serves scripts/metrics/log-metrics.mjs --format prometheus over HTTP so
+  # Prometheus has a scrape target. Point METRICS_LOG_FILE at a bounded JSONL
+  # slice (the ship.mjs file-sink spool is the intended source).
+  log-metrics-exporter:
+    image: node:24-alpine
+    restart: unless-stopped
+    working_dir: /repo
+    # The repo is mounted read-only; the tool only reads log files.
+    volumes:
+      - ../../:/repo:ro
+    environment:
+      # Default matches ship.mjs's default --out (logs/ship.jsonl).
+      METRICS_LOG_FILE: ${METRICS_LOG_FILE:-/repo/logs/ship.jsonl}
+      METRICS_PORT: "9100"
+      METRICS_CACHE_MS: ${METRICS_CACHE_MS:-15000}
+    command: node scripts/observability/serve-metrics.mjs
+    ports:
+      - "127.0.0.1:9100:9100" # /metrics + /healthz
+
+  # --- Dashboards --------------------------------------------------------
+  # Grafana with Loki + Prometheus datasources provisioned from
+  # ./grafana/provisioning/datasources/datasources.yaml. Anonymous read-only
+  # access is enabled because every port is loopback-only; set
+  # GF_AUTH_ANONYMOUS_ENABLED=false and use admin login for anything else.
+  grafana:
+    image: grafana/grafana:11.6.0
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000" # Grafana UI
+    depends_on:
+      - loki
+      - prometheus
+
+volumes:
+  loki-data:
+  prometheus-data:
+  grafana-data:

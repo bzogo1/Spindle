@@ -7,6 +7,10 @@ import { join, relative } from "node:path"
 
 const root = process.cwd()
 const ignoredDirectories = new Set([
+  ".agents",
+  ".aws",
+  ".codex",
+  ".freebuff",
   ".git",
   ".next",
   ".node_modules.original",
@@ -53,10 +57,17 @@ function walk(directory) {
 
 function listFiles() {
   try {
-    const output = execFileSync("git", ["ls-files", "-z"], { cwd: root, encoding: "utf8" })
-    return { files: output.split("\0").filter(Boolean), tracked: true }
+    const output = execFileSync(
+      "git",
+      ["ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+      {
+        cwd: root,
+        encoding: "utf8",
+      },
+    )
+    return { files: output.split("\0").filter(Boolean), fromGit: true }
   } catch {
-    return { files: walk(root), tracked: false }
+    return { files: walk(root), fromGit: false }
   }
 }
 
@@ -81,14 +92,14 @@ function isEnvironmentFile(file) {
   return name === ".env" || name.startsWith(".env.")
 }
 
-const { files, tracked } = listFiles()
+const { files, fromGit } = listFiles()
 
 for (const file of files) {
   if (isEnvironmentFile(file)) {
     if (file === ".env.example") {
       checkExampleFile(file)
-    } else if (tracked) {
-      findings.push({ file, line: 0, rule: "tracked environment file" })
+    } else if (fromGit) {
+      findings.push({ file, line: 0, rule: "environment file" })
     }
     continue
   }

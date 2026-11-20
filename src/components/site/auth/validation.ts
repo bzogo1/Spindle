@@ -1,4 +1,10 @@
-/** Client-side validation rules for the auth dialog forms. */
+/** Client-side validation rules for the auth forms.
+ *
+ * Validators return i18n message KEYS (e.g. "auth.validation.emailRequired"),
+ * not English copy — the forms translate them through `t()` at render time
+ * so validation errors follow the active locale. `validation.test.ts`
+ * resolves keys through `t("en", …)` to keep asserting the English text.
+ */
 
 export const PASSWORD_MIN_LENGTH = 8
 export const WORKSPACE_NAME_MIN_LENGTH = 3
@@ -39,35 +45,33 @@ export function isPasswordValid(password: string): boolean {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-/** Trims and validates an email address; returns an error message or null. */
+/** Trims and validates an email address; returns a message key or null. */
 export function validateEmail(value: string): string | null {
   const email = value.trim()
-  if (!email) return "Enter your work email."
-  if (!EMAIL_PATTERN.test(email)) return "Enter a valid email address, like you@lab.edu."
+  if (!email) return "auth.validation.emailRequired"
+  if (!EMAIL_PATTERN.test(email)) return "auth.validation.emailInvalid"
   return null
 }
 
 /** Required-only password check for sign-in (no creation rules). */
 export function validateSignInPassword(value: string): string | null {
-  if (!value) return "Enter your password."
+  if (!value) return "auth.validation.passwordRequired"
   return null
 }
 
 /** Full creation rules; the rule list under the field shows live progress. */
 export function validateNewPassword(value: string): string | null {
-  if (!value) return "Create a password."
-  if (value.length < PASSWORD_MIN_LENGTH) {
-    return `Use at least ${PASSWORD_MIN_LENGTH} characters.`
-  }
+  if (!value) return "auth.validation.passwordCreateRequired"
+  if (value.length < PASSWORD_MIN_LENGTH) return "auth.validation.passwordTooShort"
   if (!/[a-zA-Z]/.test(value) || !/\d/.test(value)) {
-    return "Include a letter and a number."
+    return "auth.validation.passwordLetterNumber"
   }
   return null
 }
 
 export function validateConfirmPassword(value: string, password: string): string | null {
-  if (!value) return "Confirm your password."
-  if (value !== password) return "Passwords don't match."
+  if (!value) return "auth.validation.confirmRequired"
+  if (value !== password) return "auth.validation.passwordsDontMatch"
   return null
 }
 
@@ -96,20 +100,31 @@ const WORKSPACE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
  */
 export function validateWorkspaceName(value: string): string | null {
   const name = value.trim()
-  if (!name) return "Name your workspace."
+  if (!name) return "auth.validation.workspaceNameRequired"
   if (name.length < WORKSPACE_NAME_MIN_LENGTH || name.length > WORKSPACE_NAME_MAX_LENGTH) {
-    return `Use ${WORKSPACE_NAME_MIN_LENGTH}–${WORKSPACE_NAME_MAX_LENGTH} characters.`
+    return "auth.validation.workspaceNameLength"
   }
   if (!WORKSPACE_NAME_PATTERN.test(name)) {
-    return "Use lowercase letters, numbers and single dashes."
+    return "auth.validation.workspaceNameFormat"
   }
   if (RESERVED_WORKSPACE_NAMES.has(name)) {
-    return "That workspace name is reserved. Try another."
+    return "auth.validation.workspaceNameReserved"
   }
   return null
 }
 
 export function validateTermsAccepted(accepted: boolean): string | null {
-  if (!accepted) return "Accept the Terms of Service and Privacy Policy to continue."
+  if (!accepted) return "auth.validation.termsRequired"
   return null
 }
+
+/**
+ * Interpolation params every validation message may need. `t()` ignores
+ * params a template doesn't reference, so forms can pass this uniformly:
+ * `t(errors.email, VALIDATION_PARAMS)`.
+ */
+export const VALIDATION_PARAMS = {
+  min: PASSWORD_MIN_LENGTH,
+  wmin: WORKSPACE_NAME_MIN_LENGTH,
+  wmax: WORKSPACE_NAME_MAX_LENGTH,
+} as const

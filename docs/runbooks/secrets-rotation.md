@@ -19,7 +19,26 @@ npm run secrets:check -- --production
 
 # After both keys are in place, before removing the previous one.
 npm run secrets:verify-rotation
+
+# Ephemeral rehearsal of the B2 fallback and edge HMAC overlap. It makes no
+# secret-store or provider calls.
+npm run secrets:drill
 ```
+
+## Local rehearsal
+
+Run `npm run secrets:drill` before a staging rotation. It uses generated keys and a fake B2 provider
+to prove that the previous B2 pair recovers one auth failure, the previous edge signature verifies
+during overlap, new signatures use the current key, and the old key is rejected after cleanup. It is
+a mechanism check, not proof that the store or providers are configured.
+
+## Live drill evidence
+
+For staging and production, record the environment, timestamp, operator, store path, and identity
+names — never values. Capture `npm run secrets:check -- --production`, `npm run
+secrets:verify-rotation`, the provider-side objects created and revoked, one B2 upload/download,
+one edge-signed request, and the rollback decision. Repeat the drill in staging before touching
+production.
 
 ## Rotation schedule
 

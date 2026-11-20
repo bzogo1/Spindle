@@ -1,0 +1,57 @@
+{
+  "name": "spindle-production-waf-custom",
+  "kind": "zone",
+  "phase": "http_request_firewall_custom",
+  "description": "Custom WAF rules for the spindle.app zone. See docs/security/waf-rules.md for the rule table, rollout plan, and false-positive handling. Deploy after reviewing that document; the geo rule ships disabled.",
+  "rules": [
+    {
+      "ref": "spindle-block-unknown-host",
+      "action": "block",
+      "expression": "not (http.host in {\"app.spindle.app\" \"lab.spindle.app\"})",
+      "description": "Block requests whose Host header is not one of the hostnames this zone serves. The tunnel already 404s unknown names; this is a second layer for DNS-level or direct-IP probes.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-block-scanner-paths",
+      "action": "block",
+      "expression": "http.request.uri.path matches \"(?i)(/\\.env|/\\.git|/\\.svn|/\\.hg|/wp-admin|/wp-login\\.php|/xmlrpc\\.php|/phpmyadmin|/pma/|/cgi-bin|/vendor/|/node_modules/|\\.php$)\"",
+      "description": "Block well-known scanner and CMS probe paths. The Next.js app serves no .php, wp-*, .git, .env, or cgi-bin content, so none of these can be legitimate.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-block-path-traversal",
+      "action": "block",
+      "expression": "(http.request.uri.path contains \"..\") or (http.request.uri.query contains \"..%2f\") or (http.request.uri.query contains \"%2e%2e\") or (http.request.uri.query contains \"%252e\")",
+      "description": "Block path traversal probes, including double-encoded variants.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-block-scanner-ua",
+      "action": "block",
+      "expression": "(http.user_agent contains \"sqlmap\") or (http.user_agent contains \"nikto\") or (http.user_agent contains \"nmap\") or (http.user_agent contains \"masscan\") or (http.user_agent contains \"zgrab\")",
+      "description": "Block requests advertising known scanner tooling in the User-Agent.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-challenge-high-threat-score",
+      "action": "managed_challenge",
+      "expression": "cf.threat_score lt 10",
+      "description": "Managed challenge for IPs Cloudflare scores as high-threat (threat score below 10). Legitimate users solve it once per session; bots rarely do.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-challenge-suspicious-methods",
+      "action": "managed_challenge",
+      "expression": "(not (http.request.method in {\"GET\" \"POST\" \"PUT\" \"PATCH\" \"DELETE\" \"HEAD\" \"OPTIONS\"})) or ((http.request.method eq \"POST\") and (http.user_agent eq \"\"))",
+      "description": "Challenge non-standard HTTP methods and POSTs with an empty User-Agent (a common bot signature). WebSocket upgrades use GET, so they are unaffected.",
+      "enabled": true
+    },
+    {
+      "ref": "spindle-challenge-geo-placeholder",
+      "action": "challenge",
+      "expression": "ip.geoip.country in {\"KP\" \"IR\" \"SY\" \"CU\"}",
+      "description": "PLACEHOLDER geo rule (ships disabled). Set the country set to match the sanctioned-country policy in docs/security/waf-rules.md before enabling. 'challenge' not 'block' keeps the blast radius small while the list is tuned.",
+      "enabled": false
+    }
+  ]
+}

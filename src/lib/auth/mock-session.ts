@@ -1,4 +1,5 @@
 import { clientEnv } from "@/lib/env"
+import type { WorkspaceRole } from "@/lib/members/permissions"
 
 /**
  * Mock session for the authenticated `(app)` route group.
@@ -16,8 +17,8 @@ import { clientEnv } from "@/lib/env"
 export const MOCK_SESSION_COOKIE = "spindle_mock_session"
 export const MOCK_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
 
-/** Where the marketing site sends signed-out visitors; `?signin=1` opens the auth dialog. */
-export const SIGN_IN_PATH = "/?signin=1"
+/** Where signed-out visitors are sent; the standalone sign-in page. */
+export const SIGN_IN_PATH = "/sign-in"
 /** Entry point of the mocked app; `/app` redirects here. */
 export const APP_ROOT_PATH = "/dashboard"
 export const APP_DASHBOARD_PATH = "/dashboard"
@@ -32,12 +33,20 @@ export type MockSessionUser = {
 export type MockSessionWorkspace = {
   name: string
   slug: string
+  /**
+   * The signed-in user's role in this workspace, when the session knows it.
+   * Optional: older cookies and real-mode sessions (whose backend does not
+   * expose a role yet) omit it, and consumers fall back to membership data.
+   */
+  role?: WorkspaceRole
 }
 
 export type MockSessionData = {
   user: MockSessionUser
   workspace: MockSessionWorkspace
   signedInAt: string
+  /** Referral code captured before sign-in, when one was present. */
+  referredBy?: string
 }
 
 function toBase64Url(input: string): string {

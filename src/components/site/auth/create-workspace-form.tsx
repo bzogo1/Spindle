@@ -3,6 +3,8 @@
 import { useRef, useState, type FormEvent } from "react"
 import { ShieldCheck } from "lucide-react"
 
+import { useLanguage } from "@/components/i18n/language-provider"
+import { CaptchaWidget } from "@/components/auth/captcha-widget"
 import { PasswordField } from "@/components/auth/password-field"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -10,15 +12,16 @@ import { Label } from "@/components/ui/label"
 
 import { TextField } from "./field"
 import { MockAuthError, mockCreateWorkspace, type MockSession } from "./mock-auth"
-import { OAuthButtons } from "./oauth-buttons"
 import { PasswordRules } from "./password-rules"
 import { useAuthForm } from "./use-auth-form"
+import { AuthApiError, type ClientSession } from "@/lib/auth/auth-client"
 import {
   validateConfirmPassword,
   validateEmail,
   validateNewPassword,
   validateTermsAccepted,
   validateWorkspaceName,
+  VALIDATION_PARAMS,
 } from "./validation"
 
 type CreateValues = {
@@ -42,11 +45,12 @@ function validate(values: CreateValues) {
 }
 
 type CreateWorkspaceFormProps = {
-  onSuccess: (session: MockSession) => void
+  onSuccess: (session: MockSession, clientSession?: ClientSession | null) => void
 }
 
 /** Workspace sign-up: slug, email, password rules, terms acceptance. */
 export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
+  const { t } = useLanguage()
   const { values, errors, formError, setFormError, setField, handleBlur, validateAll, fieldRef } =
     useAuthForm<CreateValues>(
       { workspaceName: "", email: "", password: "", confirmPassword: "", terms: false },
@@ -54,6 +58,12 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
       [...FIELD_ORDER],
     )
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaStatus, setCaptchaStatus] = useState<"solving" | "verified" | "error">("solving")
+  // Bumped to remount the widget (fresh challenge) when the server rejects a
+  // captcha token — tokens are single-use, so a burned/expired one needs a
+  // brand-new solve rather than a resubmit.
+  const [captchaEpoch, setCaptchaEpoch] = useState(0)
   const submittingRef = useRef(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,19 +73,28 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
     submittingRef.current = true
     setLoading(true)
     try {
-      const session = await mockCreateWorkspace({
+      const result = await mockCreateWorkspace({
         workspaceName: values.workspaceName.trim(),
         email: values.email.trim(),
         password: values.password,
+        captchaToken: captchaToken ?? undefined,
       })
-      onSuccess(session)
+      onSuccess(result.session, result.clientSession)
     } catch (error) {
       if (error instanceof MockAuthError && error.code === "email_taken") {
-        setFormError(
-          "An account already exists for this email. Try signing in instead, or use a different email.",
-        )
+        setFormError(t("auth.error.emailTaken"))
+      } else if (
+        error instanceof AuthApiError &&
+        ((error.code as string) === "captcha_failed" ||
+          (error.code as string) === "password_breach")
+      ) {
+        // Server-supplied message (captcha retry hint / breach explanation).
+        setFormError(error.message)
+        if ((error.code as string) === "captcha_failed") {
+          setCaptchaEpoch((epoch) => epoch + 1)
+        }
       } else {
-        setFormError("Something went wrong. Check your connection and try again.")
+        setFormError(t("auth.error.connection"))
       }
     } finally {
       submittingRef.current = false
@@ -88,7 +107,7 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
       className="auth-form"
       onSubmit={handleSubmit}
       aria-busy={loading}
-      aria-label="Create workspace"
+      aria-label={t("auth.createWorkspace")}
       noValidate
     >
       {formError ? (
@@ -100,20 +119,20 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
       <fieldset className="auth-fields" disabled={loading}>
         <TextField
           id="auth-workspace-name"
-          label="Workspace name"
+          label={t("auth.workspaceName")}
           name="workspace"
           placeholder="coastal-resilience"
-          hint="Lowercase letters, numbers and single dashes."
+          hint={t("auth.workspaceNameHint")}
           value={values.workspaceName}
           onChange={(value) => setField("workspaceName", value)}
           onBlur={handleBlur("workspaceName")}
-          error={errors.workspaceName}
+          error={errors.workspaceName ? t(errors.workspaceName, VALIDATION_PARAMS) : undefined}
           autoFocus
           inputRef={fieldRef("workspaceName")}
         />
         <TextField
           id="auth-new-email"
-          label="Work email"
+          label={t("auth.workEmail")}
           name="email"
           type="email"
           inputMode="email"
@@ -122,40 +141,48 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
           value={values.email}
           onChange={(value) => setField("email", value)}
           onBlur={handleBlur("email")}
-          error={errors.email}
+          error={errors.email ? t(errors.email, VALIDATION_PARAMS) : undefined}
           inputRef={fieldRef("email")}
         />
         <PasswordField
           id="auth-new-password"
-          label="Password"
+          label={t("auth.password")}
           value={values.password}
           onChange={(value) => setField("password", value)}
           onBlur={handleBlur("password")}
           autoComplete="new-password"
           placeholder="••••••••"
           minLength={8}
-          error={errors.password}
+          error={errors.password ? t(errors.password, VALIDATION_PARAMS) : undefined}
           extraDescribedBy="auth-new-password-rules"
           footer={<PasswordRules password={values.password} id="auth-new-password-rules" />}
           inputRef={fieldRef("password")}
         />
         <PasswordField
           id="auth-confirm-password"
-          label="Confirm password"
+          label={t("auth.confirmPassword")}
           value={values.confirmPassword}
           onChange={(value) => setField("confirmPassword", value)}
           onBlur={handleBlur("confirmPassword")}
           autoComplete="new-password"
           placeholder="••••••••"
           minLength={8}
-          error={errors.confirmPassword}
+          error={errors.confirmPassword ? t(errors.confirmPassword, VALIDATION_PARAMS) : undefined}
           inputRef={fieldRef("confirmPassword")}
         />
         <div className="ui-check-row">
           <Checkbox
             id="auth-terms"
             ref={fieldRef("terms")}
-            aria-label="I agree to the Terms of Service and Privacy Policy"
+            aria-label={
+              t("auth.agreeTo") +
+              " " +
+              t("auth.termsOfService") +
+              " " +
+              t("auth.and") +
+              " " +
+              t("auth.privacyPolicy")
+            }
             checked={values.terms}
             onCheckedChange={(checked) => {
               setField("terms", checked === true)
@@ -163,41 +190,49 @@ export function CreateWorkspaceForm({ onSuccess }: CreateWorkspaceFormProps) {
             onBlur={handleBlur("terms")}
             aria-invalid={errors.terms ? true : undefined}
           />
-          <Label htmlFor="auth-terms">
-            I agree to the{" "}
+          {/* `inline` overrides the Label's flex layout so the inline links
+              flow with the text instead of becoming flex items with gap-2;
+              `leading-normal` keeps wrapped lines readable. */}
+          <Label htmlFor="auth-terms" className="inline leading-normal">
+            {t("auth.agreeTo")}{" "}
             <a href="/terms" target="_blank" rel="noopener noreferrer">
-              Terms of Service
+              {t("auth.termsOfService")}
             </a>{" "}
-            and{" "}
+            {t("auth.and")}{" "}
             <a href="/privacy" target="_blank" rel="noopener noreferrer">
-              Privacy Policy
+              {t("auth.privacyPolicy")}
             </a>
           </Label>
         </div>
         {errors.terms ? (
           <p className="auth-error" id="auth-terms-error" role="alert">
-            {errors.terms}
+            {t(errors.terms, VALIDATION_PARAMS)}
           </p>
         ) : null}
         <p className="ui-inline-note">
-          <ShieldCheck className="size-3.5" aria-hidden="true" /> 5 GB free. No credit card.
+          <ShieldCheck className="size-3.5" aria-hidden="true" /> {t("auth.freeTierNote")}
         </p>
 
-        <Button type="submit" className="ui-btn-primary auth-submit" disabled={loading}>
+        <CaptchaWidget
+          key={captchaEpoch}
+          onToken={setCaptchaToken}
+          onStatusChange={setCaptchaStatus}
+        />
+
+        <Button
+          type="submit"
+          className="ui-btn-primary auth-submit"
+          disabled={loading || captchaStatus !== "verified"}
+        >
           {loading ? (
             <>
-              <span className="auth-spinner" aria-hidden="true" /> Creating workspace…
+              <span className="auth-spinner" aria-hidden="true" /> {t("auth.creatingWorkspace")}
             </>
           ) : (
-            "Create free workspace"
+            t("auth.createFreeWorkspace")
           )}
         </Button>
       </fieldset>
-
-      <div className="auth-divider" aria-hidden="true">
-        <span>or</span>
-      </div>
-      <OAuthButtons />
     </form>
   )
 }

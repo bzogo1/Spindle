@@ -1,0 +1,57 @@
+# Caddyfile.example — REFERENCE ONLY.
+#
+# A dedicated gateway is not part of the deployed topology
+# (docs/architecture/api-gateway.md recommends against it for the current
+# two-hostname single-origin setup). This file exists so that, if a gateway
+# is ever inserted between cloudflared and app:8080, the settings below are
+# already correct for this app.
+#
+# Deployment shape if adopted: cloudflared → Caddy (:8081, internal network)
+# → app:8080. TLS still terminates at the Cloudflare edge; Caddy serves plain
+# HTTP on the internal network only.
+
+{
+	# Caddy would auto-HTTPS; disable it — the tunnel leg must stay plaintext.
+	auto_https off
+	servers {
+		protocols h1 h2
+	}
+}
+
+app.spindle.app {
+	reverse_proxy app:8080 {
+		# SSE / long agent runs: disable response buffering and flushing delays.
+		flush_interval -1
+		transport http {
+			dial_timeout 10s
+			response_header_timeout 0
+		}
+	}
+
+	# ── Headers ──────────────────────────────────────────────────────────
+	# DO NOT set Content-Security-Policy, HSTS, X-Frame-Options, or
+	# Referrer-Policy here. next.config.ts → src/lib/security-headers.ts owns
+	# them on every route (issue 051); duplicating them at the gateway risks
+	# drift and double-header bugs. Pass them through untouched.
+	header {
+		# Trust/forward headers cloudflared already sets:
+		#   CF-Connecting-IP, CF-Ray, CF-Visitor, X-Forwarded-For/Proto
+		# Cloudflare overwrites X-Forwarded-For, so echo it back for the app.
+		X-Forwarded-For {http.request.header.X-Forwarded-For}
+	}
+
+	# ── Optional: per-path edge rate limiting ────────────────────────────
+	# Only useful for auth/token routes that Cloudflare IP rules cannot
+	# fingerprint per-user. Prefer Valkey-backed limiting in the app for
+	# per-account buckets; this is a coarse IP safety net.
+	#
+	# @auth_paths path /api/auth/signin* /api/auth/password* /api/auth/passwordless* /api/auth/2fa*
+	# rate_limit {
+	# 	zone auth_ip {
+	# 		key {http.request.remote.host}
+	# 		events 20
+	# 		window 1m
+	# 	}
+	# }
+	# respond @auth_paths 429
+}

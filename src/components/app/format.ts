@@ -25,6 +25,19 @@ export function formatDateTime(value: string) {
   })
 }
 
+export function formatDurationMs(ms: number) {
+  if (!Number.isFinite(ms) || ms < 0) return "—"
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  const seconds = ms / 1000
+  if (seconds < 60) {
+    const rounded = Number.isInteger(seconds) ? seconds : Math.round(seconds * 10) / 10
+    return `${rounded}s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remaining = Math.round(seconds % 60)
+  return remaining > 0 ? `${minutes}m ${remaining}s` : `${minutes}m`
+}
+
 export function formatRelativeTime(value: string, now = Date.now()) {
   const time = new Date(value).getTime()
   if (Number.isNaN(time)) return value

@@ -1,0 +1,6 @@
+{
+  "$schema": "./deprecations.schema.json",
+  "version": 1,
+  "policy": "docs/api/deprecation.md",
+  "deprecations": []
+}

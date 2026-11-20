@@ -19,7 +19,7 @@ export function DocsShell({ id, children }: { id: string; children: ReactNode })
 
   return (
     <section className="section docs-section">
-      <div className="container doc-layout doc-layout--guide">
+      <div className="doc-layout doc-layout--guide container">
         <DocsSidebar groups={groups} currentId={id} />
 
         <div className="doc-main">

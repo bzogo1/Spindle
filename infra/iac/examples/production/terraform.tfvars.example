@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in. NEVER commit terraform.tfvars.
+# Secrets (HCLOUD_TOKEN, CLOUDFLARE_API_TOKEN) come from the environment, not here.
+
+# tunnel_id = "<uuid from `cloudflared tunnel create spindle-prod`>"
+# deploy_public_key = "ssh-ed25519 AAAA... deploy@spindle"
+
+# Optional overrides (defaults shown):
+# server_type = "ccx33"
+# image       = "ubuntu-24.04"
+# location    = "fsn1"
+# zone_name   = "spindle.app"

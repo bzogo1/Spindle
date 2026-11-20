@@ -28,7 +28,7 @@ function DocsNav({ groups, currentId, currentLinkRef, onNavigate }: DocsNavProps
                 <li key={guide.id}>
                   <a
                     href={`/docs/${guide.id}`}
-                    className={`doc-nav-link${current ? " is-current" : ""}`}
+                    className={`doc-nav-link${current ? "is-current" : ""}`}
                     aria-current={current ? "page" : undefined}
                     ref={current ? currentLinkRef : undefined}
                     onClick={onNavigate}
@@ -97,6 +97,7 @@ export function DocsSidebar({
         <DialogPrimitive.Content
           id="docs-guide-drawer"
           className="doc-drawer"
+          aria-modal="true"
           aria-describedby={undefined}
         >
           <div className="doc-drawer-head">

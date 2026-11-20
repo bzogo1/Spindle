@@ -36,7 +36,7 @@ export const consentCategories: readonly ConsentCategoryInfo[] = [
     id: "essential",
     label: "Essential",
     description:
-      "Keeps the site working: it remembers your cookie choice and your changelog theme. These cannot be turned off.",
+      "Keeps the site working: it remembers your cookie choice and your theme preference. These cannot be turned off.",
     required: true,
   },
   {
@@ -77,9 +77,10 @@ export const cookieRegistry: readonly CookieRecord[] = [
     lifetime: "180 days",
   },
   {
-    key: "changelog-theme",
+    key: "spindle-site-theme",
     storage: "Local storage",
-    purpose: "Remembers whether the changelog is drawn in the light or dark theme.",
+    purpose:
+      "Remembers whether the site (including the changelog) is drawn in the light or dark theme.",
     provider: "Spindle",
     category: "essential",
     lifetime: "Until you clear site data",
@@ -225,6 +226,19 @@ export function onConsentChange(listener: (state: ConsentState) => void): () => 
 
   window.addEventListener(CONSENT_CHANGED_EVENT, handler)
   return () => window.removeEventListener(CONSENT_CHANGED_EVENT, handler)
+}
+
+/**
+ * True when the browser sends an opt-out privacy signal — Global Privacy
+ * Control (`navigator.globalPrivacyControl`) or Do Not Track
+ * (`navigator.doNotTrack`). Callers should treat this as a rejection of every
+ * optional category, the same as the banner's "Reject non-essential".
+ */
+export function hasPrivacySignal(): boolean {
+  if (!isBrowser()) return false
+
+  const nav = window.navigator as Navigator & { globalPrivacyControl?: boolean }
+  return nav.globalPrivacyControl === true || nav.doNotTrack === "1"
 }
 
 /** Asks the mounted consent UI to open its settings dialog. */

@@ -1,10 +1,12 @@
 import { ChatScreen } from "@/components/app/chat-screen"
+import { PaneBoundary } from "@/components/app/states/pane-boundary"
 
-export default async function ProjectChatPage({
-  params,
-}: {
-  params: Promise<{ projectId: string }>
-}) {
-  const { projectId } = await params
-  return <ChatScreen projectId={projectId} />
+export default function ProjectChatPage({ params }: { params: Promise<{ projectId: string }> }) {
+  return (
+    <PaneBoundary screen="chat">
+      {params.then(({ projectId }) => (
+        <ChatScreen projectId={projectId} />
+      ))}
+    </PaneBoundary>
+  )
 }

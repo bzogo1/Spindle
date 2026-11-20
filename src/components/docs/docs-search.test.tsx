@@ -40,7 +40,7 @@ describe("DocsSearch", () => {
     const input = screen.getByRole("combobox", { name: "Search the docs" })
     await user.click(input)
 
-    expect(await screen.findAllByRole("option")).toHaveLength(9)
+    expect(await screen.findAllByRole("option")).toHaveLength(10)
 
     await user.type(input, "kubernetes")
 
@@ -50,7 +50,23 @@ describe("DocsSearch", () => {
     await user.click(screen.getByRole("button", { name: "Reset search" }))
 
     expect(input).toHaveValue("")
-    expect(await screen.findAllByRole("option")).toHaveLength(9)
+    expect(await screen.findAllByRole("option")).toHaveLength(10)
+  })
+
+  it("suggests a spelling correction when a query has no matches", async () => {
+    const user = userEvent.setup()
+    render(<DocsSearch />)
+
+    const input = screen.getByRole("combobox", { name: "Search the docs" })
+    await user.click(input)
+    await user.type(input, "collaboartion")
+
+    expect(await screen.findByText(/Did you mean:/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Collaboration" }))
+
+    expect(input).toHaveValue("Collaboration")
+    expect(await screen.findAllByRole("option")).not.toHaveLength(0)
   })
 
   it("moves through results with the arrow keys", async () => {

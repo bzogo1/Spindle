@@ -1,0 +1,41 @@
+# Feature-flag cleanup plan (dry run)
+
+Generated: 2026-11-20T04:28:28.771Z
+Planned rewrites: 2 call site(s) across 2 file(s)
+Manual-review items: 1
+
+This plan was generated with `--apply --dry-run`. No application files
+were modified. Review the diff, then apply manually or extend the
+script once the flag API stabilises.
+
+## Diff
+
+```diff
+--- a/scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx
++++ b/scripts/feature-flags/demo-fixture/src/app/dashboard/page.tsx
+@@ -1,7 +1,7 @@
+ import { useFeatureFlag } from "@/lib/feature-flags"
+ 
+ export function Dashboard() {
+-  const newDashboard = useFeatureFlag("new-dashboard")
++  const newDashboard = true /* flag "new-dashboard" fully rolled out — cleanup */
+   const darkMode = useFeatureFlag("dark-mode")
+   const mystery = useFeatureFlag("not-a-real-flag")
+ 
+
+--- a/scripts/feature-flags/demo-fixture/src/components/export-panel.tsx
++++ b/scripts/feature-flags/demo-fixture/src/components/export-panel.tsx
+@@ -1,7 +1,7 @@
+ import { evaluateFlag } from "@/lib/feature-flags"
+ 
+ export async function exportPanel() {
+-  const betaExport = evaluateFlag("beta-export")
++  const betaExport = false /* flag "beta-export" fully off — cleanup */
+   return { betaExport }
+ }
+ 
+```
+
+## Manual review
+
+- `legacy-widget` — `scripts/feature-flags/demo-fixture/src/lib/feature-flags/registry.ts`: delete registry entry

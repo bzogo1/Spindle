@@ -1,10 +1,12 @@
 import { LabScreen } from "@/components/app/lab-screen"
+import { PaneBoundary } from "@/components/app/states/pane-boundary"
 
-export default async function ProjectLabPage({
-  params,
-}: {
-  params: Promise<{ projectId: string }>
-}) {
-  const { projectId } = await params
-  return <LabScreen projectId={projectId} />
+export default function ProjectLabPage({ params }: { params: Promise<{ projectId: string }> }) {
+  return (
+    <PaneBoundary screen="lab">
+      {params.then(({ projectId }) => (
+        <LabScreen projectId={projectId} />
+      ))}
+    </PaneBoundary>
+  )
 }
