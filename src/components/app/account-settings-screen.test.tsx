@@ -315,6 +315,36 @@ describe("AccountSettingsScreen", () => {
     expect(screen.getByText(/export ready/i)).toBeInTheDocument()
   }, 10000)
 
+  it("opens a confirm dialog from the danger zone without deleting anything", async () => {
+    const user = userEvent.setup()
+    renderScreen()
+
+    expect(
+      await screen.findByRole("heading", { name: "Danger zone" }),
+    ).toBeInTheDocument()
+    const deleteButtons = screen.getAllByRole("button", { name: /delete account/i })
+    expect(deleteButtons).toHaveLength(1)
+
+    await user.click(deleteButtons[0])
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByRole("heading", { name: "Delete account" })).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(/local preview — nothing is deleted on the server/i),
+    ).toBeInTheDocument()
+
+    // Confirming only closes the preview — no delete request is issued.
+    await user.click(within(dialog).getByRole("button", { name: "Delete account" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    const deleteCalls = vi
+      .mocked(fetch)
+      .mock.calls.filter(([input, init]) => {
+        const url = requestUrl(input)
+        return init?.method === "DELETE" && /account|user|profile/i.test(url)
+      })
+    expect(deleteCalls).toHaveLength(0)
+  })
+
   it("shows the loading skeleton while mock state is loading", async () => {
     window.history.replaceState(null, "", "/?mock=loading")
     renderScreen()

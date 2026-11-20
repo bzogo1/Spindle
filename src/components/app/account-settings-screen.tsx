@@ -2,7 +2,14 @@
 
 import Link from "next/link"
 import { useEffect, useRef, useState, type FormEvent } from "react"
-import { Check, Download, KeyRound, MonitorSmartphone, ShieldCheck } from "lucide-react"
+import {
+  Check,
+  Download,
+  KeyRound,
+  MonitorSmartphone,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react"
 
 import { useMockSession } from "@/components/app/mock-session-provider"
 import { useAppTheme } from "@/components/app/use-app-theme"
@@ -270,6 +277,9 @@ function AccountSettingsContent({
   // Data export
   const [exportStatus, setExportStatus] = useState<ExportStatus>("idle")
   const [exportUrl, setExportUrl] = useState<string | null>(null)
+
+  // Danger zone — UI preview only, no delete endpoint exists yet.
+  const [deleteOpen, setDeleteOpen] = useState(false)
 
   const [savedSection, setSavedSection] = useState<"profile" | "preferences" | null>(null)
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -725,7 +735,69 @@ function AccountSettingsContent({
                 : "Exports are generated locally for now; the export endpoint is not wired up yet."}
           </p>
         </section>
+
+        <section
+          className="app-page-card app-page-card--danger"
+          aria-labelledby="account-danger-heading"
+        >
+          <h2 id="account-danger-heading">Danger zone</h2>
+          <div className="app-danger-zone">
+            <h3>Delete account</h3>
+            <div className="app-danger-row">
+              <div>
+                <strong>Delete your account</strong>
+                <p>
+                  Permanently remove your account, profile, and personal data. Workspace data you
+                  own may be transferred or deleted depending on workspace settings. This cannot be
+                  undone.
+                </p>
+              </div>
+              <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                <Trash2 aria-hidden="true" />
+                Delete account
+              </Button>
+            </div>
+            <p className="app-field-hint">
+              Account deletion is not wired up yet — this button only previews the confirmation.
+            </p>
+          </div>
+        </section>
       </div>
+
+      {deleteOpen ? (
+        <Dialog open onOpenChange={(open) => !open && setDeleteOpen(false)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete account</DialogTitle>
+              <DialogDescription>
+                This will permanently delete your account and personal data. You will be signed out
+                on every device. This action cannot be undone. Account deletion is a local preview —
+                nothing is deleted on the server.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteOpen(false)
+                  toast({
+                    title: "Account deletion preview",
+                    description:
+                      "The delete-account endpoint is not wired up yet — nothing was deleted.",
+                    variant: "warning",
+                  })
+                }}
+              >
+                Delete account
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {twoFactorDialog ? (
         <TwoFactorDialog
