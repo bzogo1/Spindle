@@ -8,6 +8,7 @@ import {
   ChartColumn,
   ChevronDown,
   ChevronRight,
+  FlaskConical,
   History,
   Pencil,
   Play,
@@ -56,6 +57,7 @@ import { SkeletonTable } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useToast } from "@/components/ui/toast"
 import { EmptyState } from "@/components/app/states/empty-state"
 import { InlineError } from "@/components/app/states/inline-error"
@@ -1701,379 +1703,412 @@ export function AutomationsPanel() {
   )
 
   return (
-    <section className="app-panel app-automations" aria-labelledby="automations-heading">
-      <div className="app-panel-head">
-        <div>
-          <h2 id="automations-heading">Automations</h2>
-          <p>
-            Scheduled and event-driven workflows for this workspace. Showing sample data until the
-            automations API lands.
-          </p>
+    <TooltipProvider delayDuration={0}>
+      <section className="app-panel app-automations" aria-labelledby="automations-heading">
+        <div className="app-panel-head">
+          <div>
+            <h2 id="automations-heading">Automations</h2>
+            <p>
+              Scheduled and event-driven workflows for this workspace. Showing sample data until the
+              automations API lands.
+            </p>
+          </div>
+          <Button type="button" onClick={openCreate} disabled={loadState !== "ready"}>
+            <Plus aria-hidden="true" />
+            New automation
+          </Button>
         </div>
-        <Button type="button" onClick={openCreate} disabled={loadState !== "ready"}>
-          <Plus aria-hidden="true" />
-          New automation
-        </Button>
-      </div>
 
-      {loadState === "ready" && automations.length > 0 ? (
-        <div className="app-automation-analytics">
-          <div className="app-automation-analytics-head">
-            <div>
-              <h3>
-                <ChartColumn aria-hidden="true" />
-                Run analytics
-              </h3>
-              <p>
-                Per-automation stats computed from recorded run history — sample data until the
-                automations API lands.
-              </p>
+        {loadState === "ready" && automations.length > 0 ? (
+          <div className="app-automation-analytics">
+            <div className="app-automation-analytics-head">
+              <div>
+                <h3>
+                  <ChartColumn aria-hidden="true" />
+                  Run analytics
+                </h3>
+                <p>
+                  Per-automation stats computed from recorded run history — sample data until the
+                  automations API lands.
+                </p>
+              </div>
+            </div>
+            <div className="app-stat-grid app-automation-analytics-summary">
+              <article className="app-stat-card">
+                <span className="app-stat-card-label">
+                  <Zap aria-hidden="true" />
+                  Automations
+                </span>
+                <strong>{automations.length}</strong>
+                <small>
+                  {automations.filter((automation) => automation.enabled).length} enabled
+                </small>
+              </article>
+              <article className="app-stat-card">
+                <span className="app-stat-card-label">
+                  <History aria-hidden="true" />
+                  Total runs
+                </span>
+                <strong>{workspaceStats.runCount}</strong>
+                <small>{workspaceStats.terminalRuns} finished</small>
+              </article>
+              <article className="app-stat-card">
+                <span className="app-stat-card-label">
+                  <Play aria-hidden="true" />
+                  Success rate
+                </span>
+                <strong>{successRateLabel(workspaceStats.successRate)}</strong>
+                <small>
+                  {workspaceStats.succeededCount}/{workspaceStats.terminalRuns} succeeded
+                </small>
+              </article>
+              <article className="app-stat-card">
+                <span className="app-stat-card-label">
+                  <CalendarClock aria-hidden="true" />
+                  Avg duration
+                </span>
+                <strong>
+                  {workspaceStats.avgDurationMs === null
+                    ? "—"
+                    : formatDurationMs(workspaceStats.avgDurationMs)}
+                </strong>
+                <small>
+                  {workspaceStats.lastRunAt
+                    ? `Last run ${formatRelativeTime(workspaceStats.lastRunAt)}`
+                    : "No runs yet"}
+                </small>
+              </article>
+            </div>
+            <div className="app-table-wrap">
+              <table className="app-data-table app-automation-analytics-table">
+                <caption className="sr-only">Per-automation run statistics</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Automation</th>
+                    <th scope="col">Runs</th>
+                    <th scope="col">Success rate</th>
+                    <th scope="col">Avg duration</th>
+                    <th scope="col">Last run</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {automations.map((automation) => {
+                    const stats = statsByAutomationId.get(automation.id) ?? automationStats([])
+                    return (
+                      <tr key={automation.id}>
+                        <td>
+                          <strong>{automation.name}</strong>
+                        </td>
+                        <td>{stats.runCount}</td>
+                        <td>
+                          {successRateLabel(stats.successRate)}
+                          <small>
+                            {stats.succeededCount}/{stats.terminalRuns} terminal
+                          </small>
+                        </td>
+                        <td>
+                          {stats.avgDurationMs === null
+                            ? "—"
+                            : formatDurationMs(stats.avgDurationMs)}
+                        </td>
+                        <td>
+                          {stats.lastRunAt ? (
+                            <time
+                              dateTime={stats.lastRunAt}
+                              title={formatDateTime(stats.lastRunAt)}
+                            >
+                              {formatRelativeTime(stats.lastRunAt)}
+                            </time>
+                          ) : (
+                            <span className="app-automation-muted">Never</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="app-stat-grid app-automation-analytics-summary">
-            <article className="app-stat-card">
-              <span className="app-stat-card-label">
-                <Zap aria-hidden="true" />
-                Automations
-              </span>
-              <strong>{automations.length}</strong>
-              <small>{automations.filter((automation) => automation.enabled).length} enabled</small>
-            </article>
-            <article className="app-stat-card">
-              <span className="app-stat-card-label">
-                <History aria-hidden="true" />
-                Total runs
-              </span>
-              <strong>{workspaceStats.runCount}</strong>
-              <small>{workspaceStats.terminalRuns} finished</small>
-            </article>
-            <article className="app-stat-card">
-              <span className="app-stat-card-label">
-                <Play aria-hidden="true" />
-                Success rate
-              </span>
-              <strong>{successRateLabel(workspaceStats.successRate)}</strong>
-              <small>
-                {workspaceStats.succeededCount}/{workspaceStats.terminalRuns} succeeded
-              </small>
-            </article>
-            <article className="app-stat-card">
-              <span className="app-stat-card-label">
-                <CalendarClock aria-hidden="true" />
-                Avg duration
-              </span>
-              <strong>
-                {workspaceStats.avgDurationMs === null
-                  ? "—"
-                  : formatDurationMs(workspaceStats.avgDurationMs)}
-              </strong>
-              <small>
-                {workspaceStats.lastRunAt
-                  ? `Last run ${formatRelativeTime(workspaceStats.lastRunAt)}`
-                  : "No runs yet"}
-              </small>
-            </article>
+        ) : null}
+
+        {loadState === "loading" ? (
+          <div className="app-automation-loading" role="status" aria-label="Loading automations">
+            <SkeletonTable rows={3} columns={7} />
           </div>
-          <div className="app-table-wrap">
-            <table className="app-data-table app-automation-analytics-table">
-              <caption className="sr-only">Per-automation run statistics</caption>
+        ) : loadState === "error" ? (
+          <div className="app-automation-error">
+            <EmptyState
+              title="Couldn't load automations"
+              body="The automations service didn't respond. Check your connection and try again."
+              primaryAction={{ label: "Try again", onClick: load }}
+            />
+          </div>
+        ) : automations.length === 0 ? (
+          <EmptyState
+            icon={<Zap aria-hidden="true" />}
+            title="No automations yet"
+            body="Create your first automation with Ask AI, the visual builder, or a raw cron expression."
+            primaryAction={{ label: "New automation", onClick: openCreate }}
+          />
+        ) : (
+          <div className="app-table-wrap app-automation-table-wrap">
+            <table className="app-data-table app-automation-table">
+              <caption className="sr-only">Workspace automations</caption>
               <thead>
                 <tr>
                   <th scope="col">Automation</th>
-                  <th scope="col">Runs</th>
-                  <th scope="col">Success rate</th>
-                  <th scope="col">Avg duration</th>
+                  <th scope="col">Trigger</th>
+                  <th scope="col">Next run</th>
                   <th scope="col">Last run</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Enabled</th>
+                  <th scope="col">History</th>
+                  <th scope="col">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {automations.map((automation) => {
-                  const stats = statsByAutomationId.get(automation.id) ?? automationStats([])
+                  const expanded = expandedAutomationId === automation.id
+                  const historyId = `automation-history-${automation.id}`
+                  const status = automation.lastRunStatus
+                  const nextRun = nextRunFor(automation)
+
                   return (
-                    <tr key={automation.id}>
-                      <td>
-                        <strong>{automation.name}</strong>
-                      </td>
-                      <td>{stats.runCount}</td>
-                      <td>
-                        {successRateLabel(stats.successRate)}
-                        <small>
-                          {stats.succeededCount}/{stats.terminalRuns} terminal
-                        </small>
-                      </td>
-                      <td>
-                        {stats.avgDurationMs === null ? "—" : formatDurationMs(stats.avgDurationMs)}
-                      </td>
-                      <td>
-                        {stats.lastRunAt ? (
-                          <time dateTime={stats.lastRunAt} title={formatDateTime(stats.lastRunAt)}>
-                            {formatRelativeTime(stats.lastRunAt)}
-                          </time>
-                        ) : (
-                          <span className="app-automation-muted">Never</span>
-                        )}
-                      </td>
-                    </tr>
+                    <Fragment key={automation.id}>
+                      <tr>
+                        <td className="app-automation-name">
+                          <strong>{automation.name}</strong>
+                          <small>
+                            {automation.actionLabel}
+                            {automation.createdVia
+                              ? ` · ${MODE_LABELS[automation.createdVia]}`
+                              : ""}
+                          </small>
+                        </td>
+                        <td>
+                          <span className="app-automation-trigger">
+                            {automation.trigger.kind === "schedule" ? (
+                              <CalendarClock aria-hidden="true" />
+                            ) : automation.trigger.kind === "webhook" ? (
+                              <Webhook aria-hidden="true" />
+                            ) : (
+                              <Zap aria-hidden="true" />
+                            )}
+                            <span>{automation.trigger.label}</span>
+                          </span>
+                          <small>
+                            {automation.trigger.detail}
+                            {automation.trigger.meta ? ` · ${automation.trigger.meta}` : ""}
+                          </small>
+                        </td>
+                        <td>
+                          {automation.trigger.kind === "event" ||
+                          automation.trigger.kind === "webhook" ? (
+                            <span className="app-automation-muted">
+                              {automation.trigger.kind === "event" ? "On event" : "On webhook"}
+                            </span>
+                          ) : !automation.enabled ? (
+                            <span className="app-automation-muted">Paused</span>
+                          ) : nextRun ? (
+                            <time
+                              dateTime={nextRun.toISOString()}
+                              title={formatDateTime(nextRun.toISOString())}
+                            >
+                              {formatDateTime(nextRun.toISOString())}
+                            </time>
+                          ) : (
+                            <span className="app-automation-muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          {automation.lastRunAt ? (
+                            <time
+                              dateTime={automation.lastRunAt}
+                              title={formatDateTime(automation.lastRunAt)}
+                            >
+                              {formatRelativeTime(automation.lastRunAt)}
+                            </time>
+                          ) : (
+                            <span className="app-automation-muted">Never</span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`app-automation-status${status ? ` is-${status}` : ""}`}>
+                            <span
+                              className={`app-status-dot${status ? ` is-${status}` : ""}`}
+                              aria-hidden="true"
+                            />
+                            {statusLabel(status)}
+                          </span>
+                        </td>
+                        <td>
+                          <Switch
+                            checked={automation.enabled}
+                            onCheckedChange={(checked) =>
+                              setAutomationEnabled(automation.id, checked)
+                            }
+                            aria-label={`Enable ${automation.name}`}
+                          />
+                        </td>
+                        <td>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="app-automation-history-button"
+                            aria-expanded={expanded}
+                            aria-controls={expanded ? historyId : undefined}
+                            aria-label={`${expanded ? "Hide" : "Show"} run history for ${automation.name}`}
+                            onClick={() => toggleHistory(automation.id)}
+                          >
+                            {expanded ? (
+                              <ChevronDown aria-hidden="true" />
+                            ) : (
+                              <ChevronRight aria-hidden="true" />
+                            )}
+                            History
+                          </Button>
+                        </td>
+                        <td>
+                          <span className="app-automation-row-actions">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Run ${automation.name} now`}
+                              onClick={() => runNow(automation)}
+                            >
+                              <Play aria-hidden="true" />
+                            </Button>
+                            {/* Disabled buttons swallow pointer events, so the
+                              tooltip trigger wraps a focusable span instead. */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="app-automation-dry-run">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled
+                                    aria-label={`Dry run ${automation.name}`}
+                                  >
+                                    <FlaskConical aria-hidden="true" />
+                                  </Button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Dry run is unavailable until the automations API lands.
+                              </TooltipContent>
+                            </Tooltip>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Edit ${automation.name}`}
+                              onClick={() => openEdit(automation)}
+                            >
+                              <Pencil aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Delete ${automation.name}`}
+                              onClick={() => setDeleteTarget(automation)}
+                            >
+                              <Trash2 aria-hidden="true" />
+                            </Button>
+                          </span>
+                        </td>
+                      </tr>
+                      {expanded ? (
+                        <tr className="app-automation-history-row" id={historyId}>
+                          <td colSpan={8}>
+                            <div className="app-automation-history">
+                              <div className="app-automation-history-head">
+                                <div>
+                                  <h3>Run history</h3>
+                                  <p>
+                                    Mock run log for {automation.name} — the automations API will
+                                    provide live history.
+                                  </p>
+                                </div>
+                                <History aria-hidden="true" className="app-panel-icon" />
+                              </div>
+                              {automation.steps?.length ? (
+                                <ol className="app-automation-step-list">
+                                  {automation.steps.map((step) => (
+                                    <li key={step.id} className={`is-${step.kind}`}>
+                                      <span className="app-automation-step-kind">{step.kind}</span>
+                                      <span>{step.label}</span>
+                                      {step.detail ? <code>{step.detail}</code> : null}
+                                    </li>
+                                  ))}
+                                </ol>
+                              ) : null}
+                              {automation.runs.length === 0 ? (
+                                <p className="app-automation-empty">No runs yet.</p>
+                              ) : (
+                                <ol className="app-automation-runs">
+                                  {automation.runs.map((run) => (
+                                    <li key={run.id} className="app-automation-run">
+                                      <div className="app-automation-run-head">
+                                        <span className={`app-automation-status is-${run.status}`}>
+                                          <span
+                                            className={`app-status-dot is-${run.status}`}
+                                            aria-hidden="true"
+                                          />
+                                          {statusLabel(run.status)}
+                                        </span>
+                                        <strong>{run.label}</strong>
+                                        <span className="app-automation-run-trigger">
+                                          {run.trigger}
+                                        </span>
+                                        <time dateTime={run.startedAt}>
+                                          {formatDateTime(run.startedAt)}
+                                        </time>
+                                        <span className="app-automation-run-duration">
+                                          {run.duration}
+                                        </span>
+                                      </div>
+                                      <pre className="app-automation-log">
+                                        {run.logs.join("\n")}
+                                      </pre>
+                                    </li>
+                                  ))}
+                                </ol>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </Fragment>
                   )
                 })}
               </tbody>
             </table>
           </div>
-        </div>
-      ) : null}
+        )}
 
-      {loadState === "loading" ? (
-        <div className="app-automation-loading" role="status" aria-label="Loading automations">
-          <SkeletonTable rows={3} columns={7} />
-        </div>
-      ) : loadState === "error" ? (
-        <div className="app-automation-error">
-          <EmptyState
-            title="Couldn't load automations"
-            body="The automations service didn't respond. Check your connection and try again."
-            primaryAction={{ label: "Try again", onClick: load }}
-          />
-        </div>
-      ) : automations.length === 0 ? (
-        <EmptyState
-          icon={<Zap aria-hidden="true" />}
-          title="No automations yet"
-          body="Create your first automation with Ask AI, the visual builder, or a raw cron expression."
-          primaryAction={{ label: "New automation", onClick: openCreate }}
+        <StudioDialog
+          open={studioOpen}
+          onOpenChange={(open) => {
+            setStudioOpen(open)
+            if (!open) setEditing(null)
+          }}
+          editing={editing}
+          onSave={saveDraft}
         />
-      ) : (
-        <div className="app-table-wrap app-automation-table-wrap">
-          <table className="app-data-table app-automation-table">
-            <caption className="sr-only">Workspace automations</caption>
-            <thead>
-              <tr>
-                <th scope="col">Automation</th>
-                <th scope="col">Trigger</th>
-                <th scope="col">Next run</th>
-                <th scope="col">Last run</th>
-                <th scope="col">Status</th>
-                <th scope="col">Enabled</th>
-                <th scope="col">History</th>
-                <th scope="col">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {automations.map((automation) => {
-                const expanded = expandedAutomationId === automation.id
-                const historyId = `automation-history-${automation.id}`
-                const status = automation.lastRunStatus
-                const nextRun = nextRunFor(automation)
 
-                return (
-                  <Fragment key={automation.id}>
-                    <tr>
-                      <td className="app-automation-name">
-                        <strong>{automation.name}</strong>
-                        <small>
-                          {automation.actionLabel}
-                          {automation.createdVia ? ` · ${MODE_LABELS[automation.createdVia]}` : ""}
-                        </small>
-                      </td>
-                      <td>
-                        <span className="app-automation-trigger">
-                          {automation.trigger.kind === "schedule" ? (
-                            <CalendarClock aria-hidden="true" />
-                          ) : automation.trigger.kind === "webhook" ? (
-                            <Webhook aria-hidden="true" />
-                          ) : (
-                            <Zap aria-hidden="true" />
-                          )}
-                          <span>{automation.trigger.label}</span>
-                        </span>
-                        <small>
-                          {automation.trigger.detail}
-                          {automation.trigger.meta ? ` · ${automation.trigger.meta}` : ""}
-                        </small>
-                      </td>
-                      <td>
-                        {automation.trigger.kind === "event" ||
-                        automation.trigger.kind === "webhook" ? (
-                          <span className="app-automation-muted">
-                            {automation.trigger.kind === "event" ? "On event" : "On webhook"}
-                          </span>
-                        ) : !automation.enabled ? (
-                          <span className="app-automation-muted">Paused</span>
-                        ) : nextRun ? (
-                          <time
-                            dateTime={nextRun.toISOString()}
-                            title={formatDateTime(nextRun.toISOString())}
-                          >
-                            {formatDateTime(nextRun.toISOString())}
-                          </time>
-                        ) : (
-                          <span className="app-automation-muted">—</span>
-                        )}
-                      </td>
-                      <td>
-                        {automation.lastRunAt ? (
-                          <time
-                            dateTime={automation.lastRunAt}
-                            title={formatDateTime(automation.lastRunAt)}
-                          >
-                            {formatRelativeTime(automation.lastRunAt)}
-                          </time>
-                        ) : (
-                          <span className="app-automation-muted">Never</span>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`app-automation-status${status ? ` is-${status}` : ""}`}>
-                          <span
-                            className={`app-status-dot${status ? ` is-${status}` : ""}`}
-                            aria-hidden="true"
-                          />
-                          {statusLabel(status)}
-                        </span>
-                      </td>
-                      <td>
-                        <Switch
-                          checked={automation.enabled}
-                          onCheckedChange={(checked) =>
-                            setAutomationEnabled(automation.id, checked)
-                          }
-                          aria-label={`Enable ${automation.name}`}
-                        />
-                      </td>
-                      <td>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="app-automation-history-button"
-                          aria-expanded={expanded}
-                          aria-controls={expanded ? historyId : undefined}
-                          aria-label={`${expanded ? "Hide" : "Show"} run history for ${automation.name}`}
-                          onClick={() => toggleHistory(automation.id)}
-                        >
-                          {expanded ? (
-                            <ChevronDown aria-hidden="true" />
-                          ) : (
-                            <ChevronRight aria-hidden="true" />
-                          )}
-                          History
-                        </Button>
-                      </td>
-                      <td>
-                        <span className="app-automation-row-actions">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Run ${automation.name} now`}
-                            onClick={() => runNow(automation)}
-                          >
-                            <Play aria-hidden="true" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Edit ${automation.name}`}
-                            onClick={() => openEdit(automation)}
-                          >
-                            <Pencil aria-hidden="true" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            aria-label={`Delete ${automation.name}`}
-                            onClick={() => setDeleteTarget(automation)}
-                          >
-                            <Trash2 aria-hidden="true" />
-                          </Button>
-                        </span>
-                      </td>
-                    </tr>
-                    {expanded ? (
-                      <tr className="app-automation-history-row" id={historyId}>
-                        <td colSpan={8}>
-                          <div className="app-automation-history">
-                            <div className="app-automation-history-head">
-                              <div>
-                                <h3>Run history</h3>
-                                <p>
-                                  Mock run log for {automation.name} — the automations API will
-                                  provide live history.
-                                </p>
-                              </div>
-                              <History aria-hidden="true" className="app-panel-icon" />
-                            </div>
-                            {automation.steps?.length ? (
-                              <ol className="app-automation-step-list">
-                                {automation.steps.map((step) => (
-                                  <li key={step.id} className={`is-${step.kind}`}>
-                                    <span className="app-automation-step-kind">{step.kind}</span>
-                                    <span>{step.label}</span>
-                                    {step.detail ? <code>{step.detail}</code> : null}
-                                  </li>
-                                ))}
-                              </ol>
-                            ) : null}
-                            {automation.runs.length === 0 ? (
-                              <p className="app-automation-empty">No runs yet.</p>
-                            ) : (
-                              <ol className="app-automation-runs">
-                                {automation.runs.map((run) => (
-                                  <li key={run.id} className="app-automation-run">
-                                    <div className="app-automation-run-head">
-                                      <span className={`app-automation-status is-${run.status}`}>
-                                        <span
-                                          className={`app-status-dot is-${run.status}`}
-                                          aria-hidden="true"
-                                        />
-                                        {statusLabel(run.status)}
-                                      </span>
-                                      <strong>{run.label}</strong>
-                                      <span className="app-automation-run-trigger">
-                                        {run.trigger}
-                                      </span>
-                                      <time dateTime={run.startedAt}>
-                                        {formatDateTime(run.startedAt)}
-                                      </time>
-                                      <span className="app-automation-run-duration">
-                                        {run.duration}
-                                      </span>
-                                    </div>
-                                    <pre className="app-automation-log">{run.logs.join("\n")}</pre>
-                                  </li>
-                                ))}
-                              </ol>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </Fragment>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <StudioDialog
-        open={studioOpen}
-        onOpenChange={(open) => {
-          setStudioOpen(open)
-          if (!open) setEditing(null)
-        }}
-        editing={editing}
-        onSave={saveDraft}
-      />
-
-      <DeleteAutomationDialog
-        automation={deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
-      />
-    </section>
+        <DeleteAutomationDialog
+          automation={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
+      </section>
+    </TooltipProvider>
   )
 }

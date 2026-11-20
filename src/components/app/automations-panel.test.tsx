@@ -240,6 +240,15 @@ describe("AutomationsPanel", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument()
   })
 
+  it("shows a disabled dry-run button with a tooltip until the API lands", async () => {
+    render(<AutomationsPanel />)
+
+    await screen.findAllByText("Daily results digest")
+
+    const dryRun = screen.getByRole("button", { name: "Dry run Daily results digest" })
+    expect(dryRun).toBeDisabled()
+  })
+
   it("runs an automation manually and records a running entry", async () => {
     render(<AutomationsPanel />)
 

@@ -9317,6 +9317,11 @@ button.app-quick-link {
   height: 15px;
 }
 
+.app-automation-dry-run {
+  display: inline-flex;
+  align-items: center;
+}
+
 .app-automation-dialog .app-form {
   gap: 16px;
 }
