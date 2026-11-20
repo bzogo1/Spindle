@@ -5,14 +5,14 @@ import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import {
   Bot,
-  FlaskConical,
   FolderKanban,
   HardDrive,
-  MessageSquare,
+  Play,
   Plus,
   Search,
   SlidersHorizontal,
   Upload,
+  Zap,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -42,6 +42,7 @@ import {
   type DashboardWidgetId,
 } from "./dashboard-widgets"
 import { NewProjectDialog } from "./new-project-dialog"
+import { dashboardMock } from "./dashboard-mock"
 import { formatBytes, formatRelativeTime } from "./format"
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NEW_PROJECT_STORAGE_KEY } from "./new-project-events"
 import { useDashboardLayout, type DashboardProjectSort } from "./dashboard-layout"
@@ -352,18 +353,18 @@ export function DashboardScreen() {
                         <small>Add files to a project</small>
                       </span>
                     </Link>
-                    <Link href="/app/lab" className="app-quick-link">
-                      <FlaskConical aria-hidden="true" />
+                    <Link href="/app/agent" className="app-quick-link">
+                      <Play aria-hidden="true" />
                       <span>
-                        <strong>Run lab tool</strong>
-                        <small>Start a lab session</small>
+                        <strong>Run agent</strong>
+                        <small>Start an agent run</small>
                       </span>
                     </Link>
-                    <Link href="/app/chat" className="app-quick-link">
-                      <MessageSquare aria-hidden="true" />
+                    <Link href="/app/automations" className="app-quick-link">
+                      <Zap aria-hidden="true" />
                       <span>
-                        <strong>Open chat</strong>
-                        <small>Message your team and agents</small>
+                        <strong>New automation</strong>
+                        <small>Create a scheduled automation</small>
                       </span>
                     </Link>
                   </div>
@@ -440,6 +441,14 @@ export function DashboardScreen() {
                   </span>
                   <strong>{totals.agentRuns}</strong>
                   <small>{totals.labSessions} lab sessions</small>
+                </article>
+                <article className="app-stat-card">
+                  <span className="app-stat-card-label">
+                    <Zap aria-hidden="true" />
+                    Automations
+                  </span>
+                  <strong>{dashboardMock.automations.count}</strong>
+                  <small>{dashboardMock.automations.activeCount} active</small>
                 </article>
               </section>
             )}
