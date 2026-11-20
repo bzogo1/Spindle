@@ -7,7 +7,9 @@ import {
   SkeletonCard,
   SkeletonChart,
   SkeletonList,
+  SkeletonStatCard,
   SkeletonTable,
+  SkeletonTableRow,
   SkeletonText,
 } from "@/components/ui/skeleton"
 
@@ -53,6 +55,28 @@ describe("SkeletonTable", () => {
     // 2 header cells + 3 rows x 2 cells
     expect(container.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(8)
     expect(container.querySelector('[data-slot="skeleton-table"]')).toBeInTheDocument()
+  })
+})
+
+describe("SkeletonTableRow", () => {
+  it("renders one cell per column", () => {
+    const { container } = render(<SkeletonTableRow columns={3} />)
+    const row = container.querySelector('[data-slot="skeleton-table-row"]')
+
+    expect(row).toBeInTheDocument()
+    expect(row?.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3)
+  })
+})
+
+describe("SkeletonStatCard", () => {
+  it("renders a stat card placeholder and accepts className", () => {
+    const { container } = render(<SkeletonStatCard className="max-w-xs" />)
+    const card = container.querySelector('[data-slot="skeleton-stat-card"]')
+
+    expect(card).toBeInTheDocument()
+    expect(card).toHaveClass("border", "bg-card", "max-w-xs")
+    // label + value + hint
+    expect(card?.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3)
   })
 })
 

@@ -66,6 +66,29 @@ function SkeletonCard({ className, ...props }: ComponentProps<"div">) {
   )
 }
 
+/** Single table body row: `columns` cells in the same grid as SkeletonTable. */
+function SkeletonTableRow({
+  columns = 4,
+  className,
+  ...props
+}: ComponentProps<"div"> & { columns?: number }) {
+  return (
+    <div
+      data-slot="skeleton-table-row"
+      className={cn("grid gap-2", className)}
+      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      {...props}
+    >
+      {Array.from({ length: columns }, (_, column) => (
+        <Skeleton
+          key={column}
+          className={cn("h-4", column === 0 && "w-3/4")}
+        />
+      ))}
+    </div>
+  )
+}
+
 /** Table-shaped placeholder with a header row and `rows` body rows of `columns` cells. */
 function SkeletonTable({
   rows = 5,
@@ -90,19 +113,23 @@ function SkeletonTable({
         ))}
       </div>
       {Array.from({ length: rows }, (_, row) => (
-        <div
-          key={`row-${row}`}
-          className="grid gap-2"
-          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-        >
-          {Array.from({ length: columns }, (_, column) => (
-            <Skeleton
-              key={`cell-${row}-${column}`}
-              className={cn("h-4", column === 0 && "w-3/4")}
-            />
-          ))}
-        </div>
+        <SkeletonTableRow key={`row-${row}`} columns={columns} />
       ))}
+    </div>
+  )
+}
+
+/** Stat/KPI card placeholder: small label, large value, supporting hint. */
+function SkeletonStatCard({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="skeleton-stat-card"
+      className={cn("bg-card grid gap-3 rounded-xl border p-5", className)}
+      {...props}
+    >
+      <Skeleton className="h-3 w-24" />
+      <Skeleton className="h-7 w-20" />
+      <Skeleton className="h-3 w-32" />
     </div>
   )
 }
@@ -188,6 +215,8 @@ export {
   SkeletonChart,
   SkeletonList,
   SkeletonListItem,
+  SkeletonStatCard,
   SkeletonTable,
+  SkeletonTableRow,
   SkeletonText,
 }
