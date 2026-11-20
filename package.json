@@ -105,7 +105,7 @@
     "@vitest/browser-playwright": "^5.1.1",
     "@vitest/coverage-v8": "^5.1.1",
     "axe-core": "^4.14.1",
-    "eslint": "^9.39.5",
+    "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "jsdom": "^31.0.1",
