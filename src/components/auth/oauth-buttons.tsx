@@ -1,11 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Github, Gitlab, KeyRound } from "lucide-react"
+import { KeyRound } from "lucide-react"
 
 import { useLanguage } from "@/components/i18n/language-provider"
 import { AuthApiError, beginOAuthSignIn } from "@/lib/auth/auth-client"
 import { Button } from "@/components/ui/button"
+import { GithubIcon, GitlabIcon } from "@/components/ui/brand-icons"
 
 const KNOWN_PROVIDERS = [
   { id: "google", label: "Google" },
@@ -92,9 +93,9 @@ export function OAuthButtons({ providers = [], returnTo }: OAuthButtonsProps) {
             {provider.id === "google" ? (
               <GoogleIcon />
             ) : provider.id === "gitlab" ? (
-              <Gitlab aria-hidden="true" />
+              <GitlabIcon aria-hidden="true" />
             ) : (
-              <Github aria-hidden="true" />
+              <GithubIcon aria-hidden="true" />
             )}
             {t("auth.oauth.continueWith", { provider: provider.label })}
             {isConfigured ? null : <span className="auth-oauth-badge">{t("auth.oauth.soon")}</span>}

@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Facebook, Link2, Linkedin, Mail, MessageCircle, Send, Share2, Twitter } from "lucide-react"
+import { useEffect, useState, type ComponentType, type SVGProps } from "react"
+import { Link2, Mail, MessageCircle, Send, Share2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { FacebookIcon, LinkedInIcon, XIcon } from "@/components/ui/brand-icons"
 import { buildReferralShareUrl } from "@/lib/referral"
 import { siteUrl } from "@/lib/site-url"
 import {
@@ -30,10 +31,13 @@ const SHARE_TEXT =
   "Spindle gives every research project files, a live lab, local search, and an agent — free to start."
 const SHARE_HASHTAGS = ["spindle", "research"] as const
 
-const PLATFORM_ICONS: Record<UrlSharePlatform | "native" | "copy", typeof Twitter> = {
-  x: Twitter,
-  linkedin: Linkedin,
-  facebook: Facebook,
+const PLATFORM_ICONS: Record<
+  UrlSharePlatform | "native" | "copy",
+  ComponentType<SVGProps<SVGSVGElement>>
+> = {
+  x: XIcon,
+  linkedin: LinkedInIcon,
+  facebook: FacebookIcon,
   whatsapp: MessageCircle,
   telegram: Send,
   email: Mail,
