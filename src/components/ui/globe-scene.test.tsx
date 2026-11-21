@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { GlobeScene } from "./globe-scene"
 
 const createGlobe = vi.fn()
+const update = vi.fn()
 
 vi.mock("cobe", () => ({
   default: (...args: unknown[]) => createGlobe(...args),
@@ -14,20 +15,22 @@ vi.mock("@sentry/nextjs", () => ({
   captureException: vi.fn(),
 }))
 
-function globeOptions(): COBEOptions {
-  expect(createGlobe).toHaveBeenCalled()
-  return createGlobe.mock.calls.at(-1)?.[1] as COBEOptions
-}
+// cobe v2 has no render loop: GlobeScene drives frames itself via
+// requestAnimationFrame -> globe.update(state). jsdom does not implement
+// rAF, so capture the scheduled callback and fire frames manually.
+let rafQueue: FrameRequestCallback[] = []
 
-function renderFrame(state: Record<string, unknown> = {}) {
-  globeOptions().onRender(state)
-  return state
+function renderFrame(): Partial<COBEOptions> {
+  const callback = rafQueue.shift()
+  expect(callback).toBeDefined()
+  callback!(0)
+  expect(update).toHaveBeenCalled()
+  return update.mock.calls.at(-1)?.[0] as Partial<COBEOptions>
 }
 
 const CUSTOM_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
-  onRender: () => {},
   devicePixelRatio: 2,
   phi: 0,
   theta: 0.3,
@@ -46,15 +49,24 @@ describe("GlobeScene theme palette", () => {
   beforeEach(() => {
     document.documentElement.className = ""
     document.documentElement.removeAttribute("data-theme")
-    createGlobe.mockReturnValue({ destroy: vi.fn() })
+    update.mockClear()
+    createGlobe.mockReturnValue({ update, destroy: vi.fn() })
     // jsdom has no WebGL; the component probes for a context before creating
     // the globe, so fake one to reach createGlobe.
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({} as never)
+
+    rafQueue = []
+    window.requestAnimationFrame = ((callback: FrameRequestCallback) => {
+      rafQueue.push(callback)
+      return rafQueue.length
+    }) as typeof window.requestAnimationFrame
+    window.cancelAnimationFrame = (() => {}) as typeof window.cancelAnimationFrame
   })
 
   afterEach(() => {
     document.documentElement.className = ""
     document.documentElement.removeAttribute("data-theme")
+    vi.restoreAllMocks()
   })
 
   it("uses the dark palette when the page is dark", () => {
@@ -115,7 +127,7 @@ describe("GlobeScene theme palette", () => {
     const state = renderFrame()
     expect(state.dark).toBeUndefined()
     expect(state.baseColor).toBeUndefined()
-    // Non-palette uniforms still flow through onRender.
+    // Rotation/resize uniforms still flow through update() for custom configs.
     expect(state.phi).toBeTypeOf("number")
     expect(state.width).toBe(0)
   })
