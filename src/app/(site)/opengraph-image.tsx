@@ -8,7 +8,7 @@ export const contentType = ogImageContentType
 export default function Image() {
   return renderOgImage({
     eyebrow: "Spindle",
-    title: "One place for all your research.",
+    title: "One place for all your research",
     subtitle: defaultSiteDescription,
     url: "spindle.app",
   })

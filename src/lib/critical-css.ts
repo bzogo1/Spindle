@@ -34,7 +34,8 @@ export const SITE_CRITICAL_CSS = `
   --container: 1160px;
   --focus-ring: 2px solid var(--accent);
   --transition-normal: 0.2s ease;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ui-primary-foreground: #12160f;
   color-scheme: dark;
@@ -238,7 +239,7 @@ svg {
 .brand-name {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.017em;
   color: var(--text);
 }
 .nav-desktop-slot {
@@ -305,12 +306,14 @@ svg {
   margin-bottom: 24px;
 }
 .hero-title {
-  font-size: clamp(2.85rem, 5.6vw, 4.3rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.55rem, 4.9vw, 3.9rem);
   font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
+  line-height: 1.14;
+  letter-spacing: -0.018em;
   margin: 0 auto 22px;
-  max-width: 860px;
+  max-width: 840px;
+  text-wrap: balance;
 }
 .hero-subtitle {
   font-size: 17px;
@@ -358,11 +361,13 @@ svg {
   max-width: 860px;
 }
 .page-title {
-  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.3rem, 4.6vw, 3.35rem);
   font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.045em;
+  line-height: 1.16;
+  letter-spacing: -0.015em;
   margin: 0 0 18px;
+  text-wrap: balance;
 }
 .page-lede {
   font-size: 17px;
@@ -413,7 +418,8 @@ export const AUTH_CRITICAL_CSS = `
   --container: 1160px;
   --focus-ring: 2px solid var(--accent);
   --transition-normal: 0.2s ease;
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ui-primary-foreground: #12160f;
   color-scheme: dark;
@@ -578,7 +584,7 @@ svg {
 .auth-brand-name {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.017em;
 }
 .auth-card {
   display: grid;
@@ -601,7 +607,7 @@ svg {
   font-size: clamp(1.45rem, 4vw, 1.75rem);
   font-weight: 600;
   line-height: 1.2;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.017em;
   color: var(--text);
   outline: none;
 }
@@ -746,7 +752,7 @@ svg {
   font-size: 20px;
   font-weight: 600;
   line-height: 1.25;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
   color: var(--text);
 }
 .auth-state-text {

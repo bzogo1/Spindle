@@ -151,7 +151,7 @@
   margin: 0 0 14px;
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   color: var(--accent);
 }
 .legal-summary ul {
@@ -190,16 +190,18 @@
   border-bottom: 0;
 }
 .legal-block h2 {
+  font-family: var(--font-display);
+
   margin: 0 0 16px;
   font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
 }
 .legal-block h3 {
   margin: 26px 0 10px;
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
 }
 .legal-block p {
   margin: 0 0 14px;

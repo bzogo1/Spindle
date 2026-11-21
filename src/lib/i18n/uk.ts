@@ -65,7 +65,7 @@ export const uk: Messages = {
   "nav.link.contact.desc": "Поговоріть з нами про вашу лабораторію",
 
   // Footer
-  "footer.tagline": "Єдине місце для всіх ваших досліджень.",
+  "footer.tagline": "Єдине місце для всіх ваших досліджень",
   "footer.workspace": "Робочий простір",
   "footer.lab": "Лабораторія",
   "footer.search": "Пошук",

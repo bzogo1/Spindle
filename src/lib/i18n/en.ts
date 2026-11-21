@@ -70,7 +70,7 @@ export const en = {
   "nav.link.contact.desc": "Talk to us about your lab",
 
   // Footer
-  "footer.tagline": "One place for all your research.",
+  "footer.tagline": "One place for all your research",
   "footer.workspace": "Workspace",
   "footer.lab": "Lab",
   "footer.search": "Search",

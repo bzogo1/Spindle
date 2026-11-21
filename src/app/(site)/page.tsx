@@ -28,10 +28,10 @@ export default function HomePage() {
         <section className="hero">
           <div className="hero-inner container">
             <HeroBadge />
-            <h1 className="hero-title">One place for all your research.</h1>
+            <h1 className="hero-title">One place for all your research</h1>
             <p className="hero-subtitle">
-              Files, notebooks, search, automations, an agent, and your team — organized around each
-              project, not scattered across a dozen tabs.
+              Files, notebooks, search, automations, and your team, organized around the project
+              instead of scattered across a dozen tabs.
             </p>
             <div className="hero-actions">
               <HeroActions />
@@ -325,8 +325,8 @@ export default function HomePage() {
         <section className="integrations" id="integrations">
           <div className="integrations-inner container">
             <div className="integrations-copy">
-              <div className="eyebrow">Works with</div>
-              <h2 className="section-title">Your stack, connected.</h2>
+              <div className="eyebrow">Integrations</div>
+              <h2 className="section-title">Your stack, connected</h2>
               <p className="section-desc">
                 Spindle plugs into the tools your research already runs on. Notebooks, datasets,
                 references, and search stay in sync around the project.
@@ -564,10 +564,10 @@ export default function HomePage() {
           <div className="container">
             <div className="section-head">
               <div className="eyebrow">Platform</div>
-              <h2 className="section-title">A home for every project.</h2>
+              <h2 className="section-title">A home for every project</h2>
               <p className="section-desc">
-                Files, notebooks, results, conversations, and automations stay together — even when
-                a project runs for years.
+                Files, notebooks, results, conversations, and automations stay together, even when a
+                project runs for years.
               </p>
             </div>
             <div className="feature-grid">
@@ -579,7 +579,7 @@ export default function HomePage() {
           <div className="container">
             <div className="section-head">
               <div className="eyebrow">Automations</div>
-              <h2 className="section-title">Chat with AI, or write it yourself.</h2>
+              <h2 className="section-title">Describe a workflow, or write one yourself</h2>
               <p className="section-desc">
                 Two ways to make a project run itself. Both share the same guardrails, run history,
                 and logs.
@@ -591,7 +591,7 @@ export default function HomePage() {
                   <svg className="icon icon--xs">
                     <use href="#i-sparkle" />
                   </svg>{" "}
-                  FOR EVERYONE
+                  IN PLAIN LANGUAGE
                 </div>
                 <h3>Automations</h3>
                 <p>
@@ -609,7 +609,7 @@ export default function HomePage() {
                     to the project log.
                   </p>
                   <div className="prompt-foot">
-                    <span>AI built 4 steps</span>
+                    <span>Spindle drafted 4 steps</span>
                     <span className="prompt-live">
                       <i></i> Ready to review
                     </span>
@@ -621,7 +621,7 @@ export default function HomePage() {
                   <svg className="icon icon--xs">
                     <use href="#i-code" />
                   </svg>{" "}
-                  FOR DEVELOPERS
+                  IN CODE
                 </div>
                 <h3>Cron jobs</h3>
                 <p>
@@ -667,7 +667,7 @@ export default function HomePage() {
           <div className="split-grid container">
             <div className="split-copy">
               <div className="eyebrow">The lab</div>
-              <h2 className="section-title">Your tools, already running.</h2>
+              <h2 className="section-title">Your tools, already running</h2>
               <p className="section-desc">
                 Every project has a Lab tab. Open the environment you already know, with your files
                 mounted and your packages waiting.
@@ -1104,10 +1104,10 @@ export default function HomePage() {
             </div>
             <div className="split-copy">
               <div className="eyebrow">Search</div>
-              <h2 className="section-title">Academic depth. Basic speed.</h2>
+              <h2 className="section-title">Academic depth, basic speed</h2>
               <p className="section-desc">
                 Search runs through a SearXNG instance local to Spindle. Flip between modes without
-                leaving the project — results, citations, and notes land next to your files.
+                leaving the project. Results, citations, and notes land next to your files.
               </p>
               <div className="mode-explain" role="group" aria-label="Choose a search mode">
                 <button
@@ -1157,10 +1157,10 @@ export default function HomePage() {
           <div className="container">
             <div className="section-head">
               <div className="eyebrow">Files</div>
-              <h2 className="section-title">A file manager built for research data.</h2>
+              <h2 className="section-title">A file manager built for research data</h2>
               <p className="section-desc">
-                Upload, organize, and preview 100+ formats inline — including datasets and
-                notebooks. 5 GB free from day one.
+                Upload, organize, and preview 100+ formats inline, including datasets and notebooks.
+                5 GB free from day one.
               </p>
             </div>
             <div className="files-layout">
@@ -1341,10 +1341,10 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="format-support">
-                  <h3>One viewer. Almost anything.</h3>
+                  <h3>One viewer, almost anything</h3>
                   <p>
-                    Documents, spreadsheets, datasets, images, media, archives, code, and notebooks
-                    — opened in place.
+                    Documents, spreadsheets, datasets, images, media, archives, code, and notebooks,
+                    opened in place.
                   </p>
                   <div className="format-chips">
                     <span>PDF</span>
@@ -1367,7 +1367,7 @@ export default function HomePage() {
           <div className="split-grid container">
             <div className="split-copy">
               <div className="eyebrow">Agent</div>
-              <h2 className="section-title">An agent that knows the project.</h2>
+              <h2 className="section-title">An agent that knows the project</h2>
               <p className="section-desc">
                 Ask it to clean a dataset, refactor a folder, or update a spreadsheet. Every change
                 is reviewable before it lands.
@@ -1600,10 +1600,10 @@ export default function HomePage() {
             </div>
             <div className="split-copy">
               <div className="eyebrow">Team chat</div>
-              <h2 className="section-title">Talk where the work happens.</h2>
+              <h2 className="section-title">Talk where the work happens</h2>
               <p className="section-desc">
-                Channels live inside each project, like Discord or Slack — but the conversation
-                stays next to the files and decisions it belongs to.
+                Channels live inside each project, like Discord or Slack, but the conversation stays
+                next to the files and decisions it belongs to.
               </p>
               <div className="privacy-note">
                 <div className="privacy-note-head">
@@ -1614,8 +1614,8 @@ export default function HomePage() {
                 </div>
                 <p>
                   Anonymous mode posts under a pseudonymous display name in the thread. Routing
-                  through the Nym Mixnet — which hides the patterns your communications leave behind
-                  — is planned.
+                  through the Nym Mixnet, which hides the patterns your communications leave behind,
+                  is planned.
                 </p>
                 <a href="https://nym.com/" target="_blank" rel="noopener noreferrer">
                   Learn about Nym{" "}
@@ -1631,10 +1631,10 @@ export default function HomePage() {
           <div className="split-grid collab-grid container">
             <div className="split-copy">
               <div className="eyebrow">Collaboration</div>
-              <h2 className="section-title">One project. Everyone in sync.</h2>
+              <h2 className="section-title">One project, everyone in sync</h2>
               <p className="section-desc">
                 Work in the same notebook at the same time. See cursors as they move, edit side by
-                side, and leave comments right where the data lives — no exports, no{" "}
+                side, and leave comments right where the data lives. No exports, no{" "}
                 <span className="mono">final_v3</span> copies.
               </p>
               <ul className="feature-list">
@@ -1740,7 +1740,6 @@ export default function HomePage() {
                 <div className="globe-mount" aria-hidden="true">
                   <Globe />
                 </div>
-                <span className="globe-highlight" aria-hidden="true"></span>
               </div>
               <div className="globe-tags" aria-hidden="true">
                 <div className="globe-tag globe-tag--edit">
@@ -1785,9 +1784,9 @@ export default function HomePage() {
           <div className="container">
             <div className="section-head">
               <div className="eyebrow">Pricing</div>
-              <h2 className="section-title">Start free. Bring a project.</h2>
+              <h2 className="section-title">Start free, bring a project</h2>
               <p className="section-desc">
-                The full workspace, 5 GB of storage, and 20 agent requests a day — no credit card.
+                The full workspace, 5 GB of storage, and 20 agent requests a day. No credit card.
               </p>
             </div>
             <div className="stats-grid">
@@ -1847,14 +1846,14 @@ export default function HomePage() {
         <section className="cta-section" id="get-started">
           <div className="container">
             <div className="cta-box">
-              <h2>Give your research a place to live.</h2>
+              <h2>Give your research a place to live</h2>
               <p>
                 Start with 5 GB, a lab, local search, and 20 agent requests a day. Bring the project
-                — we'll keep it together.
+                and we'll keep it together.
               </p>
               <div className="cta-actions">
                 <a href="/sign-up" className="btn btn--primary btn--lg">
-                  Create free workspace
+                  Create a free workspace
                 </a>
                 <a href="/about#contact" className="btn btn--ghost btn--lg">
                   Talk to us

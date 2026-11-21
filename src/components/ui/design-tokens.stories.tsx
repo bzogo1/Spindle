@@ -144,7 +144,11 @@ export const TypographyTokens: Story = {
         <div className="grid gap-3">
           <p style={{ fontFamily: "var(--font)" }}>
             <span className="text-muted-foreground font-mono text-[10px]">--font · </span>
-            Inter — body copy and UI labels.
+            IBM Plex Sans — body copy and UI labels.
+          </p>
+          <p style={{ fontFamily: "var(--font-display, var(--font))" }}>
+            <span className="text-muted-foreground font-mono text-[10px]">--font-display · </span>
+            Source Serif 4 — marketing headings.
           </p>
           <p style={{ fontFamily: "var(--mono)" }}>
             <span className="text-muted-foreground font-mono text-[10px]">--mono · </span>

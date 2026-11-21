@@ -103,7 +103,7 @@
 .security-flow-name {
   font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.005em;
   color: var(--text);
 }
 .security-flow-control {

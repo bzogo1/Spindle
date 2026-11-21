@@ -90,7 +90,7 @@ const features = [
   {
     icon: Layers3,
     title: "One home per project",
-    body: "Data, notes, notebooks, results, and conversations stay together in a single workspace.",
+    body: "Data, notes, notebooks, results, and conversations stay together in one workspace.",
     href: "/#files",
   },
   {

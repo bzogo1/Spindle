@@ -108,9 +108,11 @@
 }
 
 .auto-hero-copy h1 {
+  font-family: var(--font-display);
+
   font-size: clamp(2.7rem, 4.5vw, 4rem);
   line-height: 1.06;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.022em;
   font-weight: 600;
   margin: 0 0 22px;
 }
@@ -205,7 +207,7 @@
   margin: 4px 0 0;
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.012em;
 }
 
 .run-list {
@@ -498,7 +500,7 @@
 .clock-copy strong {
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .clock-copy small {
   font-size: 10px;
@@ -655,7 +657,7 @@
 .path-card > strong {
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .path-desc {
   font-size: 12.5px;
@@ -1107,7 +1109,7 @@
   margin: 5px 0 0;
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.012em;
 }
 
 .draft-preview {
@@ -1226,7 +1228,7 @@
   margin: 5px 0 20px;
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.012em;
 }
 
 .builder-block {
@@ -1767,7 +1769,7 @@
   margin: 9px 0 14px;
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   line-height: 1.35;
 }
 
@@ -1926,7 +1928,7 @@
   margin: 0 0 7px;
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.007em;
 }
 .guard-card p {
   margin: 0;
@@ -2095,7 +2097,7 @@
   margin: 10px 0 6px;
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.007em;
 }
 .digest-message p {
   margin: 0;

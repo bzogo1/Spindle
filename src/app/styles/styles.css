@@ -1,6 +1,7 @@
 /* ==========================================================================
    SPINDLE — interface styles
-   Inter type, neutral graphite surfaces, one green accent.
+   IBM Plex Sans for UI copy, Source Serif 4 for display headings,
+   neutral graphite surfaces, one green accent.
    ========================================================================== */
 
 :root {
@@ -50,7 +51,8 @@
   --transition-normal: 0.2s ease;
 
   /* type */
-  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   color-scheme: dark;
@@ -263,11 +265,13 @@ svg {
 }
 
 .section-title {
-  font-size: clamp(2rem, 3.8vw, 2.75rem);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.6rem);
   font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.12;
+  letter-spacing: -0.012em;
+  line-height: 1.18;
   margin: 0 0 16px;
+  text-wrap: balance;
 }
 
 .section-desc {
@@ -386,7 +390,7 @@ svg {
 .brand-name {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.017em;
   color: var(--text);
 }
 
@@ -557,12 +561,14 @@ svg {
 }
 
 .hero-title {
-  font-size: clamp(2.85rem, 5.6vw, 4.3rem);
+  font-family: var(--font-display);
+  font-size: clamp(2.55rem, 4.9vw, 3.9rem);
   font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
+  line-height: 1.14;
+  letter-spacing: -0.018em;
   margin: 0 auto 22px;
-  max-width: 860px;
+  max-width: 840px;
+  text-wrap: balance;
 }
 .hero-subtitle {
   font-size: 17px;
@@ -867,7 +873,7 @@ svg {
 .panel-head .panel-title {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 4px 0 0;
 }
 .status-pill {
@@ -920,7 +926,7 @@ svg {
   display: block;
   font-size: 25px;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
   margin: 4px 0 2px;
 }
@@ -1269,9 +1275,9 @@ svg {
   color: var(--accent);
   border: 1px solid var(--accent-line);
   background:
-    radial-gradient(circle at 35% 25%, rgba(200, 240, 131, 0.12), transparent 62%), var(--surface-2);
+    radial-gradient(circle at 35% 25%, rgba(200, 240, 131, 0.07), transparent 62%), var(--surface-2);
   box-shadow:
-    0 0 0 12px rgba(200, 240, 131, 0.025),
+    0 0 0 10px rgba(200, 240, 131, 0.018),
     0 16px 34px rgba(0, 0, 0, 0.4);
 }
 .network-hub::before {
@@ -1323,11 +1329,10 @@ svg {
   letter-spacing: 0.02em;
   color: var(--text);
   border: 1px solid var(--border-strong);
-  background:
-    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.07), transparent 58%), var(--surface);
+  background: var(--surface);
   box-shadow:
     0 12px 28px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   animation: node-breath 7s ease-in-out var(--breath-delay, 0s) infinite;
 }
 .node-orb::after {
@@ -1336,14 +1341,12 @@ svg {
   inset: 6px;
   border-radius: inherit;
   border: 1px solid rgba(255, 255, 255, 0.04);
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent 55%);
   pointer-events: none;
 }
 .node--accent .node-orb {
   color: var(--accent);
   border-color: var(--accent-line);
-  background:
-    radial-gradient(circle at 32% 24%, rgba(200, 240, 131, 0.12), transparent 60%), var(--surface-2);
+  background: var(--surface-2);
 }
 .node--small .node-orb {
   opacity: 0.6;
@@ -1359,10 +1362,10 @@ svg {
 @keyframes node-breath {
   0%,
   100% {
-    transform: scale(0.96);
+    transform: scale(0.985);
   }
   50% {
-    transform: scale(1.05);
+    transform: scale(1.015);
   }
 }
 
@@ -1389,25 +1392,34 @@ svg {
   border-color: var(--border-strong);
   background: rgba(255, 255, 255, 0.028);
 }
+/* Hairline marker rather than a tinted chip: the accent is reserved for
+   text and states, not for decorative icon containers. */
 .card-icon {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   margin-bottom: 18px;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  transition:
+    color var(--transition-normal),
+    border-color var(--transition-normal);
 }
 .card-icon .icon {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
+}
+.feature-card:hover .card-icon {
+  color: var(--accent);
+  border-color: var(--accent-line);
 }
 .feature-card h3 {
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 0 0 8px;
 }
 .feature-card p {
@@ -1435,28 +1447,30 @@ svg {
      min-content (long code tokens would otherwise blow out narrow grids). */
   min-width: 0;
 }
+/* Quiet label chip — a plain outlined tag. Tinted pills read as generated
+   marketing chrome; a hairline border keeps the hierarchy without it. */
 .duo-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
   border-radius: 4px;
-  border: 1px solid var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--accent);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.06em;
 }
 .duo-badge--amber {
-  border-color: rgba(227, 182, 126, 0.28);
-  background: rgba(227, 182, 126, 0.07);
+  border-color: var(--border);
+  background: transparent;
   color: var(--amber);
 }
 .duo-card h3 {
   font-size: 23px;
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
   margin: 18px 0 10px;
 }
 .duo-card > p {
@@ -2567,7 +2581,7 @@ svg {
 .preview-title {
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin-bottom: 12px;
 }
 .preview-table {
@@ -2634,7 +2648,7 @@ svg {
 .format-support h3 {
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   margin: 0 0 8px;
 }
 .format-support p {
@@ -2682,7 +2696,7 @@ svg {
   font-size: 36px;
   font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.025em;
   color: var(--accent);
 }
 .allowance-unit {
@@ -2700,7 +2714,7 @@ svg {
 .bonus-plus {
   font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   color: var(--amber);
 }
 .allowance-bonus p {
@@ -3281,23 +3295,22 @@ svg {
   height: 340px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1px solid var(--border-strong);
-  background:
-    radial-gradient(circle at 36% 28%, rgba(200, 240, 131, 0.09), rgba(13, 15, 14, 0.94) 62%),
-    var(--bg);
-  box-shadow:
-    0 28px 70px rgba(0, 0, 0, 0.5),
-    inset 0 0 40px rgba(200, 240, 131, 0.035);
-}
-.globe-sphere img {
-  width: 100%;
-  height: 100%;
-  opacity: 0.85;
 }
 .globe-mount {
   position: absolute;
   inset: 0;
   z-index: 1;
+}
+/* cobe draws the earth at 80% of its canvas, so the WebGL stage is grown to
+   125% and centred: the globe's disc then matches the 340px sphere instead of
+   floating inside it. The overhang (cobe's clipped glow) is trimmed by the
+   sphere's overflow. */
+.globe-mount > div {
+  inset: -12.5%;
+  width: 125%;
+  height: 125%;
+  max-width: none;
+  margin: 0;
 }
 .globe-mount canvas {
   cursor: grab;
@@ -3322,13 +3335,6 @@ svg {
   stroke-dasharray: 12 88;
   animation: orbit-flow 6s linear infinite;
 }
-.globe-highlight {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.09), transparent 38%);
-}
-
 .globe-tags {
   position: absolute;
   inset: 0;
@@ -3451,7 +3457,7 @@ svg {
 .stat-value {
   font-size: clamp(2rem, 3.4vw, 2.75rem);
   font-weight: 600;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.022em;
   line-height: 1;
   color: var(--text);
 }
@@ -3494,12 +3500,12 @@ svg {
 .plan-name {
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.012em;
 }
 .plan-price {
   font-size: 18px;
   font-weight: 600;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.022em;
   color: var(--accent);
 }
 .plan-tag {
@@ -3676,7 +3682,7 @@ svg {
   border-bottom: 1px solid var(--border);
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.007em;
   color: var(--text);
   text-align: left;
   caption-side: top;
@@ -3735,7 +3741,7 @@ svg {
   margin: 0 0 8px;
   font-size: clamp(1.4rem, 2.6vw, 1.9rem);
   font-weight: 600;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.015em;
   line-height: 1.15;
 }
 .pricing-faq .ui-faq-trigger {
@@ -3772,11 +3778,13 @@ svg {
   background: var(--surface);
 }
 .cta-box h2 {
-  font-size: clamp(2rem, 4.2vw, 3rem);
+  font-family: var(--font-display);
+  font-size: clamp(1.95rem, 3.9vw, 2.8rem);
   font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.12;
+  letter-spacing: -0.012em;
+  line-height: 1.18;
   margin: 0 0 18px;
+  text-wrap: balance;
 }
 .cta-box p {
   color: var(--text-muted);

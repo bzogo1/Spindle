@@ -39,7 +39,7 @@ export default async function PricingPage({
         <section className="page-hero">
           <div className="container">
             <div className="eyebrow">Pricing</div>
-            <h1 className="page-title">Start free. Bring a project.</h1>
+            <h1 className="page-title">Start free, bring a project</h1>
             <p className="page-lede">
               The full workspace, 5 GB of storage, and 20 agent requests a day — no credit card.
               Bigger research groups can add seats, storage, and shared controls.
