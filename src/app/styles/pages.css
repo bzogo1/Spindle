@@ -25,9 +25,9 @@ html {
 .page-title {
   font-family: var(--font-display);
   font-size: clamp(2.3rem, 4.6vw, 3.35rem);
-  font-weight: 600;
-  line-height: 1.16;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.028em;
   margin: 0 0 18px;
   text-wrap: balance;
 }
