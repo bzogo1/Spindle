@@ -553,7 +553,7 @@ async function main() {
     process.exit(1)
   }
 
-  let restored = false
+  let restored
   try {
     restored = restoreIntoScratch(backup.file, backup.format)
     if (restored) await verify()

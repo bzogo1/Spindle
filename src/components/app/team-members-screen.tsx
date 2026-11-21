@@ -864,7 +864,7 @@ export function TeamMembersScreen() {
     // without the routes deployed). Real API errors (401/403/429/5xx) are
     // surfaced to the user instead of faking a pending invite, so an
     // "Invite sent" claim is never made for an invite that was not created.
-    let apiUnavailable = false
+    let apiUnavailable: boolean
     try {
       const response = await fetch("/api/invitations", {
         method: "POST",
@@ -937,7 +937,7 @@ export function TeamMembersScreen() {
     // a missing/unreachable API (network failure or 404 — e.g. mock-only dev
     // without the routes deployed). Real API errors (401/403/429/5xx) are
     // surfaced to the user instead of silently re-dating a local invite.
-    let apiUnavailable = false
+    let apiUnavailable: boolean
     try {
       const response = await fetch(`/api/invitations/${encodeURIComponent(invite.id)}/resend`, {
         method: "POST",

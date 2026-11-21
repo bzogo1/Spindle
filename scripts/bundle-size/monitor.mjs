@@ -394,8 +394,8 @@ function main() {
   const budgets = loadBudgets(args.budgets)
 
   let snapshot
-  let previous = null
-  let historyEntries = []
+  let previous
+  let historyEntries
 
   if (args.demo) {
     const demo = collectDemo()

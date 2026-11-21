@@ -123,7 +123,7 @@ function runJson(argv) {
   try {
     return JSON.parse(stdout.slice(start, end + 1))
   } catch (err) {
-    throw new Error(`${argv.join(" ")} produced invalid JSON: ${err.message}`)
+    throw new Error(`${argv.join(" ")} produced invalid JSON: ${err.message}`, { cause: err })
   }
 }
 

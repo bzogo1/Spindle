@@ -63,7 +63,7 @@ export function migrateStoredEvents(
 export function readStoredEvents(): SearchEvent[] {
   const store = storage()
   if (!store) return []
-  let raw: string | null = null
+  let raw: string | null
   try {
     raw = store.getItem(SEARCH_EVENTS_STORAGE_KEY)
   } catch {

@@ -49,7 +49,7 @@ function requestInfo(
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
   const method = init?.method ?? "GET"
   const rawBody = init?.body
-  let body: unknown = null
+  let body: unknown
   try {
     body = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody
   } catch {

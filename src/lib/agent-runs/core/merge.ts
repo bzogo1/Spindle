@@ -113,7 +113,7 @@ export function mergeRuns(
   const theirsDiv = divergentEvents(theirs, base)
   const conflicts = detectMergeConflicts(oursDiv, theirsDiv)
 
-  let mergedDiv: AgentRunEvent[] = []
+  let mergedDiv: AgentRunEvent[]
 
   if (strategy === "ours") {
     mergedDiv = [...oursDiv]

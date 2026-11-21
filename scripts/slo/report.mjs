@@ -221,7 +221,7 @@ function ingestFile(file, defaultService) {
   // Whole-file JSON: a load.mjs --out report or an array of samples. If the
   // parse fails, fall through to JSONL (first line may start with '{').
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    let doc = null
+    let doc
     try {
       doc = JSON.parse(trimmed)
     } catch {

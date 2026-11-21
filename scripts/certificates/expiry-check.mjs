@@ -123,7 +123,7 @@ function parseArgs(argv) {
 // Load and normalize the host list. Per-host warnDays/criticalDays/port
 // override the config defaults; CLI overrides win over everything.
 function loadTargets(args) {
-  let config = { defaults: {}, hosts: [] }
+  let config
 
   if (args.host) {
     config = {
@@ -145,7 +145,7 @@ function loadTargets(args) {
     try {
       raw = JSON.parse(readFileSync(args.config, "utf8"))
     } catch (err) {
-      throw new Error(`cannot read config ${args.config}: ${err.message}`)
+      throw new Error(`cannot read config ${args.config}: ${err.message}`, { cause: err })
     }
     config = {
       defaults: { ...DEFAULTS, ...(raw.defaults ?? {}) },

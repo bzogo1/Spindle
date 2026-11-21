@@ -584,7 +584,7 @@ export class UploadQueue {
   }
 
   private async hydrate(): Promise<void> {
-    let stored: PersistedUpload[] = []
+    let stored: PersistedUpload[]
     try {
       stored = await this.store.load()
     } catch {

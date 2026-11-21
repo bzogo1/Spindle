@@ -61,7 +61,7 @@ export function rpFromRequest(request: Request, env: EnvSource = rawProcessEnv()
     }
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("WebAuthn rpId")) throw error
-    throw new Error(`WEBAUTHN_ORIGIN "${origin}" is not a valid URL.`)
+    throw new Error(`WEBAUTHN_ORIGIN "${origin}" is not a valid URL.`, { cause: error })
   }
 
   return { rpId, origin, rpName: RP_NAME }

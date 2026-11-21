@@ -478,7 +478,7 @@ function main() {
   }
 
   let cfg
-  let reports = []
+  let reports
   if (args.demo) {
     demoReport()
     return

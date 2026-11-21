@@ -275,7 +275,7 @@ export function recordsToUsers(records, options = {}) {
   stats.orphanActivity = orphanActivity
 
   const users = []
-  let excludedUsers = 0
+  let excludedUsers
   for (const [id, signupMs] of signups) {
     let weeklyActivity = activityByUser.get(id)
     const agg = preAgg.get(id)

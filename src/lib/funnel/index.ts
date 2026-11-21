@@ -653,7 +653,6 @@ export function generateDemoFunnelEvents(now: Date = new Date()): FunnelEvent[] 
       for (let s = 0; s < funnel.steps.length; s += 1) {
         if (!alive) break
         if (s > 0 && rand() > (survival[s] ?? 0.5) / (survival[s - 1] ?? 1)) {
-          alive = false
           break
         }
         // Step delay: minutes for early funnel, up to a day for later ones —
