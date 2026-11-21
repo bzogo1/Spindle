@@ -57,7 +57,7 @@
     "@sentry/nextjs": "^11.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cobe": "^0.6.5",
+    "cobe": "^2.0.1",
     "dotenv": "^18.0.10",
     "github-slugger": "^2.0.0",
     "gray-matter": "^4.0.3",

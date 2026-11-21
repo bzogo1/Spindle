@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils"
 const MOVEMENT_DAMPING = 1400
 
 /**
- * Dark-theme palette. cobe 0.6.5 re-reads `dark`, `diffuse`, `mapBrightness`,
- * `mapBaseBrightness`, `baseColor`, `markerColor`, and `glowColor` from the
- * onRender state every frame, so `GlobeScene` swaps in GLOBE_CONFIG_LIGHT's
- * values when the page is in light mode — no `update()`/rebuild needed.
+ * Dark-theme palette. cobe v2 has no render loop — `GlobeScene` drives a
+ * requestAnimationFrame loop that calls `globe.update(state)` every frame,
+ * so `GlobeScene` swaps in GLOBE_CONFIG_LIGHT's values when the page is in
+ * light mode — no rebuild needed.
  */
 const GLOBE_CONFIG: COBEOptions = {
   // Init-cost budget: the texture bake (mapSamples) and the backing-store
@@ -21,7 +21,6 @@ const GLOBE_CONFIG: COBEOptions = {
   // clamped to `min(dpr, 1.5)` at createGlobe time below.
   width: 640,
   height: 640,
-  onRender: () => {},
   devicePixelRatio: 1.5,
   phi: 0,
   theta: 0.3,
@@ -111,7 +110,7 @@ export function GlobeScene({
   const dragTarget = useRef(0)
   /** Smoothed offset actually applied to phi; eases toward dragTarget. */
   const dragOffset = useRef(0)
-  /** Current theme; read each frame by onRender to pick the palette. */
+  /** Current theme; read each frame to pick the palette. */
   const darkRef = useRef(true)
   /** Tracks IntersectionObserver state for the render-pause gate. */
   const inViewRef = useRef(true)
@@ -136,8 +135,8 @@ export function GlobeScene({
 
     // Theme switches usually toggle `.dark`/`data-theme` on <html>; the
     // prefers-color-scheme listener covers "system" mode following the OS.
-    // cobe renders every frame, so flipping the ref is enough — the next
-    // onRender picks up the new palette with no rebuild.
+    // The rAF loop below reads `darkRef` every frame, so flipping the ref is
+    // enough — the next `update()` picks up the new palette with no rebuild.
     const themeObserver = new MutationObserver(() => {
       darkRef.current = readGlobeDark()
     })
@@ -184,35 +183,17 @@ export function GlobeScene({
       }
 
       try {
+        // cobe v2 takes CSS-pixel width/height and multiplies by
+        // `devicePixelRatio` internally — unlike v1's onRender state, which
+        // wanted the backing-store size. `size` is the square CSS size; the
+        // component's container is `aspect-square`, so width == height.
+        const size = widthRef.current || config.width
         return createGlobe(canvas, {
           ...config,
           // The built-in globe clamps dpr; custom configs pass through.
           ...(config === GLOBE_CONFIG ? { devicePixelRatio: pixelRatio } : {}),
-          width: widthRef.current * 2,
-          height: widthRef.current * 2,
-          onRender: (state) => {
-            // Auto-rotation is decorative; under prefers-reduced-motion the
-            // globe only turns while the visitor drags it.
-            if (!pointerInteracting.current && !reducedMotion.current?.matches) {
-              phiRef.current += 0.005
-            }
-            // Ease the displayed offset toward the drag target each frame,
-            // replacing the motion spring this component used to use.
-            dragOffset.current += (dragTarget.current - dragOffset.current) * 0.08
-            state.phi = phiRef.current + dragOffset.current
-            // `w` must match the canvas backing-store size
-            // (clientWidth × devicePixelRatio) or the globe distorts.
-            state.width = widthRef.current * pixelRatio
-            state.height = widthRef.current * pixelRatio
-            // Theme-aware palette for the built-in globe only: a custom
-            // `config` prop keeps full control (its own `dark`/colours win).
-            if (config === GLOBE_CONFIG) {
-              const palette = darkRef.current ? GLOBE_CONFIG : GLOBE_CONFIG_LIGHT
-              for (const key of THEME_UNIFORM_KEYS) {
-                state[key] = palette[key]
-              }
-            }
-          },
+          width: size,
+          height: size,
         })
       } catch (error) {
         console.warn("Globe: could not create the WebGL scene.", error)
@@ -221,23 +202,14 @@ export function GlobeScene({
       }
     })()
 
-    // cobe/phenomenon expose no pause API: their scheduler calls the globe
-    // instance's `render` every animation frame. Shadowing `render` with a
-    // no-op keeps the ticker alive (a cheap function call per frame) but
-    // skips all uniform setup, draw calls, and shader work — an effective
-    // pause with no teardown/recreate cost when scrolling back.
-    const originalRender =
-      globe && typeof globe.render === "function" ? globe.render.bind(globe) : null
-    const setGlobePaused = (paused: boolean) => {
-      if (!globe || !originalRender) return
-      globe.render = paused ? () => {} : originalRender
-    }
-
     // Pause while the tab is hidden (browsers throttle rAF anyway, but this
     // also covers throttled-but-running cases) or while the canvas is fully
-    // offscreen.
+    // offscreen. cobe v2 ships no render loop, so the pause gate lives here:
+    // the rAF callback stays scheduled (cheap) but skips `update()` — and
+    // with it all uniform setup, draw calls, and shader work.
+    let paused = document.hidden || !inViewRef.current
     const syncGlobePaused = () => {
-      setGlobePaused(document.hidden || !inViewRef.current)
+      paused = document.hidden || !inViewRef.current
     }
     document.addEventListener("visibilitychange", syncGlobePaused)
 
@@ -251,7 +223,40 @@ export function GlobeScene({
       })
       visibilityObserver.observe(container)
     }
-    syncGlobePaused()
+
+    let rafId = 0
+    if (globe) {
+      const tick = () => {
+        rafId = window.requestAnimationFrame(tick)
+        if (paused) return
+
+        // Auto-rotation is decorative; under prefers-reduced-motion the
+        // globe only turns while the visitor drags it.
+        if (!pointerInteracting.current && !reducedMotion.current?.matches) {
+          phiRef.current += 0.005
+        }
+        // Ease the displayed offset toward the drag target each frame,
+        // replacing the motion spring this component used to use.
+        dragOffset.current += (dragTarget.current - dragOffset.current) * 0.08
+
+        const state: Partial<COBEOptions> = {
+          phi: phiRef.current + dragOffset.current,
+          // CSS-pixel size; v2 multiplies by devicePixelRatio itself.
+          width: widthRef.current,
+          height: widthRef.current,
+        }
+        // Theme-aware palette for the built-in globe only: a custom
+        // `config` prop keeps full control (its own `dark`/colours win).
+        if (config === GLOBE_CONFIG) {
+          const palette = darkRef.current ? GLOBE_CONFIG : GLOBE_CONFIG_LIGHT
+          for (const key of THEME_UNIFORM_KEYS) {
+            Object.assign(state, { [key]: palette[key] })
+          }
+        }
+        globe.update(state)
+      }
+      rafId = window.requestAnimationFrame(tick)
+    }
 
     const fadeTimer = globe
       ? window.setTimeout(() => {
@@ -260,6 +265,7 @@ export function GlobeScene({
       : null
 
     return () => {
+      if (rafId) window.cancelAnimationFrame(rafId)
       globe?.destroy()
       if (fadeTimer !== null) window.clearTimeout(fadeTimer)
       themeObserver.disconnect()
