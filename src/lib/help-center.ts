@@ -530,3 +530,42 @@ export function listCategories(): HelpCategoryWithCount[] {
     count: HELP_ARTICLES.filter((article) => article.category === category.id).length,
   }))
 }
+
+function summaryTokens(summary: HelpArticleSummary): Set<string> {
+  return new Set(
+    tokenize(`${summary.title} ${summary.excerpt} ${summary.slug.replace(/-/g, " ")}`),
+  )
+}
+
+/**
+ * Articles related to `selected`, ranked by shared category first and then by
+ * token overlap across title/excerpt/slug. Operates on summaries only, so the
+ * help search UI can compute it client-side without shipping article bodies.
+ */
+export function relatedArticles(
+  selected: HelpArticleSummary,
+  pool: readonly HelpArticleSummary[] = listArticles(),
+  options: { limit?: number; excludeSlug?: string } = {},
+): HelpArticleSummary[] {
+  const limit = options.limit ?? 4
+  const excludeSlug = options.excludeSlug ?? selected.slug
+  const selectedTokens = summaryTokens(selected)
+
+  return pool
+    .filter((article) => article.slug !== excludeSlug)
+    .map((article) => {
+      const sameCategory = article.category === selected.category ? 1 : 0
+      const articleTokens = summaryTokens(article)
+      let overlap = 0
+      for (const token of selectedTokens) {
+        if (articleTokens.has(token)) overlap += 1
+      }
+      return { article, score: sameCategory * 10 + overlap }
+    })
+    .filter((entry) => entry.score > 0)
+    .sort(
+      (a, b) => b.score - a.score || b.article.updatedAt.localeCompare(a.article.updatedAt),
+    )
+    .slice(0, limit)
+    .map((entry) => entry.article)
+}

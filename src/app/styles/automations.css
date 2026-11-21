@@ -1644,6 +1644,38 @@
   border-bottom-color: var(--accent);
 }
 
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.lang-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10.5px;
+  transition:
+    background var(--transition-normal),
+    color var(--transition-normal);
+}
+
+.lang-btn:hover {
+  color: var(--text);
+}
+
+.lang-btn.is-active {
+  background: var(--accent);
+  color: var(--ui-primary-foreground);
+}
+
 .copy-btn {
   display: inline-flex;
   align-items: center;
@@ -1657,6 +1689,111 @@
 
 .copy-btn:hover {
   color: var(--accent);
+}
+
+.editor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Script version history dropdown (cron editor card) */
+
+.version-history {
+  position: relative;
+}
+
+.version-history summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: color var(--transition-normal);
+}
+
+.version-history summary::-webkit-details-marker {
+  display: none;
+}
+
+.version-history summary:hover,
+.version-history[open] > summary {
+  color: var(--accent);
+}
+
+.version-caret {
+  transition: transform var(--transition-normal);
+}
+
+.version-history[open] .version-caret {
+  transform: rotate(180deg);
+}
+
+.version-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 230px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+
+.version-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 9px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-normal);
+}
+
+.version-item:hover {
+  background: var(--panel-hover);
+}
+
+.version-item.is-current .version-tag {
+  color: var(--accent);
+}
+
+.version-tag {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.version-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.version-meta strong {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.version-meta small {
+  font-size: 10px;
+  color: var(--text-dim);
 }
 
 .crontab-line {
@@ -1701,6 +1838,10 @@
   font-family: var(--mono);
   font-size: 11px;
   color: var(--text-muted);
+}
+
+.cron-copy-command {
+  margin-left: auto;
 }
 
 .code-block {
@@ -1813,6 +1954,37 @@
   color: var(--teal);
 }
 .validation.is-error {
+  color: var(--ui-destructive);
+}
+
+.dependency-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.dependency-check svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--text-dim);
+}
+
+.dependency-check.is-ok {
+  color: var(--teal);
+}
+.dependency-check.is-ok svg {
+  color: var(--teal);
+}
+.dependency-check.is-error {
+  color: var(--ui-destructive);
+}
+.dependency-check.is-error svg {
   color: var(--ui-destructive);
 }
 
@@ -2660,7 +2832,8 @@
 
 /* Tab/segmented tracks: dark "well" becomes a light recessed track. */
 :root:not(.dark) .mode-tabs,
-:root:not(.dark) .builder-block .segmented {
+:root:not(.dark) .builder-block .segmented,
+:root:not(.dark) .lang-switch {
   background: var(--surface-3);
 }
 
@@ -2698,6 +2871,7 @@
 :root:not(.dark) .mode-tab:hover,
 :root:not(.dark) .reset-btn:hover,
 :root:not(.dark) .code-tab:hover,
+:root:not(.dark) .lang-btn:hover,
 :root:not(.dark) .digest-actions button:hover {
   background: var(--panel-hover);
 }

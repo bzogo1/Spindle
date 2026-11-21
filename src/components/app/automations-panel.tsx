@@ -13,6 +13,7 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  Beaker,
   Braces,
   Bug,
   CalendarClock,
@@ -39,7 +40,13 @@ import {
   Zap,
 } from "lucide-react"
 
-import { humanizeCron, nextCronRuns } from "@/lib/automations/cron"
+import {
+  cronForSchedulePreset,
+  cronSchedulePreset,
+  humanizeCron,
+  nextCronRuns,
+  type CronSchedulePreset,
+} from "@/lib/automations/cron"
 import {
   describeSchedule,
   intervalError,
@@ -52,11 +59,13 @@ import {
 } from "@/lib/automations/schedule"
 import { graphToStudioDraft, starterAutomationGraph } from "@/lib/automations/graph-draft"
 import { automationStats, workspaceAutomationStats } from "@/lib/automations/stats"
+import { storageGetJson, storageSetJson } from "@/lib/agent-runs/ops/storage"
 import {
   GRAPH_TRANSFER_MAX_BYTES,
   graphTransferFormatForFileName,
   isGraphValid,
   parseGraphImport,
+  serializeGraphJson,
   type AutomationGraph,
 } from "@/lib/automation-graph"
 import { AutomationBuilder } from "@/components/automation-builder"
@@ -112,10 +121,13 @@ import {
   type AutomationVariables,
 } from "@/components/app/automation-variables-dialog"
 import { AutomationTestDialog } from "@/components/app/automation-test-dialog"
+import { AutomationTestRunDialog } from "@/components/app/automation-test-run-dialog"
 
 import { formatDateTime, formatDurationMs, formatRelativeTime } from "./format"
 import {
+  AUTOMATION_SHARE_GRAPH_MAX_CHARS,
   AUTOMATION_SHARE_PARAM,
+  AUTOMATION_SHARE_VERSION,
   automationShareHref,
   automationToShareConfig,
   downloadAutomationConfig,
@@ -123,7 +135,11 @@ import {
   type AutomationShareConfig,
 } from "./automation-share"
 import { useNow } from "./agent-run-log-shared"
-import { downloadAutomationRunsCsv, RunDiff } from "./automation-run-diff"
+import {
+  downloadAutomationRunLogCsv,
+  downloadAutomationRunsCsv,
+  RunDiff,
+} from "./automation-run-diff"
 
 type TriggerKind = "schedule" | "event" | "webhook"
 type RunStatus = "succeeded" | "failed" | "running" | "queued" | "cancelled"
@@ -197,6 +213,12 @@ type StudioDraft = {
   mode: StudioMode
   /** Cron or interval schedule for schedule triggers. */
   schedule?: AutomationSchedule
+  /**
+   * The live graph when the draft was authored on the Graph tab (or decoded
+   * from a share link that embedded one). `saveDraft` flattens it away, but
+   * share links carry it so recipients get the exact canvas.
+   */
+  graph?: AutomationGraph
 }
 
 const ACTION_OPTIONS = [
@@ -234,6 +256,27 @@ const MODE_LABELS: Record<StudioMode, string> = {
   build: "Builder",
   cron: "Cron",
   graph: "Graph",
+}
+
+/** localStorage key for per-automation failure-alert preferences. */
+const FAILURE_ALERTS_STORAGE_KEY = "spindle.automations.failure-alerts.v1"
+
+type FailureAlertPrefs = Record<string, boolean>
+
+function readFailureAlertPrefs(): FailureAlertPrefs {
+  const prefs = storageGetJson<unknown>(FAILURE_ALERTS_STORAGE_KEY, {})
+  if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) return {}
+  const result: FailureAlertPrefs = {}
+  for (const [id, value] of Object.entries(prefs)) {
+    if (typeof value === "boolean") result[id] = value
+  }
+  return result
+}
+
+function writeFailureAlertPref(id: string, enabled: boolean) {
+  const prefs = readFailureAlertPrefs()
+  prefs[id] = enabled
+  storageSetJson(FAILURE_ALERTS_STORAGE_KEY, prefs)
 }
 
 const MOCK_AUTOMATIONS: Automation[] = [
@@ -828,6 +871,8 @@ function CronPanel({
   onActionKey: (value: string) => void
 }) {
   const human = expr.trim() ? humanizeCron(expr.trim()) : null
+  // Derived from the expression so manual edits keep the selector in sync.
+  const preset = cronSchedulePreset(expr.trim())
   const nextRuns = human?.valid ? nextCronRuns(expr.trim(), 3) : []
   const everyNumber = Number(every)
   const intervalEveryError =
@@ -892,26 +937,47 @@ function CronPanel({
             ) : null}
           </div>
         ) : (
-          <div className="app-field">
-            <label htmlFor="automation-cron">Cron expression</label>
-            <Input
-              id="automation-cron"
-              value={expr}
-              onChange={(event) => onChange(event.target.value)}
-              placeholder="0 9 * * 1"
-              className="app-automation-cron-input"
-              spellCheck={false}
-            />
-            {human ? (
-              human.valid ? (
-                <p className="app-field-hint">{human.text}</p>
+          <>
+            <div className="app-field">
+              <label htmlFor="automation-cron-preset">Schedule type</label>
+              <select
+                id="automation-cron-preset"
+                className="app-select"
+                value={preset}
+                onChange={(event) => {
+                  const next = event.target.value as CronSchedulePreset
+                  if (next !== "custom") onChange(cronForSchedulePreset(next, expr.trim()))
+                }}
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="custom">Custom cron</option>
+              </select>
+              <p className="app-field-hint">
+                Daily and weekly fill in a cron expression; pick Custom cron to write your own.
+              </p>
+            </div>
+            <div className="app-field">
+              <label htmlFor="automation-cron">Cron expression</label>
+              <Input
+                id="automation-cron"
+                value={expr}
+                onChange={(event) => onChange(event.target.value)}
+                placeholder="0 9 * * 1"
+                className="app-automation-cron-input"
+                spellCheck={false}
+              />
+              {human ? (
+                human.valid ? (
+                  <p className="app-field-hint">{human.text}</p>
+                ) : (
+                  <p className="app-field-error">{human.text}</p>
+                )
               ) : (
-                <p className="app-field-error">{human.text}</p>
-              )
-            ) : (
-              <p className="app-field-hint">Use a five-field cron expression.</p>
-            )}
-          </div>
+                <p className="app-field-hint">Use a five-field cron expression.</p>
+              )}
+            </div>
+          </>
         )}
 
         <div className="app-field">
@@ -958,14 +1024,14 @@ function CronPanel({
       ) : null}
 
       <div className="app-automation-presets" aria-label="Cron presets">
-        {CRON_PRESETS.map((preset) => (
+        {CRON_PRESETS.map((cronPreset) => (
           <button
-            key={preset.expr}
+            key={cronPreset.expr}
             type="button"
-            className={`app-automation-preset${expr.trim() === preset.expr ? "is-active" : ""}`}
-            onClick={() => onChange(preset.expr)}
+            className={`app-automation-preset${expr.trim() === cronPreset.expr ? "is-active" : ""}`}
+            onClick={() => onChange(cronPreset.expr)}
           >
-            {preset.label}
+            {cronPreset.label}
           </button>
         ))}
       </div>
@@ -975,6 +1041,14 @@ function CronPanel({
 
 /** Convert a decoded share-link config back into a studio draft for review. */
 function shareConfigToStudioDraft(config: AutomationShareConfig): StudioDraft {
+  // Graph-mode links may embed the serialized canvas; parse it with the same
+  // validator file imports use. Anything malformed is ignored — the draft
+  // still opens with a rebuilt starter graph.
+  let sharedGraph: AutomationGraph | undefined
+  if (config.graph) {
+    const result = parseGraphImport(config.graph, "json")
+    if (result.ok) sharedGraph = result.graph
+  }
   return {
     name: config.name,
     triggerKind: config.triggerKind,
@@ -993,6 +1067,39 @@ function shareConfigToStudioDraft(config: AutomationShareConfig): StudioDraft {
     })),
     mode: config.mode,
     schedule: config.schedule,
+    graph: sharedGraph,
+  }
+}
+
+/**
+ * Flatten a studio draft into the shareable config payload — the inverse of
+ * `shareConfigToStudioDraft`. Graph-mode drafts embed the serialized graph
+ * (dropped when it would exceed the URL-safe size cap).
+ */
+function studioDraftToShareConfig(draft: StudioDraft): AutomationShareConfig {
+  const serializedGraph = draft.graph ? serializeGraphJson(draft.graph) : undefined
+  return {
+    version: AUTOMATION_SHARE_VERSION,
+    name: draft.name,
+    triggerKind: draft.triggerKind,
+    triggerDetail: draft.triggerDetail,
+    triggerMeta: draft.triggerMeta,
+    eventName: draft.eventName,
+    webhookUrl: draft.webhookUrl,
+    actionKey: draft.actionKey,
+    actionLabel: draft.actionLabel,
+    prompt: draft.prompt,
+    mode: draft.mode,
+    schedule: draft.schedule,
+    steps: draft.steps.map((step) => ({
+      kind: step.kind,
+      label: step.label,
+      detail: step.detail,
+    })),
+    graph:
+      serializedGraph && serializedGraph.length <= AUTOMATION_SHARE_GRAPH_MAX_CHARS
+        ? serializedGraph
+        : undefined,
   }
 }
 
@@ -1015,6 +1122,8 @@ function importedGraphToStudioDraft(graph: AutomationGraph): StudioDraft | null 
       draft.triggerKind === "schedule" && draft.triggerMeta
         ? { kind: "cron", expr: draft.triggerMeta }
         : undefined,
+    // Keep the imported canvas so re-sharing the draft reproduces it exactly.
+    graph,
   }
 }
 
@@ -1024,6 +1133,7 @@ function StudioDialog({
   editing,
   initialDraft,
   onSave,
+  onShare,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -1031,6 +1141,8 @@ function StudioDialog({
   /** Pre-filled draft from a shared automation link (create mode only). */
   initialDraft?: StudioDraft | null
   onSave: (draft: StudioDraft) => void
+  /** Copies a shareable link encoding the current (validated) draft. */
+  onShare?: (draft: StudioDraft) => void
 }) {
   const [mode, setMode] = useState<StudioMode>("ask")
   const [name, setName] = useState("")
@@ -1112,7 +1224,8 @@ function StudioDialog({
     }
     setCActionKey(draft.actionKey)
 
-    // Graph tab — rebuild the closest starter graph for the trigger kind.
+    // Graph tab — restore the embedded canvas when the link carried one,
+    // otherwise rebuild the closest starter graph for the trigger kind.
     const graphTrigger =
       draft.triggerKind === "webhook"
         ? "webhook"
@@ -1120,11 +1233,12 @@ function StudioDialog({
           ? "event"
           : "schedule"
     setGraph(
-      starterAutomationGraph(
-        draft.name,
-        graphTrigger,
-        graphTrigger === "webhook" ? (draft.webhookUrl ?? "") : cronExpr || "0 9 * * *",
-      ),
+      draft.graph ??
+        starterAutomationGraph(
+          draft.name,
+          graphTrigger,
+          graphTrigger === "webhook" ? (draft.webhookUrl ?? "") : cronExpr || "0 9 * * *",
+        ),
     )
   }
 
@@ -1484,6 +1598,9 @@ function StudioDialog({
                 converted.triggerKind === "schedule" && converted.triggerMeta
                   ? { kind: "cron", expr: converted.triggerMeta }
                   : undefined,
+              // Keep the effective graph (with prompt backfill applied) so a
+              // share link made from this draft reproduces the canvas exactly.
+              graph: effectiveGraph,
             }
           }
         }
@@ -1503,6 +1620,15 @@ function StudioDialog({
     event.preventDefault()
     const draft = buildDraft()
     if (draft) onSave(draft)
+  }
+
+  /**
+   * Share the in-progress automation: validate like submit does, then hand
+   * the draft to the panel which encodes it into a `?automation=` link.
+   */
+  function shareDraft() {
+    const draft = buildDraft()
+    if (draft) onShare?.(draft)
   }
 
   const hasErrors = Object.keys(errors).length > 0
@@ -1699,6 +1825,12 @@ function StudioDialog({
           ) : null}
 
           <DialogFooter>
+            {onShare ? (
+              <Button type="button" variant="outline" onClick={shareDraft}>
+                <Link2 aria-hidden="true" />
+                Share link
+              </Button>
+            ) : null}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
@@ -1773,6 +1905,7 @@ export function AutomationsPanel() {
   const [scheduleTarget, setScheduleTarget] = useState<Automation | null>(null)
   const [variablesTarget, setVariablesTarget] = useState<Automation | null>(null)
   const [testTarget, setTestTarget] = useState<Automation | null>(null)
+  const [testRunTarget, setTestRunTarget] = useState<Automation | null>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   // Pending simulated run completions; cleared on unmount.
   const runTimers = useRef<number[]>([])
@@ -1783,7 +1916,15 @@ export function AutomationsPanel() {
     Promise.resolve()
       .then(() => MOCK_AUTOMATIONS)
       .then((data) => {
-        setAutomations(data)
+        // Overlay persisted failure-alert preferences on the loaded data.
+        const prefs = readFailureAlertPrefs()
+        setAutomations(
+          data.map((automation) =>
+            Object.prototype.hasOwnProperty.call(prefs, automation.id)
+              ? { ...automation, failureAlerts: prefs[automation.id] === true }
+              : automation,
+          ),
+        )
         setLoadState("ready")
       })
       .catch(() => setLoadState("error"))
@@ -1842,13 +1983,14 @@ export function AutomationsPanel() {
     setExpandedAutomationId((current) => (current === id ? null : id))
   }
 
-  /** Per-automation failure-alert preference (mock — swap for the API). */
+  /** Per-automation failure-alert preference, persisted in localStorage. */
   function setFailureAlerts(id: string, enabled: boolean) {
     setAutomations((current) =>
       current.map((automation) =>
         automation.id === id ? { ...automation, failureAlerts: enabled } : automation,
       ),
     )
+    writeFailureAlertPref(id, enabled)
     const automation = automations.find((a) => a.id === id)
     toast({
       variant: enabled ? "success" : "default",
@@ -1939,20 +2081,14 @@ export function AutomationsPanel() {
     setStudioOpen(true)
   }
 
-  /**
-   * Copy a shareable link encoding this automation's config in the
-   * `?automation=` param — opening it re-creates the config via the studio
-   * dialog (see `automation-share.ts`).
-   */
-  async function shareAutomation(automation: Automation) {
+  /** Copy a `?automation=` share link for an already-flattened config. */
+  async function copyShareConfig(config: AutomationShareConfig) {
     try {
-      await navigator.clipboard.writeText(
-        automationShareHref(automationToShareConfig(automation)),
-      )
+      await navigator.clipboard.writeText(automationShareHref(config))
       toast({
         variant: "success",
         title: "Share link copied",
-        description: `"${automation.name}" config is encoded in the link.`,
+        description: `"${config.name}" config is encoded in the link.`,
       })
     } catch {
       toast({
@@ -1961,6 +2097,24 @@ export function AutomationsPanel() {
         description: "Clipboard access was denied — copy the URL manually instead.",
       })
     }
+  }
+
+  /**
+   * Copy a shareable link encoding this automation's config in the
+   * `?automation=` param — opening it re-creates the config via the studio
+   * dialog (see `automation-share.ts`).
+   */
+  async function shareAutomation(automation: Automation) {
+    await copyShareConfig(automationToShareConfig(automation))
+  }
+
+  /**
+   * "Share link" button inside the studio dialog — shares the draft as
+   * currently edited (including the live graph on the Graph tab) without
+   * saving it first.
+   */
+  async function shareStudioDraft(draft: StudioDraft) {
+    await copyShareConfig(studioDraftToShareConfig(draft))
   }
 
   /** Download the automation config as JSON or YAML (`automation-share.ts`). */
@@ -2116,16 +2270,19 @@ export function AutomationsPanel() {
   }
 
   /**
-   * Retry — re-runs the automation with the same parameters as its latest
-   * run. The mock runner doesn't distinguish parameters, so this is a manual
-   * run labelled as a retry of the previous attempt.
+   * Retry — re-runs the automation with the same parameters as a previous
+   * run. Pass `sourceRun` to retry a specific history entry; defaults to the
+   * latest run. The mock runner doesn't distinguish parameters, so this is a
+   * manual run labelled as a retry of that attempt.
    */
-  function retryRun(automation: Automation) {
-    const lastRun = automation.runs[0]
+  function retryRun(automation: Automation, sourceRun?: AutomationRun) {
+    const lastRun = sourceRun ?? automation.runs[0]
     runNow(automation, {
       label: lastRun ? `Retry of ${lastRun.label}` : "Retry run",
       trigger: "retry",
-      intro: `Re-running "${automation.name}" with the same parameters as the previous run`,
+      intro: lastRun
+        ? `Re-running "${automation.name}" with the same parameters as "${lastRun.label}" from ${formatDateTime(lastRun.startedAt)}`
+        : `Re-running "${automation.name}" with the same parameters as the previous run`,
     })
   }
 
@@ -2136,6 +2293,16 @@ export function AutomationsPanel() {
       variant: "success",
       title: "Run log exported",
       description: `"${automation.name}" run history was downloaded as CSV.`,
+    })
+  }
+
+  /** Download a single run's full log output as a CSV file. */
+  function exportRunLogLines(automation: Automation, run: AutomationRun) {
+    downloadAutomationRunLogCsv(automation.name, run)
+    toast({
+      variant: "success",
+      title: "Run log exported",
+      description: `"${run.label}" log was downloaded as CSV.`,
     })
   }
 
@@ -2656,6 +2823,15 @@ export function AutomationsPanel() {
                               type="button"
                               variant="ghost"
                               size="sm"
+                              aria-label={`Test run ${automation.name} in sandbox`}
+                              onClick={() => setTestRunTarget(automation)}
+                            >
+                              <Beaker aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
                               aria-label={`Test ${automation.name} in sandbox`}
                               onClick={() => setTestTarget(automation)}
                             >
@@ -2827,6 +3003,29 @@ export function AutomationsPanel() {
                                         <time dateTime={run.startedAt}>
                                           {formatDateTime(run.startedAt)}
                                         </time>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          aria-label={`Retry "${run.label}" of ${automation.name}`}
+                                          disabled={
+                                            run.status === "running" ||
+                                            run.status === "queued"
+                                          }
+                                          onClick={() => retryRun(automation, run)}
+                                        >
+                                          <RotateCcw aria-hidden="true" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          aria-label={`Export log for ${run.label}`}
+                                          onClick={() => exportRunLogLines(automation, run)}
+                                        >
+                                          <Download aria-hidden="true" />
+                                          Export log
+                                        </Button>
                                         <span className="app-automation-run-duration">
                                           {run.duration}
                                         </span>
@@ -2864,6 +3063,7 @@ export function AutomationsPanel() {
           editing={editing}
           initialDraft={pendingShare}
           onSave={saveDraft}
+          onShare={shareStudioDraft}
         />
 
         <DeleteAutomationDialog
@@ -2922,6 +3122,14 @@ export function AutomationsPanel() {
           }}
           onSave={(variables) => {
             if (variablesTarget) saveVariables(variablesTarget.id, variables)
+          }}
+        />
+
+        <AutomationTestRunDialog
+          source={testRunTarget}
+          open={testRunTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setTestRunTarget(null)
           }}
         />
 

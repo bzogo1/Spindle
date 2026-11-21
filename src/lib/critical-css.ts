@@ -37,7 +37,7 @@ export const SITE_CRITICAL_CSS = `
   --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
   --font-display: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
   --mono: "IBM Plex Mono", "SF Mono", ui-monospace, "Cascadia Code", "Roboto Mono", monospace;
-  --ui-primary-foreground: #0d0d0d;
+  --ui-primary-foreground: #12160f;
   color-scheme: dark;
 }
 :root:not(.dark) {
@@ -160,23 +160,25 @@ svg {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 6px;
-  font-size: 13.5px;
+  border-radius: 7px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   border: 1px solid transparent;
   transition:
     background var(--transition-normal),
     border-color var(--transition-normal),
-    color var(--transition-normal);
+    color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    transform var(--transition-fast);
 }
 .btn--lg {
-  padding: 12px 20px;
-  font-size: 14px;
+  padding: 12px 22px;
+  font-size: 15px;
 }
 .btn--primary {
   background: var(--accent);
-  color: var(--ui-primary-foreground);
+  color: #0d0d0d;
   border-color: var(--accent);
 }
 .btn--primary:hover {
@@ -197,10 +199,12 @@ svg {
   top: 0;
   z-index: 100;
   border-bottom: 1px solid transparent;
-  background: rgba(13, 15, 14, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  transition: border-color var(--transition-normal);
+  background: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition:
+    border-color var(--transition-normal),
+    background var(--transition-normal);
 }
 :root:not(.dark) .site-header {
   background: rgba(246, 247, 245, 0.88);
@@ -239,7 +243,7 @@ svg {
 .brand-name {
   font-size: 17px;
   font-weight: 600;
-  letter-spacing: -0.017em;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 .nav-desktop-slot {
@@ -307,33 +311,33 @@ svg {
 }
 .hero-title {
   font-family: var(--font-display);
-  font-size: clamp(2.55rem, 4.9vw, 3.9rem);
+  font-size: clamp(2.8rem, 5.2vw, 4.2rem);
   font-weight: 600;
-  line-height: 1.14;
-  letter-spacing: -0.018em;
-  margin: 0 auto 22px;
-  max-width: 840px;
+  line-height: 1.08;
+  letter-spacing: -0.038em;
+  margin: 0 auto 24px;
+  max-width: 900px;
   text-wrap: balance;
 }
 .hero-subtitle {
-  font-size: 17px;
-  line-height: 1.7;
+  font-size: 18px;
+  line-height: 1.6;
   color: var(--text-muted);
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
 }
 .hero-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  margin-top: 32px;
+  gap: 16px;
+  margin-top: 36px;
 }
 .hero-secondary {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 .hero-visual {
@@ -345,10 +349,10 @@ svg {
 .eyebrow {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 .page-main {
   padding-top: 0;
@@ -363,9 +367,9 @@ svg {
 .page-title {
   font-family: var(--font-display);
   font-size: clamp(2.3rem, 4.6vw, 3.35rem);
-  font-weight: 600;
-  line-height: 1.16;
-  letter-spacing: -0.015em;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.028em;
   margin: 0 0 18px;
   text-wrap: balance;
 }
@@ -397,51 +401,51 @@ svg {
  */
 export const AUTH_CRITICAL_CSS = `
 :root {
-  --bg: #0d0f0e;
-  --bg-alt: #101211;
-  --surface: #141715;
-  --surface-2: #181c19;
-  --surface-3: #1e231f;
+  --bg: #0d0d0d;
+  --bg-alt: #111111;
+  --surface: #161616;
+  --surface-2: #1a1a1a;
+  --surface-3: #1f1f1f;
   --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --text: #e9ede8;
-  --text-muted: #9aa49c;
-  --text-dim: #7d877e;
-  --accent: #c8f083;
-  --accent-hover: #d8f7a6;
-  --accent-soft: rgba(200, 240, 131, 0.09);
-  --accent-line: rgba(200, 240, 131, 0.24);
-  --amber: #e3b67e;
-  --mint: #96d8ad;
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text: #ededed;
+  --text-muted: #a0a0a0;
+  --text-dim: #6b6b6b;
+  --accent: #8ab661;
+  --accent-hover: #9bc573;
+  --accent-soft: rgba(138, 182, 97, 0.1);
+  --accent-line: rgba(138, 182, 97, 0.25);
+  --amber: #e8a664;
+  --mint: #6bb88a;
   --radius: 8px;
   --radius-lg: 12px;
   --container: 1160px;
   --focus-ring: 2px solid var(--accent);
-  --transition-normal: 0.2s ease;
-  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
-  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --font: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-display: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+  --mono: "IBM Plex Mono", "SF Mono", ui-monospace, "Cascadia Code", "Roboto Mono", monospace;
   --ui-primary-foreground: #12160f;
   color-scheme: dark;
 }
 :root:not(.dark) {
   color-scheme: light;
-  --bg: #f6f7f5;
-  --bg-alt: #eceee9;
+  --bg: #fafafa;
+  --bg-alt: #f5f5f5;
   --surface: #ffffff;
-  --surface-2: #f4f6f2;
-  --surface-3: #e7eae4;
-  --border: rgba(15, 25, 18, 0.1);
-  --border-strong: rgba(15, 25, 18, 0.18);
-  --text: #1a201b;
-  --text-muted: #5d6960;
-  --text-dim: #5c6861;
-  --accent: #3f6418;
-  --accent-hover: #3d6118;
-  --accent-soft: rgba(63, 100, 24, 0.08);
-  --accent-line: rgba(63, 100, 24, 0.26);
-  --amber: #8a5a1e;
-  --mint: #2f7d4f;
+  --surface-2: #f9f9f9;
+  --surface-3: #f0f0f0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --text: #171717;
+  --text-muted: #737373;
+  --text-dim: #a3a3a3;
+  --accent: #5a7c3a;
+  --accent-hover: #4d6a31;
+  --accent-soft: rgba(90, 124, 58, 0.1);
+  --accent-line: rgba(90, 124, 58, 0.25);
+  --amber: #b87d3f;
+  --mint: #3d8a5f;
   --ui-primary-foreground: #ffffff;
 }
 *,

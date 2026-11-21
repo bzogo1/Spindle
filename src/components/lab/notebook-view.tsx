@@ -17,7 +17,9 @@
  * via `labNotebookToIpynb`. Each code cell has an Output toggle and `table`
  * outputs render as a sortable `NotebookDataTable` with a live row count, a
  * "Filter rows" input, and a per-table CSV export; re-running a table cell
- * appends deterministic rows so the count reflects current data.
+ * appends deterministic rows so the count reflects current data. The toolbar
+ * also carries an "Export table" button that downloads the active cell's
+ * table output as CSV (Blob download) honoring the row filter.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -29,6 +31,8 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Download,
+  Eye,
+  EyeOff,
   FileDown,
   History,
   MessageSquarePlus,
@@ -37,6 +41,7 @@ import {
   RotateCcw,
   Square,
   Sun,
+  Table,
 } from "lucide-react"
 
 import { useToast } from "@/components/ui/toast"
@@ -60,6 +65,10 @@ import {
   parseLabNotebookShareParams,
   type LabNotebookShareState,
 } from "@/components/app/lab-notebook-share"
+import {
+  reportLabCellExecutionStats,
+  resetLabCellExecutionStats,
+} from "@/components/app/lab-cell-executions"
 import {
   LAB_NOTEBOOK_CURRENT_REVISION,
   LAB_NOTEBOOK_DEFAULT_TEMPLATE_ID,
@@ -178,7 +187,9 @@ function notebookRowMatches(
  * (same click-to-cycle pattern as the files screen's `fm-sort` headers).
  * `extraRows` are the deterministic batches appended by re-running the cell,
  * `filter` is the notebook-wide "Filter rows" term, and the footer count plus
- * the CSV export always reflect the currently visible rows.
+ * the CSV export always reflect the currently visible rows. Each table also
+ * has its own "Filter rows" input that narrows rows by column value on top of
+ * the notebook-wide term.
  */
 function NotebookDataTable({
   table,
@@ -192,13 +203,21 @@ function NotebookDataTable({
   exportName: string
 }) {
   const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(null)
+  // Per-table "Filter rows" term; matches against any column value.
+  const [rowFilter, setRowFilter] = useState("")
 
   const allRows = useMemo(() => [...table.rows, ...extraRows], [table.rows, extraRows])
 
   const term = filter.trim().toLowerCase()
+  const localTerm = rowFilter.trim().toLowerCase()
   const filteredRows = useMemo(
-    () => (term ? allRows.filter((row) => notebookRowMatches(row, table.columns, term)) : allRows),
-    [allRows, table.columns, term],
+    () =>
+      allRows.filter(
+        (row) =>
+          (!term || notebookRowMatches(row, table.columns, term)) &&
+          (!localTerm || notebookRowMatches(row, table.columns, localTerm)),
+      ),
+    [allRows, table.columns, term, localTerm],
   )
 
   const sortedRows = useMemo(() => {
@@ -227,6 +246,16 @@ function NotebookDataTable({
 
   return (
     <div>
+      <div className="mb-1">
+        <Input
+          type="search"
+          value={rowFilter}
+          onChange={(event) => setRowFilter(event.target.value)}
+          placeholder="Filter rows…"
+          aria-label={`Filter rows in ${exportName.replace(/\.csv$/, "")}`}
+          className="h-7 w-44 text-xs"
+        />
+      </div>
       <div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
         <table className="w-full border-collapse text-left text-xs">
           <thead>
@@ -277,7 +306,7 @@ function NotebookDataTable({
       </div>
       <div className="mt-1 flex items-center justify-between gap-2">
         <p className="app-field-hint">
-          {term
+          {term || localTerm
             ? `Showing ${sortedRows.length} of ${allRows.length} rows`
             : `${allRows.length} ${allRows.length === 1 ? "row" : "rows"}`}
         </p>
@@ -668,6 +697,41 @@ export function NotebookView() {
   const cellsRun = codeCells.filter((cell) => (runCounts[cell.id] ?? 0) > 0).length
   const totalRuns = codeCells.reduce((sum, cell) => sum + (runCounts[cell.id] ?? 0), 0)
 
+  /* ---- Show/hide all cell outputs ---- */
+
+  const cellsWithOutputs = cells.filter(
+    (cell) => cell.kind === "code" && cell.outputs.length > 0,
+  )
+  const allOutputsHidden =
+    cellsWithOutputs.length > 0 &&
+    cellsWithOutputs.every((cell) => hiddenOutputs.has(cell.id))
+
+  const toggleAllCellOutputs = useCallback(() => {
+    setHiddenOutputs((previous) => {
+      const withOutputs = cells.filter(
+        (cell) => cell.kind === "code" && cell.outputs.length > 0,
+      )
+      const allHidden =
+        withOutputs.length > 0 && withOutputs.every((cell) => previous.has(cell.id))
+      if (allHidden) return new Set()
+      return new Set(withOutputs.map((cell) => cell.id))
+    })
+  }, [cells])
+
+  /* ---- Lab panel cell-execution counter ---- */
+
+  // Publish this session's stats so the lab panel header can show the same
+  // "Cells executed" count; cleared when the notebook view unmounts.
+  useEffect(() => {
+    reportLabCellExecutionStats({
+      cellsExecuted: cellsRun,
+      codeCells: codeCells.length,
+      totalRuns,
+    })
+  }, [cellsRun, codeCells.length, totalRuns])
+
+  useEffect(() => resetLabCellExecutionStats, [])
+
   const shareState: LabNotebookShareState = {
     notebook: templateId,
     cells: Object.fromEntries(Object.entries(runCounts).filter(([, count]) => count > 0)),
@@ -801,6 +865,38 @@ export function NotebookView() {
     activeCellId && cells.some((cell) => cell.id === activeCellId)
       ? activeCellId
       : (visibleCells[0]?.id ?? cells[0]?.id ?? null)
+
+  /* ---- Export the active cell's table output as CSV ---- */
+
+  // "Current table" = the first `table` output of the active cell. Rows are
+  // the seeded rows plus this session's appended batches, filtered by the
+  // notebook-wide "Filter rows" term (same scope as the per-table export,
+  // minus that table's local sort state).
+  const activeTableOutput = useMemo(() => {
+    const cell = cells.find((candidate) => candidate.id === commentTargetId)
+    return (
+      cell?.outputs.find((output) => output.kind === "table" && output.table) ?? null
+    )
+  }, [cells, commentTargetId])
+
+  const handleExportTable = useCallback(() => {
+    const table = activeTableOutput?.table
+    if (!activeTableOutput || !table) return
+    const allRows = [...table.rows, ...(appendedRows[activeTableOutput.id] ?? [])]
+    const term = filter.trim().toLowerCase()
+    const rows = term
+      ? allRows.filter((row) => notebookRowMatches(row, table.columns, term))
+      : allRows
+    if (rows.length === 0) return
+    const fileName = `${template.id}-${activeTableOutput.id}.csv`
+    downloadNotebookCsv(fileName, notebookTableCsv(table, rows))
+    appendConsole(`Exported ${fileName}`)
+    toast({
+      variant: "success",
+      title: "Table exported",
+      description: `${rows.length} ${rows.length === 1 ? "row" : "rows"} downloaded as CSV.`,
+    })
+  }, [activeTableOutput, appendedRows, appendConsole, filter, template.id, toast])
 
   const handleRunCell = useCallback(
     (cell: LabNotebookCell) => {
@@ -941,6 +1037,20 @@ export function NotebookView() {
         <button
           type="button"
           className="fm-btn"
+          onClick={handleExportTable}
+          disabled={!activeTableOutput}
+          title={
+            activeTableOutput
+              ? "Download the active cell's table as CSV"
+              : "The active cell has no table output"
+          }
+        >
+          <Table aria-hidden="true" className="size-3.5" />
+          Export table
+        </button>
+        <button
+          type="button"
+          className="fm-btn"
           aria-pressed={notebookTheme === "dark"}
           onClick={toggleNotebookTheme}
         >
@@ -1000,6 +1110,20 @@ export function NotebookView() {
             <ChevronsDownUp aria-hidden="true" className="size-3.5" />
           )}
           {cellsCollapsed ? "Expand cells" : "Collapse cells"}
+        </button>
+        <button
+          type="button"
+          className="fm-btn"
+          aria-pressed={allOutputsHidden}
+          onClick={toggleAllCellOutputs}
+          disabled={cellsWithOutputs.length === 0}
+        >
+          {allOutputsHidden ? (
+            <Eye aria-hidden="true" className="size-3.5" />
+          ) : (
+            <EyeOff aria-hidden="true" className="size-3.5" />
+          )}
+          {allOutputsHidden ? "Show cell outputs" : "Hide cell outputs"}
         </button>
         <button
           type="button"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  AUTOMATION_SHARE_GRAPH_MAX_CHARS,
   AUTOMATION_SHARE_PARAM,
   automationShareHref,
   automationToShareConfig,
@@ -48,6 +49,19 @@ describe("automation-share", () => {
     expect(webhook.webhookUrl).toBe("https://example.com/hook")
     // Webhook triggers only exist in the graph model.
     expect(webhook.mode).toBe("graph")
+  })
+
+  it("round-trips an embedded graph payload and drops oversized ones", () => {
+    const config = { ...automationToShareConfig(AUTOMATION), graph: '{"version":1,"graph":{}}' }
+    expect(decodeAutomationShare(encodeAutomationShare(config))?.graph).toBe(config.graph)
+
+    const oversized = {
+      ...config,
+      graph: "x".repeat(AUTOMATION_SHARE_GRAPH_MAX_CHARS + 1),
+    }
+    const decoded = decodeAutomationShare(encodeAutomationShare(oversized))
+    expect(decoded).not.toBeNull()
+    expect(decoded?.graph).toBeUndefined()
   })
 
   it("rejects malformed or foreign payloads", () => {

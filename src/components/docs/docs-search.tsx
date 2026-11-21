@@ -5,7 +5,12 @@ import type { FocusEvent, KeyboardEvent } from "react"
 import { useRouter } from "next/navigation"
 
 import { DOC_GUIDE_SUMMARIES, searchDocs, tokenizeQuery } from "@/lib/docs-search"
-import { recordSearchQuery, searchSuggestions } from "@/lib/search/suggestions"
+import {
+  readQueryLog,
+  recordSearchQuery,
+  searchSuggestions,
+  type QueryLogEntry,
+} from "@/lib/search/suggestions"
 import type { SearchItem } from "@/lib/search"
 
 type SearchOption = {
@@ -19,6 +24,30 @@ type SearchOption = {
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/** How many previous searches the history section shows. */
+const HISTORY_LIMIT = 8
+
+/**
+ * Short timestamp for a history row: time-of-day for today's searches,
+ * otherwise a compact date + time.
+ */
+function formatHistoryTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const sameDay = date.toDateString() === now.toDateString()
+  return date.toLocaleString(undefined, {
+    ...(sameDay
+      ? {}
+      : {
+          month: "short" as const,
+          day: "numeric" as const,
+          ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" as const } : {}),
+        }),
+    hour: "numeric" as const,
+    minute: "2-digit" as const,
+  })
 }
 
 function Highlight({ text, query }: { text: string; query: string }) {
@@ -60,6 +89,7 @@ export function DocsSearch({
   const [active, setActive] = useState(0)
   const [hydrated, setHydrated] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const historyRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   const baseId = useId()
@@ -94,6 +124,17 @@ export function DocsSearch({
 
   const listOpen = open && options.length > 0
   const hasResults = trimmed.length === 0 || results.length > 0
+
+  // Previous searches from the local query log (localStorage). Re-read while
+  // the dropdown is open with an empty query so a freshly recorded search
+  // shows up; historyVersion is bumped after selectHistory().
+  const [historyVersion, setHistoryVersion] = useState(0)
+  const history = useMemo<QueryLogEntry[]>(() => {
+    if (!open || trimmed) return []
+    return readQueryLog().slice(0, HISTORY_LIMIT)
+    // historyVersion intentionally re-reads the log after a history pick.
+  }, [open, trimmed, historyVersion])
+  const showHistory = listOpen && history.length > 0
 
   const closestGuides = useMemo(() => {
     const tokens = tokenizeQuery(trimmed)
@@ -208,6 +249,15 @@ export function DocsSearch({
     router.push(option.href)
   }
 
+  /** Fill the input with a previous search from the history section. */
+  function selectHistory(entry: QueryLogEntry) {
+    recordSearchQuery(entry.query)
+    setQuery(entry.query)
+    setOpen(true)
+    setHistoryVersion((version) => version + 1)
+    inputRef.current?.focus()
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
       event.preventDefault()
@@ -298,38 +348,67 @@ export function DocsSearch({
       </p>
 
       {listOpen ? (
-        <div
-          className="doc-search-results"
-          id={listId}
-          role="listbox"
-          aria-label="Docs search results"
-        >
-          {options.map((option, index) => (
+        <div className="doc-search-results">
+          {showHistory ? (
             <div
-              key={`${option.href}-${index}`}
-              id={optionId(index)}
-              role="option"
-              aria-selected={index === active}
-              className={`doc-search-option${index === active ? "is-active" : ""}`}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActive(index)}
-              onClick={() => selectOption(option)}
+              className="doc-search-history"
+              ref={historyRef}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault()
+                  setOpen(false)
+                  inputRef.current?.focus()
+                }
+              }}
             >
-              <span className="doc-search-option-title">
-                {option.guideTitle !== option.title ? (
-                  <span className="doc-search-option-guide">{option.guideTitle}</span>
-                ) : null}
-                {option.title}
-              </span>
-              <span className="doc-search-option-snippet">
-                {option.snippet ? (
-                  <Highlight text={option.snippet} query={trimmed} />
-                ) : (
-                  option.description
-                )}
-              </span>
+              <div className="doc-search-history-label">Recent searches</div>
+              {history.map((entry) => (
+                <button
+                  key={entry.query}
+                  type="button"
+                  className="doc-search-history-item"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => selectHistory(entry)}
+                >
+                  <span className="doc-search-history-query">{entry.query}</span>
+                  <time
+                    className="doc-search-history-time"
+                    dateTime={new Date(entry.lastUsed).toISOString()}
+                  >
+                    {formatHistoryTime(entry.lastUsed)}
+                  </time>
+                </button>
+              ))}
             </div>
-          ))}
+          ) : null}
+          <div role="listbox" id={listId} aria-label="Docs search results">
+            {options.map((option, index) => (
+              <div
+                key={`${option.href}-${index}`}
+                id={optionId(index)}
+                role="option"
+                aria-selected={index === active}
+                className={`doc-search-option${index === active ? "is-active" : ""}`}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActive(index)}
+                onClick={() => selectOption(option)}
+              >
+                <span className="doc-search-option-title">
+                  {option.guideTitle !== option.title ? (
+                    <span className="doc-search-option-guide">{option.guideTitle}</span>
+                  ) : null}
+                  {option.title}
+                </span>
+                <span className="doc-search-option-snippet">
+                  {option.snippet ? (
+                    <Highlight text={option.snippet} query={trimmed} />
+                  ) : (
+                    option.description
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

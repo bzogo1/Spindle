@@ -850,6 +850,51 @@ html {
   color: var(--accent);
   border-radius: 2px;
 }
+.doc-search-history {
+  padding: 2px 0 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-strong);
+}
+.doc-search-history-label {
+  padding: 4px 10px 6px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.doc-search-history-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.doc-search-history-item:hover,
+.doc-search-history-item:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+.doc-search-history-query {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-search-history-time {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-dim);
+}
 .doc-search-empty {
   padding: 12px;
   font-size: 12px;
@@ -1384,6 +1429,11 @@ html {
   font-size: 13px;
   line-height: 1.65;
   color: var(--text-muted);
+}
+.code-example-actions {
+  margin: 14px 0 0;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* --- Video documentation embeds --- */

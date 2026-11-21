@@ -1,9 +1,13 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 
+import type { CitationItem } from "@/lib/citation-export"
+import { relatedArticles } from "@/lib/help-center"
 import type { HelpArticleSummary, HelpCategoryWithCount } from "@/lib/help-center"
+import { siteUrl } from "@/lib/site-url"
 
+import { CitationExportMenu } from "./citation-export-menu"
 import styles from "./help-search.module.css"
 
 type Status = "loading" | "ready" | "error"
@@ -37,14 +41,31 @@ export function HelpSearch({
   const [category, setCategory] = useState("")
   const [articles, setArticles] = useState<HelpArticleSummary[]>(initialArticles)
   const [status, setStatus] = useState<Status>("ready")
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null)
   const requestSeq = useRef(0)
 
   const baseId = useId()
   const inputId = `${baseId}-input`
   const statusId = `${baseId}-status`
   const categoryId = `${baseId}-category`
+  const relatedTitleId = `${baseId}-related-title`
 
   const trimmed = query.trim()
+
+  // Current result set as citable items for the export dropdown.
+  const citationItems = useMemo<CitationItem[]>(
+    () =>
+      articles.map((article) => ({
+        title: article.title,
+        url: `${siteUrl}/help/${article.slug}`,
+        excerpt: article.excerpt,
+        author: "Spindle",
+        publisher: "Spindle",
+        date: article.updatedAt,
+        type: article.categoryTitle,
+      })),
+    [articles],
+  )
 
   useEffect(() => {
     const seq = ++requestSeq.current
@@ -83,6 +104,22 @@ export function HelpSearch({
       controller.abort()
     }
   }, [trimmed, category])
+
+  // The "selected" result is whatever card the pointer or keyboard focus is
+  // on; it falls back to the top hit so the related-articles section is always
+  // populated while results are visible.
+  const selected = useMemo(() => {
+    if (articles.length === 0) return undefined
+    return articles.find((article) => article.slug === selectedSlug) ?? articles[0]
+  }, [articles, selectedSlug])
+
+  const related = useMemo(
+    () =>
+      status === "ready" && selected
+        ? relatedArticles(selected, initialArticles, { limit: 4 })
+        : [],
+    [status, selected, initialArticles],
+  )
 
   const resultLabel =
     status === "loading"
@@ -144,6 +181,7 @@ export function HelpSearch({
             ))}
           </select>
         </div>
+        <CitationExportMenu items={citationItems} fileName="help-articles" />
       </div>
 
       <p className={styles.hint} id={statusId} role="status" aria-live="polite">
@@ -159,7 +197,13 @@ export function HelpSearch({
       {articles.length > 0 ? (
         <div className={styles.results}>
           {articles.map((article) => (
-            <a key={article.slug} className={styles.card} href={`/help/${article.slug}`}>
+            <a
+              key={article.slug}
+              className={styles.card}
+              href={`/help/${article.slug}`}
+              onMouseEnter={() => setSelectedSlug(article.slug)}
+              onFocus={() => setSelectedSlug(article.slug)}
+            >
               <span className={styles.cardBody}>
                 <span className={styles.cardTitle}>{article.title}</span>
                 <span className={styles.cardExcerpt}>{article.excerpt}</span>
@@ -190,6 +234,27 @@ export function HelpSearch({
             you to the right article.
           </p>
         </div>
+      ) : null}
+
+      {related.length > 0 && selected ? (
+        <section className={styles.related} aria-labelledby={relatedTitleId}>
+          <h2 id={relatedTitleId} className={styles.relatedTitle}>
+            Related articles
+          </h2>
+          <p className={styles.relatedFor}>
+            Related to <strong>{selected.title}</strong>
+          </p>
+          <ul className={styles.relatedList}>
+            {related.map((article) => (
+              <li key={article.slug} className={styles.relatedItem}>
+                <a href={`/help/${article.slug}`} className={styles.relatedLink}>
+                  {article.title}
+                </a>
+                <span className={styles.relatedMeta}>{article.categoryTitle}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
     </div>
   )

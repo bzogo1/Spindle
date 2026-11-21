@@ -2017,6 +2017,58 @@
   font-weight: 700;
 }
 
+/* Focus mode — the section becomes a fixed, full-viewport overlay so the
+   diagram renders edge-to-edge while all surrounding page text is hidden.
+   Escape key and the exit button (wired in nym-mixnet-diagram.tsx) leave it. */
+.nym-diagram-section--focus {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: var(--bg);
+  overflow-y: auto;
+  padding: 0 0 48px;
+}
+
+.nym-diagram-section--focus .nym-wrap {
+  max-width: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide the surrounding header text — only the diagram stays. */
+.nym-diagram-section--focus .nym-header {
+  display: none;
+}
+
+.nym-diagram-section--focus .nym-stage {
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+}
+
+/* Enlarge: fill the viewport width instead of the 916px cap. */
+.nym-diagram-section--focus .nym-svg {
+  width: 100%;
+  max-width: none;
+  max-height: calc(100vh - 48px);
+  height: auto;
+}
+
+.nym-focus-toggle {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+}
+
+.nym-focus-exit {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  z-index: 3;
+}
+
 @media (max-width: 900px) {
   .nym-diagram-section {
     padding-top: 32px;

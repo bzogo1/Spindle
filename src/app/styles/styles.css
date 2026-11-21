@@ -628,6 +628,53 @@ svg {
   transform: translateX(2px);
 }
 
+/* Scroll cue pinned to the bottom edge of the hero; fades out on scroll. */
+.scroll-to-platform {
+  position: absolute;
+  left: 50%;
+  bottom: -22px;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  box-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.55);
+  transition:
+    opacity 0.4s var(--transition-normal),
+    transform 0.4s var(--transition-normal),
+    color var(--transition-normal),
+    border-color var(--transition-normal);
+  animation: scroll-cue-bob 2.4s ease-in-out infinite;
+}
+.scroll-to-platform:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+.scroll-to-platform:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-halo);
+}
+.scroll-to-platform.is-hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(10px);
+  pointer-events: none;
+}
+@keyframes scroll-cue-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 6px;
+  }
+}
+
 /* Product window shared - more refined shadows and borders */
 .hero-visual {
   max-width: 1060px;
@@ -694,6 +741,28 @@ svg {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+.window-slug-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  flex: none;
+}
+.window-slug-copy:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+.window-slug-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .window-bar-status {
   margin-left: auto;
@@ -846,7 +915,12 @@ svg {
 .usage-track span {
   display: block;
   height: 100%;
+  /* SSR baseline = initial 1.8 GB of 5 GB; SidebarStorageUsage updates width
+     via CSSOM (CSP-safe — no inline style attribute). Keep in sync with the
+     component's initial state. */
+  width: 36%;
   background: var(--accent);
+  transition: width 700ms ease;
 }
 
 .win-main {
@@ -907,6 +981,13 @@ svg {
   letter-spacing: -0.01em;
   margin: 4px 0 0;
 }
+.panel-head-side {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -935,6 +1016,18 @@ svg {
 .status-pill--tiny {
   padding: 2px 6px;
   font-size: 9.5px;
+}
+.status-pill.is-live i {
+  animation: status-pill-pulse 1s ease-in-out infinite;
+}
+@keyframes status-pill-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .overview-grid {
@@ -1099,17 +1192,46 @@ svg {
   background: rgba(200, 240, 131, 0.025);
 }
 .notebook-table {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+  border-collapse: collapse;
   padding: 8px 12px;
-  gap: 4px;
   font-family: var(--mono);
   font-size: 9.5px;
   color: var(--text-dim);
   border-top: 1px solid var(--border);
 }
-.notebook-table span:nth-child(-n + 4) {
+.notebook-table th {
+  padding: 4px 8px 4px 0;
+  font-weight: 500;
   color: var(--text-muted);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.notebook-table td {
+  padding: 4px 8px 4px 0;
+  white-space: nowrap;
+}
+.notebook-table td.is-num {
+  text-align: right;
+}
+.notebook-table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.notebook-table-sort:hover,
+.notebook-table-sort:focus-visible {
+  color: var(--text);
+}
+.notebook-table-arrow {
+  font-size: 8px;
+  opacity: 0.7;
 }
 
 .tok-com {
@@ -1244,9 +1366,273 @@ svg {
   box-shadow: var(--shadow-dot-halo);
 }
 
+/* Registered custom properties for the integrations network diagram. Giving
+   them a syntax makes them typed (and interpolable) instead of ad-hoc inline
+   tokens; values that are computed at runtime — measured node positions and
+   per-edge flow timing — still arrive via inline styles. */
+@property --flow-length {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 100;
+}
+@property --flow-delay {
+  syntax: "<time>";
+  inherits: false;
+  initial-value: 0s;
+}
+@property --flow-duration {
+  syntax: "<time>";
+  inherits: false;
+  initial-value: 4.6s;
+}
+@property --breath-delay {
+  syntax: "<time>";
+  inherits: false;
+  initial-value: 0s;
+}
+@property --connection-counter-interval {
+  syntax: "<time>";
+  inherits: false;
+  initial-value: 4.2s;
+}
+@property --x {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+@property --y {
+  syntax: "<length-percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+@property --size {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 72px;
+}
+
 .network-scroll {
   min-width: 0;
   position: relative;
+}
+.network-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.integration-connection-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.integration-connection-counter__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  animation: connection-counter-pulse 2.2s ease-in-out infinite;
+}
+.integration-connection-counter__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.integration-connection-counter__count {
+  display: inline-block;
+  color: var(--text);
+  font-weight: 600;
+  animation: connection-counter-pop var(--connection-counter-interval, 4.2s) ease-out both;
+}
+@keyframes connection-counter-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+    transform: scale(1.15);
+  }
+}
+@keyframes connection-counter-pop {
+  0% {
+    opacity: 0.35;
+    transform: translateY(3px);
+  }
+  18%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.network-labels-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.network-labels-toggle:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.network-labels-toggle[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.network-labels-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.network--labels-hidden .node-name {
+  display: none;
+}
+/* Paused state (toolbar "Pause animations" toggle): freeze the wire-flow
+   dashes, node breathing, and the hub ring spin. */
+.network--paused .wire-flow,
+.network--paused .node-orb,
+.network--paused .network-hub::before {
+  animation-play-state: paused;
+}
+/* Fullscreen toggle inside the diagram toolbar: swap enter/exit icons while
+   the .network-scroll container is the fullscreen element. */
+.network-fullscreen-icon--exit {
+  display: none;
+}
+.network-scroll:fullscreen {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.network-scroll:fullscreen .network-toolbar {
+  margin-bottom: 0;
+}
+.network-scroll:fullscreen .network {
+  /* Keep the 960/360 diagram inside the viewport height (toolbar + padding
+     accounted for by the 120px allowance). */
+  width: min(100%, calc((100dvh - 120px) * 2.6667));
+  margin-inline: auto;
+  flex: none;
+}
+.network-scroll:fullscreen .network-fullscreen-icon--enter {
+  display: none;
+}
+.network-scroll:fullscreen .network-fullscreen-icon--exit {
+  display: inline;
+}
+.network-scroll:fullscreen .network-hub {
+  width: 140px;
+  height: 140px;
+}
+.network-scroll:fullscreen .network-hub svg {
+  width: 56px;
+  height: 56px;
+}
+.network-scroll:fullscreen .node-orb {
+  width: calc(var(--size, 72px) * 1.7);
+  height: calc(var(--size, 72px) * 1.7);
+  font-size: 15px;
+}
+.network-scroll:fullscreen .node-name {
+  font-size: 11px;
+}
+.network-diagram {
+  min-width: 0;
+}
+.network-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-muted);
+  min-width: 0;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+.network-search:focus-within {
+  color: var(--text);
+  border-color: var(--accent-line);
+}
+.network-search input {
+  flex: 1;
+  min-width: 0;
+  width: 140px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 12px;
+}
+.network-search input::placeholder {
+  color: var(--text-dim);
+}
+.network-search-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+/* Search highlighting: matching tools keep full strength, the rest recede. */
+.node--dim {
+  opacity: 0.22;
+}
+.node--dim .node-orb {
+  animation-play-state: paused;
+}
+.node--match .node-orb {
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.node-name-mark {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+.network-wires g.wire-group--dim {
+  opacity: 0.15;
+}
+.network-wires g.wire-group--dim .wire-flow {
+  animation-play-state: paused;
 }
 .network {
   position: relative;
@@ -1277,13 +1663,14 @@ svg {
   stroke: var(--accent);
   stroke-width: 1.4;
   stroke-linecap: round;
-  stroke-dasharray: 9 91;
+  stroke-dasharray: calc(var(--flow-length, 100) * 0.09)
+    calc(var(--flow-length, 100) * 0.91);
   opacity: 0;
   animation: wire-flow var(--flow-duration, 4.6s) linear var(--flow-delay, 0s) infinite;
 }
 @keyframes wire-flow {
   0% {
-    stroke-dashoffset: 100;
+    stroke-dashoffset: var(--flow-length, 100);
     opacity: 0;
   }
   12%,
@@ -1295,6 +1682,59 @@ svg {
     stroke-dashoffset: 0;
     opacity: 0;
   }
+}
+
+/* Dark mode variant — each integration wire carries its own muted hue so the
+   hub reads as a colored network instead of a monochrome hairline web. The
+   `.dark` class on <html> is toggled by the site theme (site-theme.ts); the
+   light theme keeps the uniform ink wires defined in the light-theme block. */
+:root.dark .network-wires .wire:nth-of-type(1) {
+  stroke: rgba(138, 182, 97, 0.34);
+}
+:root.dark .network-wires .wire:nth-of-type(2) {
+  stroke: rgba(107, 184, 138, 0.34);
+}
+:root.dark .network-wires .wire:nth-of-type(3) {
+  stroke: rgba(125, 180, 240, 0.3);
+}
+:root.dark .network-wires .wire:nth-of-type(4) {
+  stroke: rgba(232, 166, 100, 0.32);
+}
+:root.dark .network-wires .wire:nth-of-type(5) {
+  stroke: rgba(140, 198, 212, 0.3);
+}
+:root.dark .network-wires .wire:nth-of-type(6) {
+  stroke: rgba(178, 148, 240, 0.28);
+}
+:root.dark .network-wires .wire:nth-of-type(7) {
+  stroke: rgba(226, 140, 160, 0.26);
+}
+:root.dark .network-wires .wire:nth-of-type(8) {
+  stroke: rgba(155, 197, 115, 0.42);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(9) {
+  stroke: rgba(138, 182, 97, 0.6);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(10) {
+  stroke: rgba(107, 184, 138, 0.6);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(11) {
+  stroke: rgba(125, 180, 240, 0.55);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(12) {
+  stroke: rgba(232, 166, 100, 0.58);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(13) {
+  stroke: rgba(140, 198, 212, 0.55);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(14) {
+  stroke: rgba(178, 148, 240, 0.52);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(15) {
+  stroke: rgba(226, 140, 160, 0.5);
+}
+:root.dark .network-wires .wire-flow:nth-of-type(16) {
+  stroke: rgba(155, 197, 115, 0.68);
 }
 
 .network-hub {
@@ -1329,6 +1769,35 @@ svg {
 .network-hub svg {
   width: 38px;
   height: 38px;
+}
+.hub-pulse {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hub-pulse 3.6s ease-out infinite;
+}
+.hub-pulse--late {
+  animation-delay: -1.8s;
+}
+.hub-orbit {
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+  animation: hub-spin 7s linear infinite;
+}
+@keyframes hub-pulse {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
 }
 @keyframes hub-spin {
   to {
@@ -1380,6 +1849,27 @@ svg {
   border: 1px solid rgba(255, 255, 255, 0.04);
   pointer-events: none;
 }
+.node-status {
+  position: absolute;
+  top: 7%;
+  right: 7%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border-strong);
+  z-index: 1;
+  pointer-events: none;
+}
+.node-status--connected {
+  background: var(--mint);
+}
+.node-status--degraded {
+  background: var(--amber);
+}
+.node-status--offline {
+  background: #e0655f;
+}
 .node--accent .node-orb {
   color: var(--accent);
   border-color: var(--accent-line);
@@ -1388,6 +1878,41 @@ svg {
 .node--small .node-orb {
   opacity: 0.6;
 }
+/* Per-tool orb size and breathing offsets (registered --size/--breath-delay).
+   These used to be inlined on each node; they are static, so they live here
+   keyed by node id. orbPx in the component still drives collision layout. */
+.node--jupyterlab {
+  --size: 76px;
+  --breath-delay: -0.2s;
+}
+.node--rstudio {
+  --size: 76px;
+  --breath-delay: -1.4s;
+}
+.node--vscode {
+  --size: 68px;
+  --breath-delay: -2.1s;
+}
+.node--quarto {
+  --size: 68px;
+  --breath-delay: -0.8s;
+}
+.node--csv-parquet {
+  --size: 68px;
+  --breath-delay: -2.8s;
+}
+.node--netcdf {
+  --size: 68px;
+  --breath-delay: -1.7s;
+}
+.node--zotero {
+  --size: 50px;
+  --breath-delay: -3.4s;
+}
+.node--searxng {
+  --size: 50px;
+  --breath-delay: -2.5s;
+}
 .node-name {
   font-family: var(--mono);
   font-size: 9px;
@@ -1395,6 +1920,77 @@ svg {
   text-transform: uppercase;
   color: var(--text-dim);
   white-space: nowrap;
+}
+
+/* Trace-a-path mode: click two nodes (hub included) to highlight the wires
+   between them; everything off the path recedes. */
+.network-trace-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.network-hub {
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.node {
+  cursor: pointer;
+}
+.node:focus-visible,
+.network-hub:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.node--trace-on .node-orb {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent-line),
+    0 12px 28px rgba(0, 0, 0, 0.38),
+    0 0 22px rgba(138, 182, 97, 0.4);
+}
+.node--trace-start .node-orb,
+.node--trace-end .node-orb {
+  border-color: var(--accent);
+}
+.node--trace-end .node-orb {
+  box-shadow:
+    0 0 0 4px rgba(138, 182, 97, 0.12),
+    0 12px 28px rgba(0, 0, 0, 0.38),
+    0 0 26px rgba(138, 182, 97, 0.5);
+}
+.node--trace-off {
+  opacity: 0.35;
+}
+.network-hub.node--trace-on {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 10px rgba(138, 182, 97, 0.07),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 16px 40px rgba(0, 0, 0, 0.25),
+    0 0 30px rgba(138, 182, 97, 0.45);
+}
+.network-hub.node--trace-start,
+.network-hub.node--trace-end {
+  border-color: var(--accent);
+}
+.network-wires g.wire-group--trace-on .wire {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 1;
+}
+.network-wires g.wire-group--trace-on .wire-flow {
+  stroke-width: 2.2;
+}
+.network-wires g.wire-group--trace-off {
+  opacity: 0.15;
+}
+.network-wires g.wire-group--trace-off .wire-flow {
+  animation-play-state: paused;
 }
 @keyframes node-breath {
   0%,
@@ -1414,6 +2010,98 @@ svg {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+.feature-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.feature-grid-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.feature-grid-toggle {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  width: fit-content;
+  margin-left: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.feature-grid-toggle__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+.feature-grid-toggle__option:hover {
+  color: var(--text);
+}
+.feature-grid-toggle__option[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.feature-grid-toggle__option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.feature-grid-controls-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feature-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.feature-share-btn:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.feature-share-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.feature-share-btn[data-status="copied"] {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.feature-share-btn[data-status="error"] {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.print-feature-btn {
+  margin-top: 20px;
 }
 .feature-card {
   display: block;
@@ -1457,6 +2145,15 @@ svg {
 .card-icon .icon {
   width: 18px;
   height: 18px;
+}
+/* Feature icons are SVG files rendered via next/image, so they can't inherit
+   `color` like the old lucide components did. Their strokes are baked black;
+   invert them under the dark theme (the site default) to keep them visible. */
+.card-icon img {
+  display: block;
+}
+:root.dark .card-icon img {
+  filter: invert(1);
 }
 .feature-card h3 {
   font-size: 17px;
@@ -1575,6 +2272,56 @@ svg {
   font-size: 9.5px;
   color: var(--text-dim);
 }
+.prompt-foot-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.prompt-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.prompt-try:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+.prompt-try:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.prompt-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.prompt-copy:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+.prompt-copy:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .prompt-live {
   color: var(--accent);
 }
@@ -1617,6 +2364,145 @@ svg {
 }
 .code-card-foot .mono {
   color: var(--text-dim);
+}
+.run-sparkline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+}
+.run-sparkline svg {
+  display: block;
+  overflow: visible;
+}
+
+/* Cron command builder controls (schedule + runtime selects). */
+.cron-builder-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: -2px 0 6px;
+}
+.cron-builder-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+.cron-builder-field select {
+  appearance: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.cron-builder-field select:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.cron-builder-field select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Resizable code/output split inside the cron builder card. The divider is a
+   keyboard-focusable separator; pointer drag (mouse + touch) drives the same
+   ratio state as the arrow keys. */
+.code-split {
+  display: flex;
+  flex-direction: column;
+  height: 250px;
+  margin: 2px 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+.code-split-pane {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.code-split-pane--code {
+  flex: 0 0 auto;
+}
+.code-split-pane--code pre {
+  margin: 0;
+  padding: 10px 12px;
+}
+.code-split-pane--output {
+  flex: 1 1 0;
+}
+.code-split-handle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 10px;
+  cursor: row-resize;
+  /* Let pointer events drive the drag instead of native touch scrolling. */
+  touch-action: none;
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition-normal);
+}
+.code-split-handle:hover,
+.code-split-handle:focus-visible {
+  background: var(--accent-soft);
+}
+.code-split-handle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: -2px;
+}
+.code-split-grip {
+  width: 42px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border-strong);
+  transition: background var(--transition-normal);
+}
+.code-split-handle:hover .code-split-grip,
+.code-split-handle:focus-visible .code-split-grip {
+  background: var(--accent);
+}
+.cron-output-head {
+  padding: 8px 12px 0;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.cron-output {
+  margin: 0;
+  padding: 8px 12px 10px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.cron-output-line {
+  display: flex;
+  gap: 10px;
+  white-space: nowrap;
+}
+.cron-output-time {
+  flex: none;
+  color: var(--text-dim);
+}
+.cron-output-line--ok {
+  color: var(--accent);
+}
+@media (max-width: 640px) {
+  .code-split {
+    height: 210px;
+  }
 }
 
 /* Copyable, server-highlighted code blocks. Token colours are variables so a
@@ -2024,6 +2910,62 @@ svg {
   border-radius: 50%;
   background: var(--accent);
 }
+.jupyter-kernel-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.012);
+}
+.jupyter-kernel-status {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.jupyter-kernel-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.kernel-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.kernel-picker-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.kernel-select {
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.kernel-select:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.kernel-select:focus-visible {
+  outline: none;
+  border-color: var(--accent-line);
+  box-shadow: var(--focus-halo);
+}
 .jupyter-shell .notebook {
   flex: 1;
   display: flex;
@@ -2257,6 +3199,16 @@ svg {
   font-family: var(--mono);
   font-size: 9.5px;
   color: var(--text-muted);
+  background: none;
+  cursor: pointer;
+}
+.engine-chip:hover {
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+.engine-chip.is-disabled {
+  opacity: 0.45;
+  text-decoration: line-through;
 }
 .results-head {
   display: flex;
@@ -2268,6 +3220,44 @@ svg {
 }
 .results-head .mono {
   color: var(--accent);
+}
+.results-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+.results-pager[hidden] {
+  display: none;
+}
+.pager-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-normal),
+    color var(--transition-normal);
+}
+.pager-btn:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+.pager-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.pager-btn:focus-visible {
+  outline: var(--focus-ring);
+}
+.pager-status {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-dim);
 }
 .results-list {
   border: 1px solid var(--border);
@@ -2402,6 +3392,121 @@ svg {
   margin-top: 12px;
   font-size: 11px;
   color: var(--text-dim);
+}
+.search-alert-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.search-alert-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    color var(--transition-normal);
+}
+.search-alert-btn:hover {
+  border-color: var(--accent-line);
+  color: var(--text);
+}
+.search-alert-btn:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.search-alert-btn.is-active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.search-alert-status {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Result preview modal */
+.result-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(8, 9, 8, 0.66);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.result-preview-overlay[hidden] {
+  display: none;
+}
+.result-preview {
+  width: min(560px, 100%);
+  max-height: min(80vh, 640px);
+  display: flex;
+  flex-direction: column;
+}
+.result-preview-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  margin-left: 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.result-preview-close:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+}
+.result-preview-close:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.result-preview-body {
+  padding: 20px 22px 22px;
+  overflow-y: auto;
+}
+.result-preview-title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.result-preview-meta {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+.result-preview-body .result-tag {
+  margin-top: 12px;
+}
+.result-preview-abstract {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-muted);
 }
 
 /* Files */
@@ -4420,7 +5525,11 @@ svg {
      this stylesheet self-sufficient without !important. */
   .wire-flow,
   .network-hub::before,
+  .hub-pulse,
+  .hub-orbit,
   .node-orb,
+  .integration-connection-counter__dot,
+  .integration-connection-counter__count,
   .term-caret,
   .trace-pulse,
   .globe-glow,
@@ -4429,10 +5538,27 @@ svg {
   .globe-tag {
     animation: none;
   }
+  /* Reduced motion keeps only the static wires: the animated flow overlays
+     are hidden outright rather than left frozen mid-dash. */
+  .network .wire-flow {
+    display: none;
+  }
   [data-reveal] {
     opacity: 1;
     transform: none;
   }
+}
+
+/* JS-driven reduced-motion variant (matchMedia in network-diagram.tsx):
+   same outcome as the media query above — static wires only, no orbit
+   spin or node breathing — for engines where the media query is unavailable
+   but matchMedia still reports the preference. */
+.network--reduced .wire-flow {
+  display: none;
+}
+.network--reduced .network-hub::before,
+.network--reduced .node-orb {
+  animation: none;
 }
 
 /* ==========================================================================
@@ -4613,6 +5739,9 @@ svg {
 :root:not(.dark) .node--accent .node-orb {
   background:
     radial-gradient(circle at 32% 24%, rgba(63, 100, 24, 0.1), transparent 60%), var(--surface-2);
+}
+:root:not(.dark) .node-status--offline {
+  background: #c0453e;
 }
 :root:not(.dark) .network-hub {
   background:
@@ -4811,4 +5940,317 @@ svg {
   50% {
     box-shadow: 0 0 0 5px rgba(63, 100, 24, 0);
   }
+}
+
+/* ==========================================================================
+   BACK TO TOP (homepage)
+   ========================================================================== */
+
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition:
+    opacity var(--transition-normal),
+    transform var(--transition-normal),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.back-to-top.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.back-to-top:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+}
+.back-to-top:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (max-width: 640px) {
+  .back-to-top {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+/* ==========================================================================
+   HERO APP-WINDOW THEME PREVIEW
+   The hero mockup window can preview either palette regardless of the site
+   theme. `data-theme` on `.app-window` re-scopes the theme tokens for the
+   whole window, and the descendant rules below re-tune the hardcoded
+   dark-surface colors — mirroring the `:root:not(.dark)` remaps above.
+   ========================================================================== */
+
+.app-window[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0d0d;
+  --bg-alt: #111111;
+  --surface: #161616;
+  --surface-2: #1a1a1a;
+  --surface-3: #1f1f1f;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text: #ededed;
+  --text-muted: #a0a0a0;
+  --text-dim: #6b6b6b;
+  --accent: #8ab661;
+  --accent-hover: #9bc573;
+  --accent-soft: rgba(138, 182, 97, 0.1);
+  --accent-line: rgba(138, 182, 97, 0.25);
+  --amber: #e8a664;
+  --mint: #6bb88a;
+}
+
+.app-window[data-theme="light"] {
+  color-scheme: light;
+  --bg: #fafafa;
+  --bg-alt: #f5f5f5;
+  --surface: #ffffff;
+  --surface-2: #f9f9f9;
+  --surface-3: #f0f0f0;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  --text: #171717;
+  --text-muted: #737373;
+  --text-dim: #a3a3a3;
+  --accent: #5a7c3a;
+  --accent-hover: #4d6a31;
+  --accent-soft: rgba(90, 124, 58, 0.1);
+  --accent-line: rgba(90, 124, 58, 0.25);
+  --amber: #b87d3f;
+  --mint: #3d8a5f;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.03),
+    0 8px 32px -8px rgba(15, 25, 18, 0.18),
+    0 24px 80px -32px rgba(15, 25, 18, 0.22);
+}
+
+/* Window chrome and surfaces that hardcode dark-theme washes. */
+.app-window[data-theme="light"] .window-bar {
+  background: rgba(15, 25, 18, 0.02);
+}
+.app-window[data-theme="light"] .traffic-lights i {
+  background: rgba(15, 25, 18, 0.14);
+}
+.app-window[data-theme="light"] .win-sidebar {
+  background: rgba(15, 25, 18, 0.03);
+}
+.app-window[data-theme="light"] .usage-track {
+  background: rgba(15, 25, 18, 0.12);
+}
+.app-window[data-theme="light"] .win-tabs {
+  background: rgba(15, 25, 18, 0.04);
+}
+.app-window[data-theme="light"] .win-tab:hover {
+  background: rgba(15, 25, 18, 0.03);
+}
+.app-window[data-theme="light"] .win-tab.is-active {
+  background: rgba(15, 25, 18, 0.04);
+}
+.app-window[data-theme="light"] .status-pill--muted {
+  background: rgba(15, 25, 18, 0.03);
+}
+.app-window[data-theme="light"] .overview-tile {
+  background: rgba(15, 25, 18, 0.02);
+}
+.app-window[data-theme="light"] .activity-card {
+  background: rgba(15, 25, 18, 0.03);
+}
+.app-window[data-theme="light"] .mini-filelist,
+.app-window[data-theme="light"] .notebook {
+  background: rgba(15, 25, 18, 0.03);
+}
+.app-window[data-theme="light"] .mini-searchbar {
+  background: rgba(15, 25, 18, 0.02);
+}
+
+/* Hairline row separators: white-alpha → theme border. */
+.app-window[data-theme="light"] .activity-row,
+.app-window[data-theme="light"] .mini-file,
+.app-window[data-theme="light"] .notebook-cell,
+.app-window[data-theme="light"] .mini-result {
+  border-top-color: var(--border);
+}
+
+/* Ink and accent colors tuned for dark surfaces → light palette. */
+.app-window[data-theme="light"] .activity-dot--teal {
+  color: #2f7d99;
+  background: #2f7d99;
+}
+.app-window[data-theme="light"] .notebook-cell code {
+  color: var(--text);
+}
+.app-window[data-theme="light"] .notebook-out {
+  color: var(--mint);
+  background: rgba(63, 100, 24, 0.05);
+}
+.app-window[data-theme="light"] .tok-com {
+  color: #5d6960;
+}
+.app-window[data-theme="light"] .tok-key {
+  color: #8a5a1e;
+}
+.app-window[data-theme="light"] .tok-str {
+  color: #2f7d4f;
+}
+.app-window[data-theme="light"] .tok-fn {
+  color: #2f7d99;
+}
+.app-window[data-theme="light"] .tok-num {
+  color: #b4552d;
+}
+.app-window[data-theme="light"] .file-ext--csv {
+  color: #2f7d4f;
+  background: rgba(47, 125, 79, 0.1);
+}
+.app-window[data-theme="light"] .file-ext--parquet {
+  color: #2f7d99;
+  background: rgba(47, 125, 153, 0.1);
+}
+.app-window[data-theme="light"] .file-ext--ipynb {
+  color: #8a5a1e;
+  background: rgba(138, 90, 30, 0.1);
+}
+.app-window[data-theme="light"] .file-ext--pdf {
+  color: #b4552d;
+  background: rgba(180, 85, 45, 0.1);
+}
+.app-window[data-theme="light"] .result-source--alt {
+  color: #2f7d99;
+  background: rgba(47, 125, 153, 0.1);
+}
+.app-window[data-theme="light"] .result-source--alt2 {
+  color: #8a5a1e;
+  background: rgba(138, 90, 30, 0.1);
+}
+
+/* Dark preview on a light page: the `:root:not(.dark)` remaps above would
+   otherwise leak into the window — restore the dark-surface values. */
+.app-window[data-theme="dark"] .win-tab:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.app-window[data-theme="dark"] .win-tab.is-active {
+  background: rgba(255, 255, 255, 0.025);
+}
+.app-window[data-theme="dark"] .window-bar,
+.app-window[data-theme="dark"] .overview-tile {
+  background: rgba(255, 255, 255, 0.02);
+}
+.app-window[data-theme="dark"] .status-pill--muted {
+  background: rgba(255, 255, 255, 0.03);
+}
+.app-window[data-theme="dark"] .usage-track {
+  background: rgba(255, 255, 255, 0.07);
+}
+.app-window[data-theme="dark"] .activity-row,
+.app-window[data-theme="dark"] .mini-file,
+.app-window[data-theme="dark"] .notebook-cell,
+.app-window[data-theme="dark"] .mini-result {
+  border-top-color: rgba(255, 255, 255, 0.025);
+}
+.app-window[data-theme="dark"] .activity-dot--teal {
+  color: #7dc9ae;
+  background: #7dc9ae;
+}
+.app-window[data-theme="dark"] .notebook-cell code {
+  color: #dbe2d8;
+}
+.app-window[data-theme="dark"] .notebook-out {
+  color: #a5d6b8;
+  background: rgba(200, 240, 131, 0.025);
+}
+.app-window[data-theme="dark"] .tok-com {
+  color: #667369;
+}
+.app-window[data-theme="dark"] .tok-key {
+  color: #dcb984;
+}
+.app-window[data-theme="dark"] .tok-str {
+  color: #b9dd92;
+}
+.app-window[data-theme="dark"] .tok-fn {
+  color: #93c9d5;
+}
+.app-window[data-theme="dark"] .tok-num {
+  color: #e0a58c;
+}
+.app-window[data-theme="dark"] .file-ext--csv {
+  color: #a3dab6;
+  background: rgba(150, 216, 173, 0.13);
+}
+.app-window[data-theme="dark"] .file-ext--parquet {
+  color: #9fcbd4;
+  background: rgba(140, 198, 212, 0.13);
+}
+.app-window[data-theme="dark"] .file-ext--ipynb {
+  color: #e2bd8b;
+  background: rgba(227, 182, 126, 0.13);
+}
+.app-window[data-theme="dark"] .file-ext--pdf {
+  color: #e2a48e;
+  background: rgba(226, 145, 113, 0.13);
+}
+.app-window[data-theme="dark"] .result-source--alt {
+  color: #9fcbd4;
+  background: rgba(140, 198, 212, 0.12);
+}
+.app-window[data-theme="dark"] .result-source--alt2 {
+  color: #e2bd8b;
+  background: rgba(227, 182, 126, 0.12);
+}
+
+/* Theme-preview toggle in the window bar. Inherits the window's scoped
+   tokens, so it restyles itself with the previewed palette. */
+.window-theme-toggle {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+.window-theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.window-theme-toggle:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
 }

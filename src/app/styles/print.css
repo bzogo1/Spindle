@@ -1,0 +1,75 @@
+/* Print stylesheet for the marketing site ((site) route group).
+   Printing a marketing page should produce the text content only: hero
+   visuals (app-window mockups, globes, demos) and the integrations network
+   diagram are decorative and are dropped, along with site chrome that is
+   not part of the page's content. */
+
+@media print {
+  /* Site chrome — navigation, footer, and utility links are not content. */
+  .site-header,
+  .site-footer,
+  .skip-link,
+  .menu-toggle,
+  .header-actions,
+  .nav-mobile {
+    display: none !important;
+  }
+
+  /* Homepage hero visual: the app-window mockup. The hero copy
+     (badge, title, subtitle) stays. */
+  .hero-visual {
+    display: none !important;
+  }
+
+  /* Hero / section visuals on the other marketing pages
+     (agent, automations, collaboration, lab, solutions, etc.). */
+  .agent-hero-visual,
+  .auto-hero-visual,
+  .collab-visual,
+  .collab-globe-stage,
+  .collab-globe-cta,
+  .rhythm-visual,
+  .globe-visual,
+  .lab-demo {
+    display: none !important;
+  }
+
+  /* Integrations section: keep the copy ("Your stack, connected" + meta),
+     drop the network diagram. */
+  .network-scroll,
+  .network {
+    display: none !important;
+  }
+
+  /* Decorative hero backdrops (grid lines, glows, halos) — aria-hidden
+     flourishes that waste ink. */
+  .agent-hero-grid-bg,
+  .agent-hero-glow,
+  .auto-hero-grid-bg,
+  .auto-hero-glow,
+  .rhythm-glow,
+  .visual-halo,
+  .stage-halo,
+  .globe-glow,
+  .globe-orbit,
+  .globe-mount,
+  .collab-globe-orbit,
+  .collab-globe-halo,
+  .collab-globe-mount,
+  .collab-globe-cta-glow,
+  .collab-globe-cta-orbit,
+  .collab-globe-cta-mount,
+  .collab-orbit-line,
+  .collab-orbit-point,
+  .cta-orbit,
+  .hub-orbit,
+  .stage-orbit {
+    display: none !important;
+  }
+
+  /* Keep printed heroes/sections compact. */
+  .integrations-inner,
+  .hero-inner {
+    display: block;
+  }
+}

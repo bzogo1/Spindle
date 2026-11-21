@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { CalendarClock } from "lucide-react"
 
-import { humanizeCron, nextCronRuns } from "@/lib/automations/cron"
+import {
+  cronForSchedulePreset,
+  cronSchedulePreset,
+  humanizeCron,
+  nextCronRuns,
+  type CronSchedulePreset,
+} from "@/lib/automations/cron"
 import {
   describeSchedule,
   intervalError,
@@ -84,6 +90,9 @@ export function AutomationScheduleDialog({
     () => (expr.trim() ? humanizeCron(expr.trim()) : null),
     [expr],
   )
+  // The daily/weekly/custom selector is derived from the expression itself,
+  // so manual edits keep it in sync automatically.
+  const preset = useMemo<CronSchedulePreset>(() => cronSchedulePreset(expr.trim()), [expr])
   const cronValid = kind === "cron" && Boolean(human?.valid)
   const nextCron = useMemo(
     () => (cronValid ? nextCronRuns(expr.trim(), 3) : []),
@@ -204,29 +213,54 @@ export function AutomationScheduleDialog({
               ) : null}
             </div>
           ) : (
-            <div className="app-field">
-              <label htmlFor="automation-schedule-cron">Cron expression</label>
-              <Input
-                id="automation-schedule-cron"
-                value={expr}
-                onChange={(event) => {
-                  setExpr(event.target.value)
-                  setError(null)
-                }}
-                placeholder="0 9 * * 1"
-                className="app-automation-cron-input"
-                spellCheck={false}
-              />
-              {human ? (
-                human.valid ? (
-                  <p className="app-field-hint">{human.text}</p>
+            <>
+              <div className="app-field">
+                <label htmlFor="automation-schedule-preset">Schedule type</label>
+                <select
+                  id="automation-schedule-preset"
+                  className="app-select"
+                  value={preset}
+                  onChange={(event) => {
+                    const next = event.target.value as CronSchedulePreset
+                    if (next !== "custom") {
+                      setExpr(cronForSchedulePreset(next, expr.trim()))
+                    }
+                    setError(null)
+                  }}
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="custom">Custom cron</option>
+                </select>
+                <p className="app-field-hint">
+                  Daily and weekly fill in a cron expression below; pick Custom cron to write
+                  your own.
+                </p>
+              </div>
+              <div className="app-field">
+                <label htmlFor="automation-schedule-cron">Cron expression</label>
+                <Input
+                  id="automation-schedule-cron"
+                  value={expr}
+                  onChange={(event) => {
+                    setExpr(event.target.value)
+                    setError(null)
+                  }}
+                  placeholder="0 9 * * 1"
+                  className="app-automation-cron-input"
+                  spellCheck={false}
+                />
+                {human ? (
+                  human.valid ? (
+                    <p className="app-field-hint">{human.text}</p>
+                  ) : (
+                    <p className="app-field-error">{human.text}</p>
+                  )
                 ) : (
-                  <p className="app-field-error">{human.text}</p>
-                )
-              ) : (
-                <p className="app-field-hint">Use a five-field cron expression.</p>
-              )}
-            </div>
+                  <p className="app-field-hint">Use a five-field cron expression.</p>
+                )}
+              </div>
+            </>
           )}
 
           {kind === "cron" && human?.valid ? (
@@ -245,17 +279,17 @@ export function AutomationScheduleDialog({
 
           {kind === "cron" ? (
             <div className="app-automation-presets" aria-label="Cron presets">
-              {CRON_PRESETS.map((preset) => (
+              {CRON_PRESETS.map((cronPreset) => (
                 <button
-                  key={preset.expr}
+                  key={cronPreset.expr}
                   type="button"
-                  className={`app-automation-preset${expr.trim() === preset.expr ? "is-active" : ""}`}
+                  className={`app-automation-preset${expr.trim() === cronPreset.expr ? "is-active" : ""}`}
                   onClick={() => {
-                    setExpr(preset.expr)
+                    setExpr(cronPreset.expr)
                     setError(null)
                   }}
                 >
-                  {preset.label}
+                  {cronPreset.label}
                 </button>
               ))}
             </div>

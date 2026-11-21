@@ -11,6 +11,12 @@ export function IconSprite() {
       <symbol id="i-arrow-down" viewBox="0 0 24 24">
         <path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14" />
       </symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24">
+        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+      </symbol>
+      <symbol id="i-compress" viewBox="0 0 24 24">
+        <path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3" />
+      </symbol>
       <symbol id="i-chevron-down" viewBox="0 0 24 24">
         <path d="M6 9l6 6 6-6" />
       </symbol>
@@ -77,6 +83,10 @@ export function IconSprite() {
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" />
       </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+      </symbol>
       <symbol id="i-grid" viewBox="0 0 24 24">
         <rect x="3" y="3" width="7" height="7" rx="1" />
         <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -131,6 +141,9 @@ export function IconSprite() {
       </symbol>
       <symbol id="i-play" viewBox="0 0 24 24">
         <path d="M6 3l14 9-14 9V3z" />
+      </symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24">
+        <path d="M9 5v14M15 5v14" />
       </symbol>
       <symbol id="i-sigma" viewBox="0 0 24 24">
         <path d="M18 4H6l6 8-6 8h12" />

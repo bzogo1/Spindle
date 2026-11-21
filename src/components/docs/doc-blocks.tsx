@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
+import Link from "next/link"
 
 import { CodeBlock, type CodeBlockProps } from "@/components/site/code-block"
 import type { DocIcon } from "@/lib/docs"
@@ -48,12 +49,12 @@ export function DocStep({ title, children }: { title: string; children: ReactNod
 
 export function DocLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a className="text-link" href={href}>
+    <Link className="text-link" href={href}>
       {children}{" "}
       <svg className="icon icon--xs" aria-hidden="true">
         <use href="#i-arrow-right" />
       </svg>
-    </a>
+    </Link>
   )
 }
 
@@ -73,7 +74,7 @@ export function DocGuideCard({
   icon: DocIcon
 }) {
   return (
-    <a href={href} className="feature-card">
+    <Link href={href} className="feature-card">
       <span className="card-icon">
         <svg className="icon icon--sm" aria-hidden="true">
           <use href={iconHrefs[icon]} />
@@ -81,7 +82,7 @@ export function DocGuideCard({
       </span>
       <h3>{title}</h3>
       <p>{description}</p>
-    </a>
+    </Link>
   )
 }
 

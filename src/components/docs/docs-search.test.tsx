@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { DocsSearch } from "@/components/docs/docs-search"
+import { QUERY_LOG_STORAGE_KEY, recordSearchQuery } from "@/lib/search/suggestions"
 
 const push = vi.fn()
 
@@ -13,6 +14,7 @@ vi.mock("next/navigation", () => ({
 beforeEach(() => {
   push.mockReset()
   window.history.replaceState(null, "", "/docs")
+  window.localStorage.removeItem(QUERY_LOG_STORAGE_KEY)
 })
 
 describe("DocsSearch", () => {
@@ -83,5 +85,41 @@ describe("DocsSearch", () => {
     await user.keyboard("{ArrowDown}")
 
     expect(screen.getAllByRole("option")[1]).toHaveAttribute("aria-selected", "true")
+  })
+
+  it("shows previous searches with timestamps and refills the input", async () => {
+    recordSearchQuery("local search")
+    recordSearchQuery("agent setup")
+    const user = userEvent.setup()
+    render(<DocsSearch />)
+
+    const input = screen.getByRole("combobox", { name: "Search the docs" })
+    await user.click(input)
+
+    expect(await screen.findByText("Recent searches")).toBeInTheDocument()
+    const historyItems = screen.getAllByRole("button", { name: /search|setup/ })
+    expect(historyItems.length).toBeGreaterThanOrEqual(2)
+    // Timestamps render inside a <time> element.
+    expect(document.querySelector(".doc-search-history time")).not.toBeNull()
+
+    await user.click(screen.getByRole("button", { name: /agent setup/ }))
+
+    expect(input).toHaveValue("agent setup")
+    // The history section hides once the input has a query again.
+    expect(screen.queryByText("Recent searches")).not.toBeInTheDocument()
+  })
+
+  it("hides the history section once a query is typed", async () => {
+    recordSearchQuery("local search")
+    const user = userEvent.setup()
+    render(<DocsSearch />)
+
+    const input = screen.getByRole("combobox", { name: "Search the docs" })
+    await user.click(input)
+    expect(await screen.findByText("Recent searches")).toBeInTheDocument()
+
+    await user.type(input, "guide")
+
+    expect(screen.queryByText("Recent searches")).not.toBeInTheDocument()
   })
 })

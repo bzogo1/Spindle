@@ -103,22 +103,68 @@ export function automationRunsToCsv(runs: readonly DiffableRun[]): string {
   return `${[header, ...rows].map((row) => row.map(csvField).join(",")).join("\n")}\n`
 }
 
-/** Trigger a browser download of the run log CSV for `automationName`. */
-export function downloadAutomationRunsCsv(automationName: string, runs: readonly DiffableRun[]) {
-  const slug =
+function automationSlug(automationName: string): string {
+  return (
     automationName
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "automation"
-  const blob = new Blob([automationRunsToCsv(runs)], { type: "text/csv;charset=utf-8" })
+  )
+}
+
+function downloadCsv(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
-  anchor.download = `${slug}-run-log.csv`
+  anchor.download = filename
   document.body.appendChild(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
+}
+
+/** Trigger a browser download of the run log CSV for `automationName`. */
+export function downloadAutomationRunsCsv(automationName: string, runs: readonly DiffableRun[]) {
+  downloadCsv(`${automationSlug(automationName)}-run-log.csv`, automationRunsToCsv(runs))
+}
+
+/**
+ * Serialize a single run's full log output as CSV — one row per log line,
+ * prefixed with the run's metadata columns so the export stays self-contained.
+ */
+export function automationRunLogToCsv(run: DiffableRun): string {
+  const header = [
+    "run_id",
+    "label",
+    "trigger",
+    "started_at",
+    "status",
+    "duration",
+    "duration_ms",
+    "line_number",
+    "log_line",
+  ]
+  const rows = run.logs.map((line, index) => [
+    run.id,
+    run.label,
+    run.trigger,
+    run.startedAt,
+    run.status,
+    run.duration,
+    run.durationMs ?? "",
+    index + 1,
+    line,
+  ])
+  return `${[header, ...rows].map((row) => row.map(csvField).join(",")).join("\n")}\n`
+}
+
+/** Trigger a browser download of a single run's full log as CSV. */
+export function downloadAutomationRunLogCsv(automationName: string, run: DiffableRun) {
+  downloadCsv(
+    `${automationSlug(automationName)}-run-log-${run.id}.csv`,
+    automationRunLogToCsv(run),
+  )
 }
 
 function durationDeltaLabel(previous: DiffableRun, current: DiffableRun): string | null {

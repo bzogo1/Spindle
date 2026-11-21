@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Link from "next/link"
 
 import { changelogReleases } from "@/lib/changelog"
 import { createPageMetadata } from "@/lib/seo"
@@ -36,8 +37,8 @@ export default function ChangelogPage() {
           ))
         )}
         <p className="cl-back">
-          <a href="/#newsletter">Subscribe to product updates</a> ·{" "}
-          <a href="/">← Back to Spindle</a> · <a href="/changelog/feed.xml">RSS feed</a> ·{" "}
+          <Link href="/#newsletter">Subscribe to product updates</Link> ·{" "}
+          <Link href="/">← Back to Spindle</Link> · <a href="/changelog/feed.xml">RSS feed</a> ·{" "}
           <CookieSettingsButton />
         </p>
       </main>

@@ -1,6 +1,7 @@
 import { CodeBlock } from "@/components/site/code-block"
 
 import { groupExamplesByCategory, type CodeExample } from "./examples"
+import { labRunHref } from "./run-in-lab"
 
 export type CodeExamplesGalleryProps = {
   /** Restrict the gallery to a subset of examples (defaults to all). */
@@ -35,6 +36,14 @@ export async function CodeExamplesGallery({ examples, category }: CodeExamplesGa
                   ) : null}
                 </header>
                 <CodeBlock code={example.code} language={example.language} title={example.title} />
+                <p className="code-example-actions">
+                  <a className="btn btn--ghost btn--sm" href={labRunHref(example)}>
+                    <svg className="icon icon--xs" aria-hidden="true">
+                      <use href="#i-flask" />
+                    </svg>{" "}
+                    Run this code in the Lab
+                  </a>
+                </p>
               </article>
             ))}
           </div>

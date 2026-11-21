@@ -1,4 +1,6 @@
 import "../../styles/pages.css"
+import Link from "next/link"
+
 import { createPageMetadata } from "@/lib/seo"
 import { PageTransition } from "@/components/view-transitions/view-transitions"
 
@@ -45,7 +47,7 @@ export default function PlatformPage() {
               </p>
             </div>
             <div className="feature-grid">
-              <a href="/#files" className="feature-card">
+              <Link href="/#files" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-folder" />
@@ -53,8 +55,8 @@ export default function PlatformPage() {
                 </span>
                 <h3>Files</h3>
                 <p>5 GB free, a clean file manager, and inline previews for 100+ formats.</p>
-              </a>
-              <a href="/lab" className="feature-card">
+              </Link>
+              <Link href="/lab" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-flask" />
@@ -62,8 +64,8 @@ export default function PlatformPage() {
                 </span>
                 <h3>Live lab</h3>
                 <p>Notebooks, R, SQL, and more in the browser — already connected to your files.</p>
-              </a>
-              <a href="/#search" className="feature-card">
+              </Link>
+              <Link href="/#search" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-search" />
@@ -71,8 +73,8 @@ export default function PlatformPage() {
                 </span>
                 <h3>Local search</h3>
                 <p>Academic and Basic modes run through SearXNG hosted alongside Spindle.</p>
-              </a>
-              <a href="/automations" className="feature-card">
+              </Link>
+              <Link href="/automations" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-bolt" />
@@ -80,8 +82,8 @@ export default function PlatformPage() {
                 </span>
                 <h3>Automations</h3>
                 <p>Text it, build it, or write the cron yourself.</p>
-              </a>
-              <a href="/agent" className="feature-card">
+              </Link>
+              <Link href="/agent" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-sparkle" />
@@ -92,8 +94,8 @@ export default function PlatformPage() {
                   Ask it to refactor a pipeline, edit a sheet, move a folder, or summarize new
                   sources.
                 </p>
-              </a>
-              <a href="/#chat" className="feature-card">
+              </Link>
+              <Link href="/#chat" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-message" />
@@ -101,7 +103,7 @@ export default function PlatformPage() {
                 </span>
                 <h3>Team chat</h3>
                 <p>Channels live inside each project, with an optional anonymous mode.</p>
-              </a>
+              </Link>
             </div>
           </div>
         </section>

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react"
 import "../../styles/lab.css"
 import { LabCtaField, LabHeroField } from "@/components/lab-islands"
+import { LiveRowCount } from "@/components/site/live-row-count"
 import { PageInteractions } from "@/components/site/page-interactions"
 import { createPageMetadata } from "@/lib/seo"
 import { PageTransition } from "@/components/view-transitions/view-transitions"
@@ -297,7 +298,7 @@ export default function LabPage() {
                     </div>
                     <div className="notebook-out">
                       <span className="cell-out">out</span>
-                      <span id="pyOut">Loaded 48,102 rows × 14 columns</span>
+                      <LiveRowCount id="pyOut" />
                     </div>
                     <div className="notebook-cell py-cell">
                       <span className="cell-in">[2]</span>

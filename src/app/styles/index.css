@@ -137,6 +137,22 @@
   --radius-xl: calc(var(--ui-radius) + 4px);
 }
 
+/* Registers the `animate-gradient` utility: animates background-position so a
+   wide background gradient drifts across gradient-text elements. */
+@theme {
+  --animate-gradient: gradient-shift 8s ease-in-out infinite;
+
+  @keyframes gradient-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

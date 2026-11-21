@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 
 import "@/app/styles/index.css"
 import "@/app/styles/ui.css"
+import "@/app/styles/print.css"
 // styles.css + auth.css are intentionally NOT imported here: they load
 // asynchronously via DeferredStylesLoader so they don't block first paint.
 // Above-the-fold styling comes from the inlined critical CSS below.

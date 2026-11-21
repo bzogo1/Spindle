@@ -1,9 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { Keyboard, LogOut, Plus, Search, SunMoon, Users } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
+import { List, useDynamicRowHeight } from "react-window"
+import type { ListImperativeAPI } from "react-window"
 
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
@@ -65,6 +68,102 @@ type CommandGroup = {
 }
 
 /**
+ * Flattened row model for the virtualized results list: one header row per
+ * group followed by its item rows. `key` doubles as the react-window rowKey.
+ */
+type CommandRow =
+  | { kind: "header"; key: string; label: string }
+  | {
+      kind: "item"
+      key: string
+      item: SearchItem
+      /** 1-based position among option rows (for aria-posinset). */
+      optionIndex: number
+    }
+
+type CommandListRowProps = {
+  rows: CommandRow[]
+  activeId: string | null
+  optionCount: number
+  onItemHover: (id: string) => void
+  onItemActivate: (item: SearchItem) => void
+}
+
+/** Estimated heights (px) used until react-window measures real rows. */
+function estimateRowHeight(row: CommandRow): number {
+  if (row.kind === "header") return 30
+  return row.item.subtitle ? 54 : 38
+}
+
+function CommandResultRow({
+  index,
+  style,
+  ariaAttributes,
+  rows,
+  activeId,
+  optionCount,
+  onItemHover,
+  onItemActivate,
+}: {
+  index: number
+  style: CSSProperties
+  ariaAttributes: {
+    "aria-posinset": number
+    "aria-setsize": number
+    role: "listitem"
+  }
+} & CommandListRowProps) {
+  const row = rows[index]
+  if (!row) return null
+
+  if (row.kind === "header") {
+    return (
+      <div
+        {...ariaAttributes}
+        role="group"
+        aria-label={row.label}
+        className="app-command-group"
+        style={style}
+      >
+        <div className="app-command-group-label">{row.label}</div>
+      </div>
+    )
+  }
+
+  const item = row.item
+  const isActive = item.id === activeId
+  return (
+    <div
+      {...ariaAttributes}
+      role="option"
+      aria-posinset={row.optionIndex}
+      aria-setsize={optionCount}
+      id={`app-command-option-${item.id}`}
+      aria-selected={isActive}
+      data-command-id={item.id}
+      className={`app-command-item${isActive ? " is-active" : ""}`}
+      style={style}
+      onMouseMove={() => onItemHover(item.id)}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => onItemActivate(item)}
+    >
+      <span className="app-command-item-icon" aria-hidden="true">
+        {item.icon}
+      </span>
+      <span className="app-command-item-text">
+        <span className="app-command-item-label">{item.title}</span>
+        {item.subtitle ? (
+          <span className="app-command-item-hint">{item.subtitle}</span>
+        ) : null}
+      </span>
+    </div>
+  )
+}
+
+/** Below this many rows the plain list renders faster than the virtualizer. */
+const VIRTUALIZE_MIN_ROWS = 100
+
+/**
  * ⌘K/Ctrl+K command palette backed by the pluggable search index in
  * `src/lib/search`: pages, projects, files, docs, changelog entries, and
  * actions are provided asynchronously, fuzzy-scored with field weights, and
@@ -84,7 +183,10 @@ export function CommandMenu() {
   /** Real-mode workspace memberships from GET /api/workspaces (mock mode uses `workspaces`). */
   const [apiWorkspaces, setApiWorkspaces] = useState<WorkspaceEntry[] | null>(null)
   const [switchingId, setSwitchingId] = useState<string | null>(null)
+  /** DOM node of the plain (non-virtualized) results list. */
   const listRef = useRef<HTMLDivElement>(null)
+  /** Imperative API of the virtualized results list (react-window). */
+  const listApiRef = useRef<ListImperativeAPI | null>(null)
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -266,6 +368,44 @@ export function CommandMenu() {
 
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups])
 
+  // Flatten groups into header/item rows for the virtualized list, and keep
+  // a item.id → row-index map so keyboard navigation can scrollToRow when the
+  // active option isn't currently mounted.
+  const { rows, rowsSignature, rowIndexById } = useMemo(() => {
+    const nextRows: CommandRow[] = []
+    const indexById = new Map<string, number>()
+    let optionIndex = 0
+    for (const group of groups) {
+      nextRows.push({ kind: "header", key: `group:${group.label}`, label: group.label })
+      for (const item of group.items) {
+        optionIndex += 1
+        nextRows.push({ kind: "item", key: `item:${item.id}`, item, optionIndex })
+        indexById.set(item.id, nextRows.length - 1)
+      }
+    }
+    return {
+      rows: nextRows,
+      // Changes whenever the row set changes so measured heights reset.
+      rowsSignature: nextRows.map((row) => row.key).join(""),
+      rowIndexById: indexById,
+    }
+  }, [groups])
+
+  const virtualized = rows.length > VIRTUALIZE_MIN_ROWS
+
+  // Dynamic row heights: items with a subtitle are taller than single-line
+  // rows. `key` resets the measurement cache whenever results change.
+  const rowHeight = useDynamicRowHeight({
+    defaultRowHeight: 44,
+    initialRowHeights: rows.map(estimateRowHeight),
+    key: rowsSignature,
+  })
+
+  const rowKey = useCallback(
+    (index: number, data: CommandListRowProps) => data.rows[index]?.key ?? index,
+    [],
+  )
+
   useEffect(() => {
     setActiveId((current) =>
       current && flatItems.some((item) => item.id === current)
@@ -275,10 +415,20 @@ export function CommandMenu() {
   }, [flatItems])
 
   useEffect(() => {
-    if (!activeId || !listRef.current) return
-    const element = listRef.current.querySelector(`[data-command-id="${CSS.escape(activeId)}"]`)
-    element?.scrollIntoView?.({ block: "nearest" })
-  }, [activeId])
+    if (!activeId) return
+    const root = virtualized ? (listApiRef.current?.element ?? null) : listRef.current
+    const element = root?.querySelector(`[data-command-id="${CSS.escape(activeId)}"]`)
+    if (element) {
+      element.scrollIntoView?.({ block: "nearest" })
+      return
+    }
+    // Virtualized: the active row may be outside the mounted window — ask the
+    // list to scroll it into view instead.
+    const rowIndex = rowIndexById.get(activeId)
+    if (virtualized && rowIndex !== undefined) {
+      listApiRef.current?.scrollToRow({ index: rowIndex, align: "auto" })
+    }
+  }, [activeId, virtualized, rowIndexById])
 
   function moveActive(direction: 1 | -1) {
     if (flatItems.length === 0) return
@@ -408,57 +558,81 @@ export function CommandMenu() {
               esc
             </kbd>
           </div>
-          <div
-            className="app-command-list"
-            role="listbox"
-            id="app-command-list"
-            aria-label="Command results"
-            ref={listRef}
-          >
-            {flatItems.length === 0 ? (
-              loading ? (
-                <p className="app-command-empty" role="status">
-                  Loading…
-                </p>
+          {virtualized ? (
+            <List<CommandListRowProps>
+              listRef={listApiRef}
+              className="app-command-list app-command-list--virtual"
+              id="app-command-list"
+              role="listbox"
+              aria-label="Command results"
+              rowCount={rows.length}
+              rowComponent={CommandResultRow}
+              rowHeight={rowHeight}
+              rowKey={rowKey}
+              rowProps={{
+                rows,
+                activeId,
+                optionCount: flatItems.length,
+                onItemHover: (id) => setActiveId(id),
+                onItemActivate: activateItem,
+              }}
+              overscanCount={8}
+              defaultHeight={360}
+              style={{ minHeight: 0 }}
+            />
+          ) : (
+            <div
+              className="app-command-list"
+              role="listbox"
+              id="app-command-list"
+              aria-label="Command results"
+              ref={listRef}
+            >
+              {flatItems.length === 0 ? (
+                loading ? (
+                  <p className="app-command-empty" role="status">
+                    Loading…
+                  </p>
+                ) : (
+                  <p className="app-command-empty">No results for “{query.trim()}”.</p>
+                )
               ) : (
-                <p className="app-command-empty">No results for “{query.trim()}”.</p>
-              )
-            ) : (
-              groups.map((group) => (
-                <div
-                  key={group.label}
-                  className="app-command-group"
-                  role="group"
-                  aria-label={group.label}
-                >
-                  <div className="app-command-group-label">{group.label}</div>
-                  {group.items.map((item) => (
-                    <div
-                      key={item.id}
-                      id={`app-command-option-${item.id}`}
-                      role="option"
-                      aria-selected={item.id === activeId}
-                      data-command-id={item.id}
-                      className={`app-command-item${item.id === activeId ? "is-active" : ""}`}
-                      onMouseMove={() => setActiveId(item.id)}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => activateItem(item)}
-                    >
-                      <span className="app-command-item-icon" aria-hidden="true">
-                        {item.icon}
-                      </span>
-                      <span className="app-command-item-text">
-                        <span className="app-command-item-label">{item.title}</span>
-                        {item.subtitle ? (
-                          <span className="app-command-item-hint">{item.subtitle}</span>
-                        ) : null}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
+                groups.map((group) => (
+                  <div
+                    key={group.label}
+                    className="app-command-group"
+                    role="group"
+                    aria-label={group.label}
+                  >
+                    <div className="app-command-group-label">{group.label}</div>
+                    {group.items.map((item) => (
+                      <div
+                        key={item.id}
+                        id={`app-command-option-${item.id}`}
+                        role="option"
+                        aria-selected={item.id === activeId}
+                        data-command-id={item.id}
+                        className={`app-command-item${item.id === activeId ? " is-active" : ""}`}
+                        onMouseMove={() => setActiveId(item.id)}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => activateItem(item)}
+                      >
+                        <span className="app-command-item-icon" aria-hidden="true">
+                          {item.icon}
+                        </span>
+                        <span className="app-command-item-text">
+                          <span className="app-command-item-label">{item.title}</span>
+                          {item.subtitle ? (
+                            <span className="app-command-item-hint">{item.subtitle}</span>
+                          ) : null}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
           <div className="app-command-footer">
             <span>
               <kbd className="app-search-kbd" aria-hidden="true">

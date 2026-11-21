@@ -5,6 +5,7 @@
    ========================================================================== */
 
 import { humanizeCron } from "../automations/cron"
+import { checkScriptDependenciesForLanguage } from "../automations/script-dependencies"
 
 /* Runs after hydration from a client component. */
 let started = false
@@ -633,6 +634,52 @@ export function initAutomations() {
   const cronFields = $("#cronFields")
   const cronValidation = $("#cronValidation")
   const cronTz = $("#cronTz")
+  const dependencyCheck = $("#dependencyCheck")
+
+  function dependencyIcon(id) {
+    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg")
+    svg.setAttribute("class", "icon icon--xs")
+    svg.setAttribute("aria-hidden", "true")
+    const use = doc.createElementNS("http://www.w3.org/2000/svg", "use")
+    use.setAttribute("href", "#" + id)
+    svg.appendChild(use)
+    return svg
+  }
+
+  function updateDependencyCheck() {
+    if (!dependencyCheck) return
+
+    const scriptPanel = $('[data-code-panel^="script"]:not([hidden])')
+    const langPanel = scriptPanel
+      ? scriptPanel.querySelector("[data-lang-panel]:not([hidden])")
+      : null
+    const scriptText = langPanel
+      ? langPanel.textContent
+      : scriptPanel
+        ? scriptPanel.textContent
+        : ""
+    const language =
+      langPanel?.dataset.langPanel === "r"
+        ? "r"
+        : langPanel?.dataset.langPanel === "jl"
+          ? "julia"
+          : "python"
+    const result = checkScriptDependenciesForLanguage(scriptText, language)
+    const message = result.imports.length
+      ? result.ok
+        ? "Dependencies OK · " + result.imports.join(", ")
+        : "Missing from runtime: " + result.missing.join(", ")
+      : "No script imports detected"
+
+    dependencyCheck.classList.toggle("is-ok", result.ok)
+    dependencyCheck.classList.toggle("is-error", !result.ok)
+    dependencyCheck.classList.remove("is-pending")
+    dependencyCheck.setAttribute("aria-label", message)
+    dependencyCheck.replaceChildren(
+      dependencyIcon(result.ok ? "i-check" : "i-close"),
+      Object.assign(doc.createElement("span"), { textContent: message }),
+    )
+  }
 
   const FIELD_LABELS = ["MIN", "HOUR", "DAY", "MONTH", "WEEK"]
 
@@ -682,6 +729,15 @@ export function initAutomations() {
 
   if (cronTz) cronTz.addEventListener("change", () => updateCron())
 
+  const scriptCodeTab = $('.code-tab[data-code-tab="script"]')
+
+  function showCodePanel(key) {
+    $$("[data-code-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.codePanel !== key
+    })
+    if (key.startsWith("script")) updateDependencyCheck()
+  }
+
   $$(".code-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       $$(".code-tab").forEach((t) => {
@@ -689,11 +745,95 @@ export function initAutomations() {
         t.classList.toggle("is-active", active)
         t.setAttribute("aria-selected", String(active))
       })
-      $$("[data-code-panel]").forEach((panel) => {
-        panel.hidden = panel.dataset.codePanel !== tab.dataset.codeTab
-      })
+      showCodePanel(tab.dataset.codeTab)
     })
   })
+
+  /* Script version history — static snapshots rendered as extra code panels. */
+  function setActiveVersion(version) {
+    $$(".version-item").forEach((item) => {
+      const active = item.dataset.version === version
+      item.classList.toggle("is-current", active)
+      if (active) {
+        item.setAttribute("aria-current", "true")
+      } else {
+        item.removeAttribute("aria-current")
+      }
+    })
+  }
+
+  $$(".version-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const version = item.dataset.version
+      // Snap back to the script tab first so the env panel never stays visible.
+      if (scriptCodeTab) scriptCodeTab.click()
+      showCodePanel(version === "current" ? "script" : "script@" + version)
+      setActiveVersion(version)
+      const details = item.closest(".version-history")
+      if (details) details.removeAttribute("open")
+    })
+  })
+
+  // Close the history dropdown when clicking anywhere outside it.
+  doc.addEventListener("click", (event) => {
+    $$(".version-history[open]").forEach((details) => {
+      if (!details.contains(event.target)) details.removeAttribute("open")
+    })
+  })
+
+  /* Script language selector — swaps the snippet inside the current script panel. */
+  const SCRIPT_LANGUAGES = {
+    py: { file: "check_results.py", command: "python check_results.py" },
+    r: { file: "check_results.R", command: "Rscript check_results.R" },
+    jl: { file: "check_results.jl", command: "julia check_results.jl" },
+  }
+
+  function setScriptLanguage(lang) {
+    const meta = SCRIPT_LANGUAGES[lang]
+    if (!meta) return
+    $$("[data-lang-btn]").forEach((btn) => {
+      const active = btn.dataset.langBtn === lang
+      btn.classList.toggle("is-active", active)
+      btn.setAttribute("aria-pressed", String(active))
+    })
+    $$("[data-lang-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.langPanel !== lang
+    })
+    const fileEl = $("[data-script-file]")
+    if (fileEl) fileEl.textContent = meta.file
+    const commandEl = $("#cronCommand")
+    if (commandEl) commandEl.textContent = meta.command
+    updateDependencyCheck()
+  }
+
+  $$("[data-lang-btn]").forEach((btn) => {
+    btn.addEventListener("click", () => setScriptLanguage(btn.dataset.langBtn))
+  })
+
+  async function writeClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+    const helper = doc.createElement("textarea")
+    helper.value = text
+    helper.style.position = "fixed"
+    helper.style.opacity = "0"
+    doc.body.appendChild(helper)
+    helper.select()
+    doc.execCommand("copy")
+    helper.remove()
+  }
+
+  function flashCopiedButton(button, copiedHtml, idleHtml) {
+    button.innerHTML = copiedHtml
+    window.setTimeout(() => {
+      button.innerHTML = idleHtml
+    }, 1800)
+  }
+
+  const COPY_ICON = '<svg class="icon icon--xs"><use href="#i-copy"/></svg>'
+  const CHECK_ICON = '<svg class="icon icon--xs"><use href="#i-check"/></svg>'
 
   const copyBtn = $("#copyCode")
   if (copyBtn) {
@@ -701,27 +841,33 @@ export function initAutomations() {
       const visible = $("[data-code-panel]:not([hidden])")
       const text = visible ? visible.innerText : ""
       try {
-        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text)
-        else {
-          const helper = doc.createElement("textarea")
-          helper.value = text
-          helper.style.position = "fixed"
-          helper.style.opacity = "0"
-          doc.body.appendChild(helper)
-          helper.select()
-          doc.execCommand("copy")
-          helper.remove()
-        }
-        copyBtn.innerHTML = '<svg class="icon icon--xs"><use href="#i-check"/></svg> Copied'
+        await writeClipboard(text)
+        flashCopiedButton(copyBtn, CHECK_ICON + " Copied", COPY_ICON + " Copy")
       } catch (error) {
         copyBtn.textContent = "Select code"
         if (window.Sentry) {
           window.Sentry.captureException(error)
         }
       }
-      window.setTimeout(() => {
-        copyBtn.innerHTML = '<svg class="icon icon--xs"><use href="#i-copy"/></svg> Copy'
-      }, 1800)
+    })
+  }
+
+  const copyCommandBtn = $("#copyCronCommand")
+  if (copyCommandBtn) {
+    copyCommandBtn.addEventListener("click", async () => {
+      const expr = cronExpr ? cronExpr.value.trim() : ""
+      const commandEl = $("#cronCommand")
+      const command = commandEl ? commandEl.textContent.trim() : ""
+      const text = [expr, command].filter(Boolean).join(" ")
+      try {
+        await writeClipboard(text)
+        flashCopiedButton(copyCommandBtn, CHECK_ICON + " Copied", COPY_ICON + " Copy command")
+      } catch (error) {
+        copyCommandBtn.textContent = "Select command"
+        if (window.Sentry) {
+          window.Sentry.captureException(error)
+        }
+      }
     })
   }
 
@@ -781,8 +927,12 @@ export function initAutomations() {
     $$("[data-code-panel]").forEach((panel) => {
       panel.hidden = panel.dataset.codePanel !== "script"
     })
+    setActiveVersion("current")
+    setScriptLanguage("py")
+    $$(".version-history").forEach((details) => details.removeAttribute("open"))
     if ($("#cronToast")) $("#cronToast").hidden = true
     updateCron()
+    updateDependencyCheck()
   }
 
   const resetBtn = $("#resetDemo")
@@ -803,5 +953,6 @@ export function initAutomations() {
 
   updateBuilder()
   updateCron()
+  updateDependencyCheck()
   setMode("ask")
 }

@@ -14,9 +14,13 @@ const SRC_DIR = path.join(__dirname, "..")
 const TEST_FILE = /\.test\.[tj]sx?$/
 const SHIKI_IMPORT =
   /from\s+["'](?:shiki|@shikijs\/)[^"']*["']|import\s*\(\s*["'](?:shiki|@shikijs\/)/
+// `import type` is erased at compile time and cannot pull Shiki into a bundle.
+const SHIKI_TYPE_IMPORT = /import\s+type\s+[^;]*?from\s+["'](?:shiki|@shikijs\/)[^"']*["']/g
 
-// Files allowed to reference Shiki. code-block.tsx may only use `import type`.
-const ALLOWED_SHIKI_FILES = new Set(["lib/code-highlight.ts", "components/site/code-block.tsx"])
+// Only files allowed to pull in Shiki at runtime. `import type` references
+// (e.g. ThemedToken in code-block.tsx and the cron-snippet types) are erased
+// at compile time and permitted anywhere.
+const ALLOWED_SHIKI_FILES = new Set(["lib/code-highlight.ts"])
 
 function* walk(dir: string): Generator<string> {
   for (const entry of readdirSync(dir)) {
@@ -38,13 +42,14 @@ function shikiImporters() {
   const importers: string[] = []
   for (const file of walk(SRC_DIR)) {
     if (TEST_FILE.test(file)) continue
-    if (SHIKI_IMPORT.test(readFileSync(file, "utf8"))) importers.push(relative(file))
+    const source = readFileSync(file, "utf8").replace(SHIKI_TYPE_IMPORT, "")
+    if (SHIKI_IMPORT.test(source)) importers.push(relative(file))
   }
   return importers
 }
 
 describe("server-only code highlighting boundary", () => {
-  it("only allows code-highlight.ts and a type-only code-block.tsx to import Shiki", () => {
+  it("only allows code-highlight.ts to import Shiki at runtime", () => {
     expect(shikiImporters().sort()).toEqual([...ALLOWED_SHIKI_FILES].sort())
   })
 

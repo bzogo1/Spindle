@@ -1,17 +1,104 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
+
+// Presentation properties that come from CSS classes/vars in the page
+// (e.g. .nym-label, .nym-caption, .nym-sign) and must be inlined so the
+// downloaded file renders correctly outside the site stylesheet.
+const SVG_INLINE_PROPS = [
+  "fill",
+  "fill-opacity",
+  "stroke",
+  "stroke-width",
+  "stroke-opacity",
+  "opacity",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "font-style",
+  "letter-spacing",
+] as const
+
 export function NymMixnetDiagram() {
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [downloaded, setDownloaded] = useState(false)
+  const [focus, setFocus] = useState(false)
+
+  useEffect(() => {
+    if (!focus) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFocus(false)
+    }
+    document.addEventListener("keydown", onKeyDown)
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKeyDown)
+      document.body.style.overflow = previousOverflow
+    }
+  }, [focus])
+
+  function downloadSvg() {
+    const svg = svgRef.current
+    if (!svg) return
+
+    const clone = svg.cloneNode(true) as SVGSVGElement
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+    clone.setAttribute("width", "916")
+    clone.setAttribute("height", "482")
+
+    const originals = Array.from(svg.querySelectorAll("*"))
+    const clones = Array.from(clone.querySelectorAll("*"))
+    originals.forEach((el, i) => {
+      const target = clones[i]
+      if (!target) return
+      const computed = getComputedStyle(el)
+      for (const prop of SVG_INLINE_PROPS) {
+        const value = computed.getPropertyValue(prop)
+        if (value) target.setAttribute(prop, value)
+      }
+    })
+
+    const source = new XMLSerializer().serializeToString(clone)
+    const blob = new Blob([source], { type: "image/svg+xml;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = "nym-mixnet-diagram.svg"
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+
+    setDownloaded(true)
+    window.setTimeout(() => setDownloaded(false), 2000)
+  }
+
   return (
-    <section className="nym-diagram-section" aria-labelledby="nym-title">
+    <section
+      className={
+        focus ? "nym-diagram-section nym-diagram-section--focus" : "nym-diagram-section"
+      }
+      aria-labelledby="nym-title"
+    >
       <div className="nym-wrap">
         <div className="nym-header">
           <div className="nym-logo">NYM</div>
           <h2 id="nym-title" className="nym-title">
             NOISE GENERATING MIXNET
           </h2>
+          <button
+            type="button"
+            className="nym-download"
+            onClick={downloadSvg}
+            aria-label="Download network diagram as SVG"
+          >
+            {downloaded ? "Downloaded" : "Download SVG"}
+          </button>
         </div>
         <div className="nym-stage">
           <svg
+            ref={svgRef}
             className="nym-svg"
             viewBox="0 0 916 482"
             aria-labelledby="nym-svg-title nym-desc"
@@ -478,8 +565,34 @@ export function NymMixnetDiagram() {
               WEB
             </text>
           </svg>
+          {!focus && (
+            <button
+              type="button"
+              className="btn btn--ghost nym-focus-toggle"
+              onClick={() => setFocus(true)}
+              aria-haspopup="dialog"
+            >
+              <svg className="icon icon--xs" aria-hidden="true">
+                <use href="#i-grid" />
+              </svg>
+              Focus diagram
+            </button>
+          )}
         </div>
       </div>
+      {focus && (
+        <button
+          type="button"
+          className="btn btn--primary nym-focus-exit"
+          onClick={() => setFocus(false)}
+          autoFocus
+        >
+          <svg className="icon icon--xs" aria-hidden="true">
+            <use href="#i-close" />
+          </svg>
+          Exit focus
+        </button>
+      )}
     </section>
   )
 }

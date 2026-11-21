@@ -16,6 +16,14 @@ import type { AutomationSchedule } from "@/lib/automations/schedule"
 export const AUTOMATION_SHARE_PARAM = "automation"
 export const AUTOMATION_SHARE_VERSION = 1
 
+/**
+ * Serialized graph DSL (`serializeGraphJson` output) is embedded for
+ * graph-mode drafts so the recipient gets the exact canvas, not a rebuilt
+ * starter graph. URLs have practical length limits, so oversized graphs are
+ * dropped from the payload instead of producing an unusable link.
+ */
+export const AUTOMATION_SHARE_GRAPH_MAX_CHARS = 64 * 1024
+
 export type AutomationShareMode = "ask" | "build" | "cron" | "graph"
 export type AutomationShareTriggerKind = "schedule" | "event" | "webhook"
 export type AutomationShareStepKind = "trigger" | "condition" | "action"
@@ -46,6 +54,12 @@ export interface AutomationShareConfig {
   mode: AutomationShareMode
   schedule?: AutomationSchedule
   steps: AutomationShareStep[]
+  /**
+   * Serialized automation graph (graph DSL JSON) for drafts authored on the
+   * Graph tab. Absent for ask/build/cron drafts and for graphs too large to
+   * embed in a URL.
+   */
+  graph?: string
 }
 
 /**
@@ -190,6 +204,14 @@ export function decodeAutomationShare(value: string): AutomationShareConfig | nu
       mode: parsed.mode as AutomationShareMode,
       schedule: isAutomationSchedule(parsed.schedule) ? parsed.schedule : undefined,
       steps,
+      // An oversized or non-string graph payload is dropped rather than
+      // failing the whole link — the flattened draft still opens fine.
+      graph:
+        typeof parsed.graph === "string" &&
+        parsed.graph.length > 0 &&
+        parsed.graph.length <= AUTOMATION_SHARE_GRAPH_MAX_CHARS
+          ? parsed.graph
+          : undefined,
     }
   } catch {
     return null

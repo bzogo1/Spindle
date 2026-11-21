@@ -793,7 +793,7 @@ export default function AutomationsPage() {
                             role="tab"
                             aria-selected="true"
                           >
-                            check_results.py
+                            <span data-script-file>check_results.py</span>
                           </button>
                           <button
                             type="button"
@@ -805,12 +805,94 @@ export default function AutomationsPage() {
                             spindle.toml
                           </button>
                         </div>
-                        <button type="button" className="copy-btn" id="copyCode">
-                          <svg className="icon icon--xs">
-                            <use href="#i-copy" />
-                          </svg>{" "}
-                          Copy
-                        </button>
+                        <div className="lang-switch" role="group" aria-label="Snippet language">
+                          <button
+                            type="button"
+                            className="lang-btn is-active"
+                            data-lang-btn="py"
+                            aria-pressed="true"
+                          >
+                            Python
+                          </button>
+                          <button
+                            type="button"
+                            className="lang-btn"
+                            data-lang-btn="r"
+                            aria-pressed="false"
+                          >
+                            R
+                          </button>
+                          <button
+                            type="button"
+                            className="lang-btn"
+                            data-lang-btn="jl"
+                            aria-pressed="false"
+                          >
+                            Julia
+                          </button>
+                        </div>
+                        <div className="editor-head-actions">
+                          <details className="version-history">
+                            <summary aria-label="Script version history">
+                              <svg className="icon icon--xs">
+                                <use href="#i-clock" />
+                              </svg>{" "}
+                              History
+                              <svg className="icon icon--xs version-caret">
+                                <use href="#i-chevron-down" />
+                              </svg>
+                            </summary>
+                            <ul className="version-list">
+                              <li>
+                                <button
+                                  type="button"
+                                  className="version-item is-current"
+                                  data-version="current"
+                                  aria-current="true"
+                                >
+                                  <span className="version-tag">v1.4</span>
+                                  <span className="version-meta">
+                                    <strong>Current</strong>
+                                    <small>Today · you</small>
+                                  </span>
+                                </button>
+                              </li>
+                              <li>
+                                <button type="button" className="version-item" data-version="v1.3">
+                                  <span className="version-tag">v1.3</span>
+                                  <span className="version-meta">
+                                    <strong>Baseline comparison</strong>
+                                    <small>Mar 4 · you</small>
+                                  </span>
+                                </button>
+                              </li>
+                              <li>
+                                <button type="button" className="version-item" data-version="v1.2">
+                                  <span className="version-tag">v1.2</span>
+                                  <span className="version-meta">
+                                    <strong>CSV outlier export</strong>
+                                    <small>Feb 18 · ana</small>
+                                  </span>
+                                </button>
+                              </li>
+                              <li>
+                                <button type="button" className="version-item" data-version="v1.1">
+                                  <span className="version-tag">v1.1</span>
+                                  <span className="version-meta">
+                                    <strong>Initial stub</strong>
+                                    <small>Feb 2 · you</small>
+                                  </span>
+                                </button>
+                              </li>
+                            </ul>
+                          </details>
+                          <button type="button" className="copy-btn" id="copyCode">
+                            <svg className="icon icon--xs">
+                              <use href="#i-copy" />
+                            </svg>{" "}
+                            Copy
+                          </button>
+                        </div>
                       </div>
                       <div className="crontab-line">
                         <span className="cron-hash">#</span>
@@ -824,10 +906,22 @@ export default function AutomationsPage() {
                           spellCheck="false"
                           aria-describedby="cronValidation"
                         />
-                        <span className="cron-command">python check_results.py</span>
+                        <span className="cron-command" id="cronCommand">
+                          python check_results.py
+                        </span>
+                        <button
+                          type="button"
+                          className="copy-btn cron-copy-command"
+                          id="copyCronCommand"
+                        >
+                          <svg className="icon icon--xs">
+                            <use href="#i-copy" />
+                          </svg>{" "}
+                          Copy command
+                        </button>
                       </div>
                       <pre className="code-block" data-code-panel="script">
-                        <code>
+                        <code data-lang-panel="py">
                           <span className="tok-com">
                             {"# Spindle mounts your project files automatically"}
                           </span>
@@ -852,6 +946,122 @@ export default function AutomationsPage() {
                           {", digest)\nsp.notify("}
                           <span className="tok-str">{'"#study-updates"'}</span>
                           {", digest)"}
+                        </code>
+                        <code data-lang-panel="r" hidden>
+                          <span className="tok-com">
+                            {"# Spindle mounts your project files automatically"}
+                          </span>
+                          {"\n"}
+                          <span className="tok-key">{"library"}</span>
+                          {"(spindle)\n"}
+                          <span className="tok-key">{"library"}</span>
+                          {"(readr)\n\nresults "}
+                          <span className="tok-key">{"<-"}</span>
+                          {" sp$files$read("}
+                          <span className="tok-str">{'"results/latest.csv"'}</span>
+                          {")\nbaseline "}
+                          <span className="tok-key">{"<-"}</span>
+                          {" sp$files$read("}
+                          <span className="tok-str">{'"baselines/survey.csv"'}</span>
+                          {")\n\noutliers <- results[results$zscore > "}
+                          <span className="tok-num">{"2.5"}</span>
+                          {", ]\ndigest <- sp$agent$summarize(outliers, baseline)\n\n"}
+                          <span className="tok-key">{"sp$log$write("}</span>
+                          <span className="tok-str">{'"notes.md"'}</span>
+                          {", digest)\n"}
+                          <span className="tok-key">{"sp$notify("}</span>
+                          <span className="tok-str">{'"#study-updates"'}</span>
+                          {", digest)"}
+                        </code>
+                        <code data-lang-panel="jl" hidden>
+                          <span className="tok-com">
+                            {"# Spindle mounts your project files automatically"}
+                          </span>
+                          {"\n"}
+                          <span className="tok-key">{"using"}</span>
+                          {" Spindle\n"}
+                          <span className="tok-key">{"const"}</span>
+                          {" sp = Spindle.project()\n\nresults = sp.files.read("}
+                          <span className="tok-str">{'"results/latest.csv"'}</span>
+                          {")\nbaseline = sp.files.read("}
+                          <span className="tok-str">{'"baselines/survey.csv"'}</span>
+                          {")\n\noutliers = results[results.zscore .> "}
+                          <span className="tok-num">{"2.5"}</span>
+                          {", :]\ndigest = sp.agent.summarize(outliers, baseline)\n\n"}
+                          <span className="tok-key">{"sp.log.write("}</span>
+                          <span className="tok-str">{'"notes.md"'}</span>
+                          {", digest)\n"}
+                          <span className="tok-key">{"sp.notify("}</span>
+                          <span className="tok-str">{'"#study-updates"'}</span>
+                          {", digest)"}
+                        </code>
+                      </pre>
+                      <pre className="code-block" data-code-panel="script@v1.3" hidden>
+                        <code>
+                          <span className="tok-com">
+                            {"# Spindle mounts your project files automatically"}
+                          </span>
+                          {"\n"}
+                          <span className="tok-key">{"from"}</span>
+                          {" spindle "}
+                          <span className="tok-key">{"import"}</span>
+                          {" project "}
+                          <span className="tok-key">{"as"}</span>
+                          {" sp\n"}
+                          <span className="tok-key">{"import"}</span>
+                          {" pandas "}
+                          <span className="tok-key">{"as"}</span>
+                          {" pd\n\nresults = sp.files.read("}
+                          <span className="tok-str">{'"results/latest.csv"'}</span>
+                          {')\n\noutliers = results[results["score"] > '}
+                          <span className="tok-num">{"2.5"}</span>
+                          {"]\ndigest = sp.agent.summarize(outliers)\n\nsp.log.write("}
+                          <span className="tok-str">{'"notes.md"'}</span>
+                          {", digest)\nsp.notify("}
+                          <span className="tok-str">{'"#study-updates"'}</span>
+                          {", digest)"}
+                        </code>
+                      </pre>
+                      <pre className="code-block" data-code-panel="script@v1.2" hidden>
+                        <code>
+                          <span className="tok-com">
+                            {"# Daily outlier check — results/latest.csv"}
+                          </span>
+                          {"\n"}
+                          <span className="tok-key">{"from"}</span>
+                          {" spindle "}
+                          <span className="tok-key">{"import"}</span>
+                          {" project "}
+                          <span className="tok-key">{"as"}</span>
+                          {" sp\n"}
+                          <span className="tok-key">{"import"}</span>
+                          {" pandas "}
+                          <span className="tok-key">{"as"}</span>
+                          {" pd\n\nresults = sp.files.read("}
+                          <span className="tok-str">{'"results/latest.csv"'}</span>
+                          {")\noutliers = results[results.zscore > "}
+                          <span className="tok-num">{"2.5"}</span>
+                          {
+                            ']\noutliers.to_csv("output/outliers.csv", index=False)\n\nsp.log.write("notes.md", f"{len(outliers)} rows flagged")\nsp.notify("'
+                          }
+                          <span className="tok-str">{"#study-updates"}</span>
+                          {'", "Outlier check finished")'}
+                        </code>
+                      </pre>
+                      <pre className="code-block" data-code-panel="script@v1.1" hidden>
+                        <code>
+                          <span className="tok-com">{"# check_results.py — first pass"}</span>
+                          {"\n"}
+                          <span className="tok-key">{"from"}</span>
+                          {" spindle "}
+                          <span className="tok-key">{"import"}</span>
+                          {" project "}
+                          <span className="tok-key">{"as"}</span>
+                          {" sp\n\nresults = sp.files.read("}
+                          <span className="tok-str">{'"results/latest.csv"'}</span>
+                          {
+                            ')\nprint(f"rows: {len(results)}")\nsp.log.write("notes.md", "check_results ran")'
+                          }
                         </code>
                       </pre>
                       <pre className="code-block" data-code-panel="env" hidden>
@@ -900,6 +1110,17 @@ export default function AutomationsPage() {
                             <use href="#i-check" />
                           </svg>{" "}
                           Valid 5-field cron
+                        </div>
+                        <div
+                          className="dependency-check is-pending"
+                          id="dependencyCheck"
+                          role="status"
+                          aria-label="Script dependency check"
+                        >
+                          <svg className="icon icon--xs" aria-hidden="true">
+                            <use href="#i-cube" />
+                          </svg>
+                          <span>Checking script dependencies…</span>
                         </div>
                       </div>
                       <div className="terminal-card">

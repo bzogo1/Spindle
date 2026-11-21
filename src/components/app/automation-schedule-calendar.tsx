@@ -67,6 +67,8 @@ const WEEKDAY_HEADERS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 /** Safety cap so dense schedules (e.g. every minute) can't loop forever. */
 const MAX_OCCURRENCES_PER_ENTRY = 500
 const MAX_DAY_CHIPS = 2
+const MAX_WEEK_DAY_CHIPS = 4
+const WEEK_VIEW_DAYS = 7
 const UPCOMING_LIMIT = 12
 const UPCOMING_PER_ENTRY = 3
 
@@ -137,6 +139,53 @@ function occurrencesByDay(
   return byDay
 }
 
+/** Local dates for the rolling 7-day window starting today at midnight. */
+function weekWindowDays(now: Date): Date[] {
+  const start = new Date(now)
+  start.setHours(0, 0, 0, 0)
+  return Array.from({ length: WEEK_VIEW_DAYS }, (_, i) => {
+    const day = new Date(start)
+    day.setDate(day.getDate() + i)
+    return day
+  })
+}
+
+/**
+ * Occurrences for every scheduled entry inside the next 7 days (today through
+ * +6), keyed by local day. Interval schedules stay anchored to each entry's
+ * last run, same as the month grid.
+ */
+function nextWeekByDay(
+  entries: ScheduleCalendarEntry[],
+  now: Date,
+): Map<string, CalendarOccurrence[]> {
+  const days = weekWindowDays(now)
+  const windowEnd = new Date(days[WEEK_VIEW_DAYS - 1])
+  windowEnd.setDate(windowEnd.getDate() + 1)
+
+  const byDay = new Map<string, CalendarOccurrence[]>()
+  for (const entry of entries) {
+    if (!entryHasSchedule(entry)) continue
+    const anchor = entryAnchor(entry)
+    let cursor = new Date(now)
+
+    for (let i = 0; i < MAX_OCCURRENCES_PER_ENTRY; i += 1) {
+      const [next] = nextScheduleRuns(entry.schedule, 1, cursor, anchor)
+      if (!next || next >= windowEnd) break
+      const key = dayKey(next)
+      const list = byDay.get(key) ?? []
+      list.push({ entry, at: next })
+      byDay.set(key, list)
+      cursor = next
+    }
+  }
+
+  for (const list of byDay.values()) {
+    list.sort((a, b) => a.at.getTime() - b.at.getTime())
+  }
+  return byDay
+}
+
 /** Next few runs per scheduled entry, flattened and sorted soonest-first. */
 function upcomingOccurrences(entries: ScheduleCalendarEntry[]): CalendarOccurrence[] {
   const now = new Date()
@@ -166,10 +215,14 @@ export function AutomationScheduleCalendar({
   entries: ScheduleCalendarEntry[]
 }) {
   const [viewDate, setViewDate] = useState(() => new Date())
+  const [view, setView] = useState<"week" | "month">("week")
 
-  // Always open on the current month.
+  // Always open on the current month, defaulting to the 7-day window.
   useEffect(() => {
-    if (open) setViewDate(new Date())
+    if (open) {
+      setViewDate(new Date())
+      setView("week")
+    }
   }, [open])
 
   const year = viewDate.getFullYear()
@@ -179,6 +232,13 @@ export function AutomationScheduleCalendar({
     () => occurrencesByDay(entries, year, monthIndex),
     [entries, year, monthIndex],
   )
+  // Rolling 7-day window (today through +6) resolved once per entries change.
+  const week = useMemo(() => {
+    const now = new Date()
+    return { days: weekWindowDays(now), byDay: nextWeekByDay(entries, now) }
+  }, [entries])
+  const weekDays = week.days
+  const weekByDay = week.byDay
   const upcoming = useMemo(() => upcomingOccurrences(entries), [entries])
 
   const scheduledCount = entries.filter(entryHasSchedule).length
@@ -223,31 +283,118 @@ export function AutomationScheduleCalendar({
 
         <div className="app-automation-schedule-calendar">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold">
-              {MONTH_NAMES[monthIndex]} {year}
-            </h3>
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label="Previous month"
-                onClick={() => shiftMonth(-1)}
-              >
-                <ChevronLeft aria-hidden="true" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label="Next month"
-                onClick={() => shiftMonth(1)}
-              >
-                <ChevronRight aria-hidden="true" />
-              </Button>
+            <div
+              className="flex items-center gap-0.5 rounded-md border border-border p-0.5"
+              role="group"
+              aria-label="Schedule view"
+            >
+              {(
+                [
+                  { value: "week", label: "Next 7 days" },
+                  { value: "month", label: "Month" },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={view === option.value}
+                  onClick={() => setView(option.value)}
+                  className={cn(
+                    "rounded px-2 py-0.5 text-xs font-medium transition-colors",
+                    view === option.value
+                      ? "bg-[var(--app-accent-soft)] text-[var(--app-accent)]"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
+            {view === "month" ? (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Previous month"
+                  onClick={() => shiftMonth(-1)}
+                >
+                  <ChevronLeft aria-hidden="true" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Next month"
+                  onClick={() => shiftMonth(1)}
+                >
+                  <ChevronRight aria-hidden="true" />
+                </Button>
+              </div>
+            ) : null}
           </div>
 
+          <h3 className="text-sm font-semibold">
+            {view === "week"
+              ? `Next 7 days · ${formatDateTime(weekDays[0].toISOString())} – ${formatDateTime(
+                  weekDays[WEEK_VIEW_DAYS - 1].toISOString(),
+                )}`
+              : `${MONTH_NAMES[monthIndex]} ${year}`}
+          </h3>
+
+          {view === "week" ? (
+            <div
+              className="grid grid-cols-7 gap-1"
+              role="grid"
+              aria-label="Next 7 days automation schedule"
+            >
+              {weekDays.map((day) => {
+                const occurrences = weekByDay.get(dayKey(day)) ?? []
+                const isToday = sameDay(day, today)
+                return (
+                  <div
+                    key={dayKey(day)}
+                    role="gridcell"
+                    aria-label={`${formatDateTime(day.toISOString())}${
+                      occurrences.length > 0
+                        ? `, ${occurrences.length} scheduled run${occurrences.length === 1 ? "" : "s"}`
+                        : ""
+                    }`}
+                    className={cn(
+                      "flex min-h-20 flex-col gap-0.5 rounded-md border p-1.5",
+                      isToday ? "border-[var(--app-accent)]" : "border-border",
+                      occurrences.length > 0 && "bg-[var(--app-accent-soft)]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "text-[11px] font-medium",
+                        isToday ? "text-[var(--app-accent)]" : "text-foreground",
+                      )}
+                    >
+                      {WEEKDAY_HEADERS[(day.getDay() + 6) % 7]} {day.getDate()}
+                    </span>
+                    {occurrences.slice(0, MAX_WEEK_DAY_CHIPS).map((occurrence) => (
+                      <span
+                        key={`${occurrence.entry.id}-${occurrence.at.toISOString()}`}
+                        className="truncate rounded-sm bg-[var(--app-accent-soft)] px-1 text-[9px] leading-4 text-[var(--app-accent)]"
+                        title={`${occurrence.entry.name} · ${formatDateTime(occurrence.at.toISOString())}`}
+                      >
+                        {clockLabel(occurrence.at)} {occurrence.entry.name}
+                      </span>
+                    ))}
+                    {occurrences.length > MAX_WEEK_DAY_CHIPS ? (
+                      <span className="text-muted-foreground px-1 text-[9px]">
+                        +{occurrences.length - MAX_WEEK_DAY_CHIPS} more
+                      </span>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+
+          {view === "month" ? (
           <div
             className="grid grid-cols-7 gap-1"
             role="grid"
@@ -308,6 +455,7 @@ export function AutomationScheduleCalendar({
               )
             })}
           </div>
+          ) : null}
 
           <div className="grid gap-1">
             <h4 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">

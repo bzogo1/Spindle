@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { useSearchParams } from "next/navigation"
 import { FlaskConical, Play, RotateCcw } from "lucide-react"
 
@@ -36,6 +36,10 @@ import {
   snapshotDiffStatusLabel,
 } from "./lab-snapshot-thresholds"
 import { SnapshotHistoryPanel } from "./lab-snapshot-history"
+import {
+  getLabCellExecutionStats,
+  subscribeLabCellExecutionStats,
+} from "./lab-cell-executions"
 import { NotebookView } from "@/components/lab/notebook-view"
 import { LabBenchmarkPanel } from "./lab-benchmarks-panel"
 import { SnapshotBrowserMatrix } from "./lab-snapshot-browser-matrix"
@@ -66,6 +70,11 @@ import {
   labSnapshotReviewInput,
 } from "./lab-notifications"
 import { pushAppNotification } from "./notifications-provider"
+import {
+  decodeLabSnippet,
+  LAB_RUN_PARAM,
+  type LabCodeSnippet,
+} from "@/components/code-examples/run-in-lab"
 
 function Icon({ name, className = "icon icon--xs" }: { name: string; className?: string }) {
   return (
@@ -1079,6 +1088,15 @@ export function LabScreen({ projectId }: { projectId: string }) {
   const { data, actions } = lab
   const { toast } = useToast()
   const sessions = useLabSessions(projectId)
+  // "Run this code" links from the docs arrive as `?run=<base64url JSON>`
+  // (see `components/code-examples/run-in-lab.ts`); decode once and offer a
+  // mock run below. Malformed payloads decode to null and are ignored.
+  const searchParams = useSearchParams()
+  const snippet = useMemo(
+    () => decodeLabSnippet(searchParams.get(LAB_RUN_PARAM)),
+    [searchParams],
+  )
+  const [snippetDismissed, setSnippetDismissed] = useState(false)
 
   const environments = data.environments
   const active = useMemo(
@@ -1089,6 +1107,14 @@ export function LabScreen({ projectId }: { projectId: string }) {
     [environments, data.activeEnvironmentId],
   )
   const idle = active ? isIdle(active) : false
+
+  // Cell-execution counter for the lab panel — client state reported by the
+  // notebook view (JupyterLab environment); stays 0 for other environments.
+  const cellStats = useSyncExternalStore(
+    subscribeLabCellExecutionStats,
+    getLabCellExecutionStats,
+    getLabCellExecutionStats,
+  )
 
   const act = async (action: () => Promise<WorkspaceActionResult>) => {
     const result = await action()
@@ -1106,6 +1132,10 @@ export function LabScreen({ projectId }: { projectId: string }) {
   const [runs, setRuns] = useState<LabToolRun[]>([])
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
   const [restoredSnapshotIds, setRestoredSnapshotIds] = useState<Set<string>>(new Set())
+  // Simulated kernel restart for the active environment — the backend has no
+  // kernel API yet, so the button flips this flag, shows a "Restarting"
+  // status, then settles back to running after a short delay.
+  const [kernelRestarting, setKernelRestarting] = useState(false)
   const runSeq = useRef(0)
   const timers = useRef<number[]>([])
 
@@ -1230,6 +1260,75 @@ export function LabScreen({ projectId }: { projectId: string }) {
     )
   }, [appendLog, paramValues, patchRun, projectId, selectedTool, toast])
 
+  /** Queue a mock run for a docs snippet carried in by `?run=`. */
+  const handleRunSnippet = useCallback(
+    (code: LabCodeSnippet) => {
+      const id = `snippet-run-${++runSeq.current}`
+      const now = new Date().toISOString()
+      const apiTitle = `Snippet: ${code.title}`
+      const run: LabToolRun = {
+        id,
+        title: apiTitle,
+        toolId: null,
+        toolName: "Code snippet",
+        params: null,
+        paramsSummary: `${code.language} · loaded from a docs "Run this code" link`,
+        status: "queued",
+        createdAt: now,
+        startedAt: null,
+        finishedAt: null,
+        log: [
+          {
+            id: `${id}-log-1`,
+            level: "info",
+            message: `Snippet "${code.title}" queued from the docs.`,
+          },
+        ],
+        output: null,
+        apiTitle,
+      }
+      setRuns((previous) => [run, ...previous])
+      setSelectedRunId(id)
+
+      api.lab
+        .createLabSession({ title: apiTitle, projectId })
+        .then((session) => patchRun(id, { apiSessionId: session.id }))
+        .catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : "Could not register the run."
+          appendLog(id, { level: "error", message: `Session registration failed: ${message}` })
+        })
+
+      timers.current.push(
+        window.setTimeout(() => {
+          patchRun(id, { status: "running", startedAt: new Date().toISOString() })
+          appendLog(id, {
+            level: "info",
+            message: `Executing ${code.language} snippet in the mock environment.`,
+          })
+        }, 600),
+      )
+      timers.current.push(
+        window.setTimeout(() => {
+          patchRun(id, {
+            status: "completed",
+            finishedAt: new Date().toISOString(),
+            output: code.code,
+          })
+          appendLog(id, {
+            level: "info",
+            message: "Snippet finished (mock run — the code is shown, not executed).",
+          })
+          toast({
+            variant: "success",
+            title: "Snippet run completed",
+            description: code.title,
+          })
+        }, 2000),
+      )
+    },
+    [appendLog, patchRun, projectId, toast],
+  )
+
   const handleRestoreSnapshot = useCallback(
     (snapshot: LabSnapshot) => {
       setRestoredSnapshotIds((previous) => new Set(previous).add(snapshot.id))
@@ -1241,6 +1340,26 @@ export function LabScreen({ projectId }: { projectId: string }) {
     },
     [toast],
   )
+
+  const handleRestartKernel = useCallback(() => {
+    if (!active || kernelRestarting || active.status !== "running") return
+    setKernelRestarting(true)
+    toast({
+      variant: "info",
+      title: "Restarting kernel",
+      description: `${active.name} kernel session is restarting (mock).`,
+    })
+    timers.current.push(
+      window.setTimeout(() => {
+        setKernelRestarting(false)
+        toast({
+          variant: "success",
+          title: "Kernel restarted",
+          description: `${active.name} kernel session restarted (mock).`,
+        })
+      }, 1200),
+    )
+  }, [active, kernelRestarting, toast])
 
   /* Merge locally-created runs with sessions reported by the API. */
 
@@ -1410,15 +1529,40 @@ export function LabScreen({ projectId }: { projectId: string }) {
                     <span>{active.statusLabel}</span>
                   </div>
                   <div className="app-lab-meta-side">
+                    {active.kind === "jupyter" ? (
+                      <span aria-live="polite">
+                        Cells executed: {cellStats.cellsExecuted} of {cellStats.codeCells} ·{" "}
+                        {cellStats.totalRuns} {cellStats.totalRuns === 1 ? "run" : "runs"}
+                      </span>
+                    ) : null}
                     <span>Last active: {formatLastActive(active.lastActiveAt)}</span>
-                    <span className={`app-badge is-${active.status}`}>
-                      {active.status === "running"
-                        ? "Running"
-                        : active.status === "starting"
-                          ? "Starting"
-                          : "Stopped"}
+                    <span
+                      className={`app-badge is-${kernelRestarting ? "starting" : active.status}`}
+                    >
+                      {kernelRestarting
+                        ? "Restarting"
+                        : active.status === "running"
+                          ? "Running"
+                          : active.status === "starting"
+                            ? "Starting"
+                            : "Stopped"}
                     </span>
+                    <button
+                      type="button"
+                      className="fm-btn"
+                      disabled={active.status !== "running" || kernelRestarting}
+                      onClick={handleRestartKernel}
+                      aria-label={`Restart kernel for ${active.name}`}
+                    >
+                      <RotateCcw aria-hidden="true" className="size-3.5" />
+                      {kernelRestarting ? "Restarting kernel…" : "Restart kernel"}
+                    </button>
                   </div>
+                  <span className="app-field-hint" role="status" aria-live="polite">
+                    {kernelRestarting
+                      ? `Kernel session for ${active.name} is restarting…`
+                      : null}
+                  </span>
                 </div>
                 {active.status === "stopped" ? (
                   <EmptyState
@@ -1438,6 +1582,42 @@ export function LabScreen({ projectId }: { projectId: string }) {
             ) : null}
           </>
         )}
+
+        {/* ---- Docs snippet carried in by a "Run this code" link ---- */}
+
+        {snippet && !snippetDismissed ? (
+          <section className="app-panel" aria-labelledby="lab-snippet-heading">
+            <div className="app-panel-head">
+              <div>
+                <h2 id="lab-snippet-heading">Snippet from the docs</h2>
+                <p>
+                  {snippet.title} · {snippet.language} — loaded from a &ldquo;Run this
+                  code&rdquo; link.
+                </p>
+              </div>
+              <div className="app-panel-head-actions">
+                <button
+                  type="button"
+                  className="fm-btn fm-btn--solid"
+                  onClick={() => handleRunSnippet(snippet)}
+                >
+                  <Play aria-hidden="true" className="size-3.5" />
+                  Run snippet
+                </button>
+                <button
+                  type="button"
+                  className="fm-btn"
+                  onClick={() => setSnippetDismissed(true)}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+            <pre className="app-lab-code">
+              <code>{snippet.code}</code>
+            </pre>
+          </section>
+        ) : null}
 
         {/* ---- Tool grid ---- */}
 

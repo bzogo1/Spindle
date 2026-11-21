@@ -13,6 +13,7 @@ import { useFiles, useLabSessions, useProjectHome, useWorkspaceDashboard } from 
 import type { ChatMessage, LabSession, ProjectFile, ProjectSummary } from "@/lib/api/types"
 
 import { formatBytes, formatDate } from "./format"
+import { LAB_RUN_PARAM } from "@/components/code-examples/run-in-lab"
 
 export type ProjectSection = "lab" | "chat" | "files"
 
@@ -480,6 +481,15 @@ function ProjectSectionPicker({
   const [previewId, setPreviewId] = useState<string>(featured?.id ?? "")
   const previewProject = projects.find((project) => project.id === previewId)
 
+  // "Run this code" links from the docs land on `/app/lab?run=<payload>`;
+  // forward the payload onto the project lab route so the snippet opens
+  // preloaded in the lab environment.
+  const runParam = section === "lab" ? searchParams.get("run") : null
+  const sectionHref = (projectId: string) => {
+    const href = config.href(projectId)
+    return runParam ? `${href}?${LAB_RUN_PARAM}=${encodeURIComponent(runParam)}` : href
+  }
+
   return (
     <>
       <section className="app-panel" aria-labelledby="project-picker-heading">
@@ -512,7 +522,7 @@ function ProjectSectionPicker({
         {featured ? (
           <div className="app-project-actions">
             <Button asChild>
-              <Link href={config.href(featured.id)}>
+              <Link href={sectionHref(featured.id)}>
                 {config.icon}
                 Open {featured.name} {config.label.toLowerCase()}
               </Link>
@@ -522,7 +532,7 @@ function ProjectSectionPicker({
         <ul className="app-file-list">
           {projects.map((project) => (
             <li key={project.id}>
-              <Link href={config.href(project.id)} className="app-file-row">
+              <Link href={sectionHref(project.id)} className="app-file-row">
                 <span className="app-file-icon" aria-hidden="true">
                   <FolderKanban />
                 </span>

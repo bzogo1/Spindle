@@ -108,7 +108,13 @@ export function initLab() {
       }
 
       pyCells.forEach((cell) => cell.classList.remove("is-running"))
-      pyOut.textContent = "Done · 48,102 rows × 14 columns · 3 cells in 1.3s"
+      // LiveRowCount (React) owns #pyOut — tell it to freeze on the final
+      // message instead of clobbering its DOM with textContent.
+      window.dispatchEvent(
+        new CustomEvent("spindle:live-row-count-done", {
+          detail: "Done · 48,102 rows × 14 columns · 3 cells in 1.3s",
+        }),
+      )
       pyRun.disabled = false
       pyRun.innerHTML = '<svg class="icon icon--xs"><use href="#i-play"/></svg> Run all'
     })

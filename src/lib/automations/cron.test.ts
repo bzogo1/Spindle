@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { humanizeCron, nextCronRuns } from "./cron"
+import {
+  cronForSchedulePreset,
+  cronSchedulePreset,
+  humanizeCron,
+  nextCronRuns,
+} from "./cron"
 
 describe("humanizeCron", () => {
   it("describes a daily time", () => {
@@ -116,6 +121,38 @@ describe("nextCronRuns dom+dow OR semantics", () => {
     // dom only: next 1st of month (Feb 1).
     const domOnly = nextCronRuns("0 9 1 * *", 1, from)
     expect(domOnly[0]).toEqual(new Date(2026, 1, 1, 9, 0, 0))
+  })
+})
+
+describe("cronSchedulePreset", () => {
+  it("classifies plain daily and weekly expressions", () => {
+    expect(cronSchedulePreset("0 9 * * *")).toBe("daily")
+    expect(cronSchedulePreset("30 17 * * 5")).toBe("weekly")
+    expect(cronSchedulePreset("0 8 * * 1,3,5")).toBe("weekly")
+  })
+
+  it("treats steps, ranges, and day/month restrictions as custom", () => {
+    expect(cronSchedulePreset("*/15 * * * *")).toBe("custom")
+    expect(cronSchedulePreset("0 9 * * 1-5")).toBe("custom")
+    expect(cronSchedulePreset("0 9 1 * *")).toBe("custom")
+    expect(cronSchedulePreset("0 9 * 1 *")).toBe("custom")
+    expect(cronSchedulePreset("not a cron")).toBe("custom")
+    expect(cronSchedulePreset("")).toBe("custom")
+  })
+})
+
+describe("cronForSchedulePreset", () => {
+  it("builds a daily expression preserving the current time", () => {
+    expect(cronForSchedulePreset("daily", "30 17 * * 5")).toBe("30 17 * * *")
+    expect(cronForSchedulePreset("daily", "*/15 * * * *")).toBe("0 9 * * *")
+    expect(cronForSchedulePreset("daily", "")).toBe("0 9 * * *")
+  })
+
+  it("builds a weekly expression preserving time and weekday list", () => {
+    expect(cronForSchedulePreset("weekly", "30 17 * * 5")).toBe("30 17 * * 5")
+    expect(cronForSchedulePreset("weekly", "0 9 * * 1,3")).toBe("0 9 * * 1,3")
+    expect(cronForSchedulePreset("weekly", "0 9 * * *")).toBe("0 9 * * 1")
+    expect(cronForSchedulePreset("weekly", "bad")).toBe("0 9 * * 1")
   })
 })
 

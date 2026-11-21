@@ -201,6 +201,57 @@ function fieldMatches(value: string, min: number, max: number, test: number) {
   return values.has(test)
 }
 
+/** Friendly schedule shapes the UI can offer on top of raw cron input. */
+export type CronSchedulePreset = "daily" | "weekly" | "custom"
+
+const WEEKDAY_LIST = /^[0-7](,[0-7])*$/
+const SINGLE_NUMBER = /^\d+$/
+
+/**
+ * Classify a cron expression as a daily, weekly, or custom schedule. Only
+ * plain `minute hour * * *` (daily) and `minute hour * * <weekday list>`
+ * (weekly) expressions qualify — anything with steps, ranges, day-of-month,
+ * or month restrictions is "custom".
+ */
+export function cronSchedulePreset(expr: string): CronSchedulePreset {
+  const human = humanizeCron(expr)
+  if (!human.valid || !human.parts) return "custom"
+  const [min, hour, dom, month, dow] = human.parts
+  if (dom !== "*" || month !== "*") return "custom"
+  if (!SINGLE_NUMBER.test(min) || !SINGLE_NUMBER.test(hour)) return "custom"
+  if (dow === "*") return "daily"
+  if (WEEKDAY_LIST.test(dow)) return "weekly"
+  return "custom"
+}
+
+const DEFAULT_CRON_MINUTE = 0
+const DEFAULT_CRON_HOUR = 9
+const DEFAULT_WEEKDAY = "1" // Monday
+
+/**
+ * Build the cron expression for a daily/weekly preset. The time-of-day is
+ * preserved from `expr` when it is a simple `minute hour` pair (09:00
+ * otherwise); weekly also keeps the existing weekday list when there is one
+ * and falls back to Monday.
+ */
+export function cronForSchedulePreset(
+  preset: Exclude<CronSchedulePreset, "custom">,
+  expr: string,
+): string {
+  const human = humanizeCron(expr)
+  let minute = DEFAULT_CRON_MINUTE
+  let hour = DEFAULT_CRON_HOUR
+  let dow = DEFAULT_WEEKDAY
+  if (human.valid && human.parts) {
+    const [min, hr, dom, month, day] = human.parts
+    if (SINGLE_NUMBER.test(min)) minute = Number(min)
+    if (SINGLE_NUMBER.test(hr)) hour = Number(hr)
+    if (dom === "*" && month === "*" && day !== "*" && WEEKDAY_LIST.test(day)) dow = day
+  }
+  if (preset === "daily") return `${minute} ${hour} * * *`
+  return `${minute} ${hour} * * ${dow}`
+}
+
 const MAX_SCAN_MINUTES = 200_000 // ~139 days — bounds pathological schedules
 
 /**

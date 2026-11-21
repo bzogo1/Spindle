@@ -1,19 +1,39 @@
-import type { CSSProperties } from "react"
+import { Suspense } from "react"
 import { Globe } from "@/components/ui/globe"
 import {
   AnonymousSwitch,
+  CopyPromptButton,
+  CronCommandBuilder,
   FeatureCards,
+  FeatureGrid,
+  FeatureListPrintButton,
   FileActions,
   HeroActions,
   HeroBadge,
-  HeroStatus,
   LocalSearchNote,
   PlanCards,
   PresenceAvatar,
   StorageProgress,
 } from "@/components/home-islands"
+import { HeroAppWindow } from "@/components/hero-app-window"
+import { IntegrationsNetwork } from "@/components/integrations-network"
+import { ScrollToPlatform } from "@/components/scroll-to-platform"
+import { RecentlyViewedFeatures } from "@/components/site/recently-viewed-features"
 import { createPageMetadata, defaultSiteDescription } from "@/lib/seo"
+import { BackToTop } from "@/components/site/back-to-top"
 import { PageTransition } from "@/components/view-transitions/view-transitions"
+import { AutomationStatusPill } from "@/components/site/automation-status-pill"
+import { TryPromptButton } from "@/components/site/try-prompt-button"
+import { createSoftwareApplicationJsonLd, serializeJsonLd } from "@/lib/structured-data"
+import { highlightCode } from "@/lib/code-highlight"
+import {
+  CRON_LANGUAGES,
+  CRON_SCHEDULES,
+  type CronCodeLines,
+  type CronLanguageKey,
+  type CronScheduleKey,
+} from "@/lib/home-cron-snippets"
+import type { ThemedToken } from "shiki/types"
 
 export const metadata = createPageMetadata({
   title: "Spindle — One place for all your research",
@@ -21,14 +41,96 @@ export const metadata = createPageMetadata({
   path: "/",
 })
 
-export default function HomePage() {
+/** Last 10 `tide-sync.py` run durations in seconds (oldest → newest). */
+const TIDE_SYNC_RUN_DURATIONS = [38, 45, 41, 52, 47, 36, 43, 49, 40, 42]
+
+function RunSparkline({ data }: { data: number[] }) {
+  const width = 72
+  const height = 22
+  const pad = 3
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const points = data
+    .map((value, index) => {
+      const x = pad + (index / (data.length - 1)) * (width - pad * 2)
+      const y = height - pad - ((value - min) / span) * (height - pad * 2)
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(" ")
+  const latest = data[data.length - 1]
+  return (
+    <span
+      className="run-sparkline"
+      title={`Last ${data.length} runs: ${data.join("s, ")}s`}
+    >
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        width={width}
+        height={height}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <polyline
+          points={points}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="mono">{latest}s</span>
+    </span>
+  )
+}
+
+/**
+ * Pre-highlights every schedule × runtime snippet for the homepage cron card
+ * at request time. The token lines are plain serializable data, so the client
+ * component can switch presets without shipping a syntax highlighter.
+ */
+async function buildCronCodeLines(): Promise<CronCodeLines> {
+  const lines = {} as CronCodeLines
+
+  for (const languageKey of Object.keys(CRON_LANGUAGES) as CronLanguageKey[]) {
+    const language = CRON_LANGUAGES[languageKey]
+    lines[languageKey] = {} as Record<CronScheduleKey, ThemedToken[][]>
+
+    for (const scheduleKey of Object.keys(CRON_SCHEDULES) as CronScheduleKey[]) {
+      const schedule = CRON_SCHEDULES[scheduleKey]
+      const cron = await highlightCode(
+        `# ${schedule.comment}\n${schedule.fields.join(" ")} ${language.command}`,
+        "cron",
+      )
+      const script = await highlightCode(language.script, language.highlight)
+      lines[languageKey][scheduleKey] = [...cron, [], ...script]
+    }
+  }
+
+  return lines
+}
+
+export default async function HomePage() {
+  const cronCodeLines = await buildCronCodeLines()
   return (
     <PageTransition>
+      {/* SoftwareApplication JSON-LD for the homepage. The shared graph in
+          the site layout emits the same entity (@id {siteUrl}/#software) on
+          every page; identical @id + content merges cleanly in consumers. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(createSoftwareApplicationJsonLd()),
+        }}
+      />
       <main id="top" tabIndex={-1}>
         <section className="hero">
           <div className="hero-inner container">
             <HeroBadge />
-            <h1 className="hero-title">One place for all your research</h1>
+            <h1 className="hero-title animate-gradient bg-[length:200%_auto] bg-clip-text bg-gradient-to-r from-foreground via-primary to-chart-2 text-transparent">
+              One place for all your research
+            </h1>
             <p className="hero-subtitle">
               Files, notebooks, search, automations, and your team, organized around the project
               instead of scattered across a dozen tabs.
@@ -37,290 +139,10 @@ export default function HomePage() {
               <HeroActions />
             </div>
             <div className="hero-visual">
-              <div className="app-window">
-                <div className="window-bar">
-                  <div className="traffic-lights" aria-hidden="true">
-                    <i></i>
-                    <i></i>
-                    <i></i>
-                  </div>
-                  <div className="window-title">
-                    <svg className="icon icon--xs">
-                      <use href="#i-lock" />
-                    </svg>{" "}
-                    spindle / coastal-resilience
-                  </div>
-                </div>
-                <div className="window-body">
-                  <aside className="win-sidebar">
-                    <div className="sidebar-label">This project</div>
-                    <div className="side-project">
-                      <span className="side-project-mark">CR</span>
-                      <span>
-                        <strong>Coastal Resilience</strong>
-                        <small>Field study · 2026</small>
-                      </span>
-                    </div>
-                    <div className="sidebar-label sidebar-label--spaced">Files</div>
-                    <div className="file-tree" aria-hidden="true">
-                      <div className="tree-row">
-                        <svg className="icon icon--xs">
-                          <use href="#i-chevron-down" />
-                        </svg>
-                        <span className="folder">data</span>
-                      </div>
-                      <div className="tree-row tree-row--indent">
-                        <span className="file-ext file-ext--csv">CSV</span>
-                        <span>tidal-2026.csv</span>
-                      </div>
-                      <div className="tree-row tree-row--indent tree-row--active">
-                        <span className="file-ext file-ext--parquet">PQ</span>
-                        <span>survey.parquet</span>
-                      </div>
-                      <div className="tree-row">
-                        <svg className="icon icon--xs">
-                          <use href="#i-chevron-down" />
-                        </svg>
-                        <span className="folder">notebooks</span>
-                      </div>
-                      <div className="tree-row tree-row--indent">
-                        <span className="file-ext file-ext--ipynb">IPY</span>
-                        <span>analysis.ipynb</span>
-                      </div>
-                      <div className="tree-row">
-                        <svg className="icon icon--xs">
-                          <use href="#i-chevron-down" />
-                        </svg>
-                        <span className="folder">output</span>
-                      </div>
-                      <div className="tree-row tree-row--indent">
-                        <span className="file-ext file-ext--pdf">PDF</span>
-                        <span>draft.pdf</span>
-                      </div>
-                    </div>
-                    <div className="sidebar-usage">
-                      <div className="usage-label">
-                        <span>Storage</span>
-                        <span>1.8 / 5 GB</span>
-                      </div>
-                      <div className="usage-track">
-                        <span style={{ width: "36%" } as CSSProperties}></span>
-                      </div>
-                    </div>
-                  </aside>
-                  <div className="win-main">
-                    <div className="win-tabs" role="tablist" aria-label="Workspace views">
-                      <button
-                        className="win-tab is-active"
-                        role="tab"
-                        aria-selected="true"
-                        data-hero-tab="overview"
-                      >
-                        Overview
-                      </button>
-                      <button
-                        className="win-tab"
-                        role="tab"
-                        aria-selected="false"
-                        data-hero-tab="files"
-                      >
-                        Files
-                      </button>
-                      <button
-                        className="win-tab"
-                        role="tab"
-                        aria-selected="false"
-                        data-hero-tab="lab"
-                      >
-                        Lab
-                      </button>
-                      <button
-                        className="win-tab"
-                        role="tab"
-                        aria-selected="false"
-                        data-hero-tab="search"
-                      >
-                        Search
-                      </button>
-                    </div>
-                    <div className="win-content">
-                      <div
-                        className="hero-panel is-active"
-                        data-hero-panel="overview"
-                        role="tabpanel"
-                      >
-                        <div className="panel-head">
-                          <div>
-                            <span className="panel-kicker">PROJECT HOME</span>
-                            <p className="panel-title">Coastal Resilience</p>
-                          </div>
-                          <HeroStatus />
-                        </div>
-                        <div className="overview-grid">
-                          <div className="overview-tile">
-                            <span className="tile-label">Files</span>
-                            <strong>128</strong>
-                            <span className="tile-note">+12 this week</span>
-                          </div>
-                          <div className="overview-tile">
-                            <span className="tile-label">Lab sessions</span>
-                            <strong>04</strong>
-                            <span className="tile-note">2 kernels ready</span>
-                          </div>
-                          <div className="overview-tile">
-                            <span className="tile-label">Automations</span>
-                            <strong>03</strong>
-                            <span className="tile-note">1 cron job live</span>
-                          </div>
-                        </div>
-                        <div className="activity-card">
-                          <div className="activity-head">
-                            <span>Recent activity</span>
-                            <span className="mono">LIVE</span>
-                          </div>
-                          <div className="activity-row">
-                            <span className="activity-dot activity-dot--lime"></span>
-                            <span>
-                              <strong>Agent</strong> cleaned 3 columns in tidal-2026.csv
-                            </span>
-                            <time>2m</time>
-                          </div>
-                          <div className="activity-row">
-                            <span className="activity-dot activity-dot--teal"></span>
-                            <span>
-                              <strong>Lab</strong> finished notebook run in 42s
-                            </span>
-                            <time>18m</time>
-                          </div>
-                          <div className="activity-row">
-                            <span className="activity-dot activity-dot--amber"></span>
-                            <span>
-                              <strong>Cron</strong> refreshed tide data at 06:00
-                            </span>
-                            <time>1h</time>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hero-panel" data-hero-panel="files" role="tabpanel" hidden>
-                        <div className="panel-head">
-                          <div>
-                            <span className="panel-kicker">FILE MANAGER</span>
-                            <p className="panel-title">data / 2026 surveys</p>
-                          </div>
-                          <span className="status-pill status-pill--muted">
-                            100+ formats detected
-                          </span>
-                        </div>
-                        <div className="mini-filelist">
-                          <div className="mini-file">
-                            <span className="file-ext file-ext--csv">CSV</span>
-                            <span className="mini-file-name">tidal-2026.csv</span>
-                            <span className="mini-file-meta">2.4 MB · tabular</span>
-                          </div>
-                          <div className="mini-file">
-                            <span className="file-ext file-ext--parquet">PQ</span>
-                            <span className="mini-file-name">survey.parquet</span>
-                            <span className="mini-file-meta">86 MB · columnar</span>
-                          </div>
-                          <div className="mini-file">
-                            <span className="file-ext file-ext--ipynb">IPY</span>
-                            <span className="mini-file-name">analysis.ipynb</span>
-                            <span className="mini-file-meta">410 KB · notebook</span>
-                          </div>
-                          <div className="mini-file">
-                            <span className="file-ext file-ext--pdf">PDF</span>
-                            <span className="mini-file-name">site-photos.pdf</span>
-                            <span className="mini-file-meta">18 MB · document</span>
-                          </div>
-                        </div>
-                        <div className="preview-strip">
-                          Inline preview — no download, no guessing the format.
-                        </div>
-                      </div>
-                      <div className="hero-panel" data-hero-panel="lab" role="tabpanel" hidden>
-                        <div className="panel-head">
-                          <div>
-                            <span className="panel-kicker">LAB</span>
-                            <p className="panel-title">analysis.ipynb</p>
-                          </div>
-                          <span className="status-pill">
-                            <i></i> Python 3.12 ready
-                          </span>
-                        </div>
-                        <div className="notebook">
-                          <div className="notebook-cell">
-                            <span className="cell-in">[1]</span>
-                            <code>
-                              <span className="tok-key">import</span> pandas{" "}
-                              <span className="tok-key">as</span> pd
-                              <br />
-                              df = pd.read_parquet(<span className="tok-str">'survey.parquet'</span>
-                              )
-                            </code>
-                          </div>
-                          <div className="notebook-out">
-                            <span className="cell-out">out</span>
-                            <span>Loaded 48,102 rows × 14 columns</span>
-                          </div>
-                          <div className="notebook-cell">
-                            <span className="cell-in">[2]</span>
-                            <code>
-                              df.groupby(<span className="tok-str">'site'</span>).mean(numeric_only=
-                              <span className="tok-key">True</span>).head()
-                            </code>
-                          </div>
-                          <div className="notebook-table">
-                            <span>site</span>
-                            <span>salinity</span>
-                            <span>turbidity</span>
-                            <span>temp</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="hero-panel" data-hero-panel="search" role="tabpanel" hidden>
-                        <div className="panel-head">
-                          <div>
-                            <span className="panel-kicker">SEARCH</span>
-                            <p className="panel-title">Find the source, not just a link</p>
-                          </div>
-                          <span className="status-pill status-pill--muted">SearXNG · local</span>
-                        </div>
-                        <div className="mini-searchbar">
-                          <svg className="icon icon--sm">
-                            <use href="#i-search" />
-                          </svg>
-                          <span>salt marsh restoration blue carbon</span>
-                        </div>
-                        <div className="mini-results">
-                          <div className="mini-result">
-                            <span className="result-source">BASE</span>
-                            <span>
-                              <strong>Blue carbon sequestration in restored tidal marshes</strong>
-                              <small>Journal of Environmental Management · 2024</small>
-                            </span>
-                          </div>
-                          <div className="mini-result">
-                            <span className="result-source result-source--alt">arXiv</span>
-                            <span>
-                              <strong>Remote sensing of coastal vegetation recovery</strong>
-                              <small>Physics · 2023</small>
-                            </span>
-                          </div>
-                          <div className="mini-result">
-                            <span className="result-source result-source--alt2">OpenAlex</span>
-                            <span>
-                              <strong>Long-term sediment accretion after rewetting</strong>
-                              <small>Open access · 2025</small>
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <HeroAppWindow />
             </div>
           </div>
+          <ScrollToPlatform />
         </section>
         <section className="integrations" id="integrations">
           <div className="integrations-inner container">
@@ -335,229 +157,7 @@ export default function HomePage() {
                 <i></i> 8 tools · one workspace
               </div>
             </div>
-            <div className="network-scroll">
-              <div
-                className="network"
-                role="img"
-                aria-label="Spindle connected to JupyterLab, RStudio, VS Code, Quarto, CSV and Parquet, NetCDF, Zotero, and SearXNG"
-              >
-                <svg className="network-lines" viewBox="0 0 960 360" aria-hidden="true">
-                  <line className="network-guide" x1="0" y1="180" x2="960" y2="180" />
-                  <line
-                    className="network-guide network-guide--soft"
-                    x1="0"
-                    y1="65"
-                    x2="960"
-                    y2="65"
-                  />
-                  <line
-                    className="network-guide network-guide--soft"
-                    x1="0"
-                    y1="295"
-                    x2="960"
-                    y2="295"
-                  />
-                  <line
-                    className="network-guide network-guide--soft"
-                    x1="480"
-                    y1="0"
-                    x2="480"
-                    y2="360"
-                  />
-                  <g className="network-wires">
-                    <path className="wire" d="M480 180 L173 180" />
-                    <path className="wire" d="M480 180 L787 180" />
-                    <path className="wire" d="M480 180 L288 65" />
-                    <path className="wire" d="M480 180 L672 65" />
-                    <path className="wire" d="M480 180 L288 295" />
-                    <path className="wire" d="M480 180 L672 295" />
-                    <path className="wire" d="M173 180 L67 180" />
-                    <path className="wire" d="M787 180 L893 180" />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={{ "--flow-delay": "-.4s", "--flow-duration": "4.4s" } as CSSProperties}
-                      d="M480 180 L173 180"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={
-                        { "--flow-delay": "-1.8s", "--flow-duration": "4.8s" } as CSSProperties
-                      }
-                      d="M480 180 L787 180"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={
-                        { "--flow-delay": "-2.6s", "--flow-duration": "5.2s" } as CSSProperties
-                      }
-                      d="M480 180 L288 65"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={{ "--flow-delay": "-.9s", "--flow-duration": "4.6s" } as CSSProperties}
-                      d="M480 180 L672 65"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={{ "--flow-delay": "-3.1s", "--flow-duration": "5s" } as CSSProperties}
-                      d="M480 180 L288 295"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={
-                        { "--flow-delay": "-1.3s", "--flow-duration": "4.2s" } as CSSProperties
-                      }
-                      d="M480 180 L672 295"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={
-                        { "--flow-delay": "-2.2s", "--flow-duration": "4.6s" } as CSSProperties
-                      }
-                      d="M173 180 L67 180"
-                    />
-                    <path
-                      className="wire-flow"
-                      pathLength={100}
-                      style={{ "--flow-delay": "-.6s", "--flow-duration": "4.9s" } as CSSProperties}
-                      d="M787 180 L893 180"
-                    />
-                  </g>
-                </svg>
-                <div className="network-hub" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none">
-                    <path
-                      d="M8 10.5C8 7.5 10.2 5 13 5h6c2.8 0 5 2.5 5 5.5v1.7c0 2.4-1.8 4.3-4.2 4.3h-3.6C13.8 21.5 12 23.4 12 25.8c0 .8.6 1.2 1.4 1.2h5.2c2.8 0 5-2.5 5-5.5"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                    />
-                    <circle cx="8" cy="22" r="2.2" fill="currentColor" />
-                  </svg>
-                </div>
-                <ul className="network-nodes">
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "18%",
-                        "--y": "50%",
-                        "--size": "76px",
-                        "--breath-delay": "-.2s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">JL</span>
-                    <span className="node-name">JupyterLab</span>
-                  </li>
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "82%",
-                        "--y": "50%",
-                        "--size": "76px",
-                        "--breath-delay": "-1.4s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">R</span>
-                    <span className="node-name">RStudio</span>
-                  </li>
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "30%",
-                        "--y": "18%",
-                        "--size": "68px",
-                        "--breath-delay": "-2.1s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">VS</span>
-                    <span className="node-name">VS Code</span>
-                  </li>
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "70%",
-                        "--y": "18%",
-                        "--size": "68px",
-                        "--breath-delay": "-.8s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">Q</span>
-                    <span className="node-name">Quarto</span>
-                  </li>
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "30%",
-                        "--y": "82%",
-                        "--size": "68px",
-                        "--breath-delay": "-2.8s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">CSV</span>
-                    <span className="node-name">CSV / Parquet</span>
-                  </li>
-                  <li
-                    className="node"
-                    style={
-                      {
-                        "--x": "70%",
-                        "--y": "82%",
-                        "--size": "68px",
-                        "--breath-delay": "-1.7s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">NC</span>
-                    <span className="node-name">NetCDF</span>
-                  </li>
-                  <li
-                    className="node node--small"
-                    style={
-                      {
-                        "--x": "7%",
-                        "--y": "50%",
-                        "--size": "50px",
-                        "--breath-delay": "-3.4s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">Z</span>
-                    <span className="node-name">Zotero</span>
-                  </li>
-                  <li
-                    className="node node--small node--accent"
-                    style={
-                      {
-                        "--x": "93%",
-                        "--y": "50%",
-                        "--size": "50px",
-                        "--breath-delay": "-2.5s",
-                      } as CSSProperties
-                    }
-                  >
-                    <span className="node-orb">SX</span>
-                    <span className="node-name">SearXNG</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <IntegrationsNetwork />
           </div>
         </section>
         <section className="section" id="platform">
@@ -569,10 +169,23 @@ export default function HomePage() {
                 Files, notebooks, results, conversations, and automations stay together, even when a
                 project runs for years.
               </p>
+              <FeatureListPrintButton />
             </div>
-            <div className="feature-grid">
-              <FeatureCards />
-            </div>
+            {/* FeatureGrid reads `?topic=` via useSearchParams, which suspends
+                to this boundary during prerender; the fallback shows the
+                unfiltered cards. */}
+            <Suspense
+              fallback={
+                <div className="feature-grid-block">
+                  <div className="feature-grid">
+                    <FeatureCards />
+                  </div>
+                </div>
+              }
+            >
+              <FeatureGrid />
+            </Suspense>
+            <RecentlyViewedFeatures />
           </div>
         </section>
         <section className="section section--alt" id="automations">
@@ -610,8 +223,12 @@ export default function HomePage() {
                   </p>
                   <div className="prompt-foot">
                     <span>Spindle drafted 4 steps</span>
-                    <span className="prompt-live">
-                      <i></i> Ready to review
+                    <span className="prompt-foot-actions">
+                      <TryPromptButton />
+                      <CopyPromptButton />
+                      <span className="prompt-live">
+                        <i></i> Ready to review
+                      </span>
                     </span>
                   </div>
                 </div>
@@ -633,32 +250,15 @@ export default function HomePage() {
                   <li>Your code, your dependencies</li>
                   <li>Run history and failure alerts</li>
                 </ul>
-                <div className="code-card">
-                  <div className="code-card-head">
-                    <span>tide-sync.py</span>
-                    <span className="mono">UTC</span>
-                  </div>
-                  <pre>
-                    <span className="tok-com">{"# every weekday at 06:00"}</span>
-                    {"\n"}
-                    <span className="tok-num">{"0"}</span> <span className="tok-num">{"6"}</span>
-                    {" * * "}
-                    <span className="tok-num">{"1-5"}</span>
-                    {" python tide-sync.py\n\n"}
-                    <span className="tok-key">{"from"}</span>
-                    {" spindle "}
-                    <span className="tok-key">{"import"}</span>
-                    {" project\nproject.files.sync("}
-                    <span className="tok-str">{"'data/tides'"}</span>
-                    {")"}
-                  </pre>
-                  <div className="code-card-foot">
-                    <span className="status-pill status-pill--tiny">
-                      <i></i> Last run OK
-                    </span>
-                    <span className="mono">42s</span>
-                  </div>
-                </div>
+                <CronCommandBuilder
+                  codeLines={cronCodeLines}
+                  footer={
+                    <>
+                      <AutomationStatusPill />
+                      <RunSparkline data={TIDE_SYNC_RUN_DURATIONS} />
+                    </>
+                  }
+                />
               </article>
             </div>
           </div>
@@ -846,7 +446,28 @@ export default function HomePage() {
                       <span>Kernel</span>
                       <span>Tabs</span>
                       <span className="jupyter-kernel">
-                        <i></i> Python 3.12
+                        <i></i> <span id="labMenuKernelName">Python 3.12</span>
+                      </span>
+                    </div>
+                    <div className="jupyter-kernel-bar">
+                      <label className="kernel-picker">
+                        <span className="kernel-picker-label">Kernel</span>
+                        <select
+                          className="kernel-select"
+                          data-kernel-select
+                          data-kernel-status="labKernelStatusText"
+                          data-kernel-mirror="labMenuKernelName"
+                          aria-label="Select kernel"
+                        >
+                          <option value="Python 3.12" selected>
+                            Python 3.12
+                          </option>
+                          <option value="R 4.4">R 4.4</option>
+                          <option value="Julia 1.10">Julia 1.10</option>
+                        </select>
+                      </label>
+                      <span className="jupyter-kernel-status">
+                        <i></i> <span id="labKernelStatusText">Python 3.12 · idle</span>
                       </span>
                     </div>
                     <div className="notebook notebook--large">
@@ -1042,11 +663,11 @@ export default function HomePage() {
                   </button>
                 </div>
                 <div className="engine-row" id="engineRow" aria-label="Search engines in this mode">
-                  <span className="engine-chip">BASE</span>
-                  <span className="engine-chip">arXiv</span>
-                  <span className="engine-chip">Crossref</span>
-                  <span className="engine-chip">Semantic Scholar</span>
-                  <span className="engine-chip">OpenAlex</span>
+                  <button type="button" className="engine-chip is-active" data-engine="BASE" aria-pressed="true">BASE</button>
+                  <button type="button" className="engine-chip is-active" data-engine="arXiv" aria-pressed="true">arXiv</button>
+                  <button type="button" className="engine-chip is-active" data-engine="Crossref" aria-pressed="true">Crossref</button>
+                  <button type="button" className="engine-chip is-active" data-engine="Semantic Scholar" aria-pressed="true">Semantic Scholar</button>
+                  <button type="button" className="engine-chip is-active" data-engine="OpenAlex" aria-pressed="true">OpenAlex</button>
                 </div>
                 <div className="results-head">
                   <span data-results-count aria-live="polite">
@@ -1097,8 +718,39 @@ export default function HomePage() {
                     </svg>
                   </article>
                 </div>
+                <div
+                  className="results-pager"
+                  id="searchPager"
+                  role="navigation"
+                  aria-label="Search result pages"
+                  hidden
+                >
+                  <button type="button" className="pager-btn" id="searchPrevPage" disabled>
+                    ← Previous
+                  </button>
+                  <span className="pager-status" id="searchPageStatus" aria-live="polite"></span>
+                  <button type="button" className="pager-btn" id="searchNextPage" disabled>
+                    Next →
+                  </button>
+                </div>
                 <div className="console-foot" id="searchFoot">
                   Preview only — results come from a small local demo index.
+                </div>
+                <div className="search-alert-row">
+                  <button
+                    type="button"
+                    className="search-alert-btn"
+                    id="searchAlertBtn"
+                    aria-pressed="false"
+                  >
+                    <svg className="icon icon--sm" aria-hidden="true">
+                      <use href="#i-bell" />
+                    </svg>
+                    <span data-alert-label>Create search alert</span>
+                  </button>
+                  <span className="search-alert-status" id="searchAlertStatus" aria-live="polite">
+                    Get an email when this search has new results.
+                  </span>
                 </div>
               </div>
             </div>
@@ -1862,6 +1514,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        <BackToTop />
       </main>
     </PageTransition>
   )

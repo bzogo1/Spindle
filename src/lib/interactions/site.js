@@ -105,38 +105,62 @@ export function initSite() {
   }
 
   /* ----------------------------------------------------------------------
-     Hero product mockup — tabbed views
+     Hero product mockup — tabbed views. The window body mounts lazily via
+     IntersectionObserver in HeroAppWindow, so listeners are delegated and
+     tabs/panels are queried at event time rather than at init.
   ---------------------------------------------------------------------- */
-  const heroTabs = Array.from(doc.querySelectorAll("[data-hero-tab]"))
-  const heroPanels = Array.from(doc.querySelectorAll("[data-hero-panel]"))
+  const heroTabs = () => Array.from(doc.querySelectorAll("[data-hero-tab]"))
+  const heroPanels = () => Array.from(doc.querySelectorAll("[data-hero-panel]"))
 
   function showHeroPanel(name) {
-    heroTabs.forEach((tab) => {
+    heroTabs().forEach((tab) => {
       const active = tab.getAttribute("data-hero-tab") === name
       tab.classList.toggle("is-active", active)
       tab.setAttribute("aria-selected", String(active))
       tab.tabIndex = active ? 0 : -1
     })
-    heroPanels.forEach((panel) => {
+    heroPanels().forEach((panel) => {
       const active = panel.getAttribute("data-hero-panel") === name
       panel.classList.toggle("is-active", active)
       panel.hidden = !active
     })
   }
 
-  if (heroTabs.length && heroPanels.length) {
-    showHeroPanel("overview")
+  doc.addEventListener("click", (e) => {
+    const tab = e.target.closest("[data-hero-tab]")
+    if (tab) showHeroPanel(tab.getAttribute("data-hero-tab"))
+  })
 
-    heroTabs.forEach((tab, index) => {
-      tab.addEventListener("click", () => showHeroPanel(tab.getAttribute("data-hero-tab")))
-      tab.addEventListener("keydown", (e) => {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
-        e.preventDefault()
-        const next = (index + (e.key === "ArrowRight" ? 1 : -1) + heroTabs.length) % heroTabs.length
-        heroTabs[next].focus()
-        heroTabs[next].click()
-      })
+  doc.addEventListener("keydown", (e) => {
+    const tab = e.target.closest("[data-hero-tab]")
+    if (!tab) return
+    const tabs = heroTabs()
+    const index = tabs.indexOf(tab)
+    if (index === -1) return
+    let nextIndex = -1
+    if (e.key === "ArrowRight") nextIndex = (index + 1) % tabs.length
+    else if (e.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length
+    else if (e.key === "Home") nextIndex = 0
+    else if (e.key === "End") nextIndex = tabs.length - 1
+    if (nextIndex === -1) return
+    e.preventDefault()
+    tabs[nextIndex].focus()
+    tabs[nextIndex].click()
+  })
+
+  // Select the default panel once the (possibly lazy-mounted) tabs exist.
+  const selectOverview = () => {
+    if (heroTabs().length && heroPanels().length) {
+      showHeroPanel("overview")
+      return true
+    }
+    return false
+  }
+  if (!selectOverview() && "MutationObserver" in window) {
+    const observer = new MutationObserver(() => {
+      if (selectOverview()) observer.disconnect()
     })
+    observer.observe(doc.body, { childList: true, subtree: true })
   }
 
   /* ----------------------------------------------------------------------
@@ -210,6 +234,34 @@ export function initSite() {
   })
 
   /* ----------------------------------------------------------------------
+     Kernel selector — switches the kernel shown in the lab demos
+  ---------------------------------------------------------------------- */
+  const kernelSelects = Array.from(doc.querySelectorAll("[data-kernel-select]"))
+
+  kernelSelects.forEach((select) => {
+    select.addEventListener("change", () => {
+      const kernel = select.value
+      const suffix = select.getAttribute("data-kernel-suffix") || " · idle"
+
+      const statusId = select.getAttribute("data-kernel-status")
+      const statusEl = statusId ? doc.getElementById(statusId) : null
+      if (statusEl) statusEl.textContent = `${kernel}${suffix}`
+
+      const mirrorId = select.getAttribute("data-kernel-mirror")
+      const mirrorEl = mirrorId ? doc.getElementById(mirrorId) : null
+      if (mirrorEl) mirrorEl.textContent = kernel
+
+      // Keep the lab window chrome in sync when a lab panel is active
+      const panel = select.closest("[data-lab-panel]")
+      if (panel && panel.classList.contains("is-active") && labWindowStatus) {
+        labWindowStatus.textContent = `${kernel} · idle`
+        const tab = doc.querySelector(`[data-lab-tab="${panel.getAttribute("data-lab-panel")}"]`)
+        if (tab) tab.setAttribute("data-lab-status", `${kernel} · idle`)
+      }
+    })
+  })
+
+  /* ----------------------------------------------------------------------
      Demo builders — heavy synchronous DOM work. Each demo is wired lazily:
      its section is scanned and built only when it scrolls near the viewport
      (IntersectionObserver), or when the main thread is idle as a fallback.
@@ -251,7 +303,16 @@ export function initSite() {
     const searchInput = doc.getElementById("searchInput")
     const searchGo = doc.getElementById("searchGo")
     const searchFoot = doc.getElementById("searchFoot")
+    const searchPager = doc.getElementById("searchPager")
+    const searchPrevPage = doc.getElementById("searchPrevPage")
+    const searchNextPage = doc.getElementById("searchNextPage")
+    const searchPageStatus = doc.getElementById("searchPageStatus")
     const consoleBody = doc.querySelector(".console-body")
+    const searchAlertBtn = doc.getElementById("searchAlertBtn")
+    const searchAlertStatus = doc.getElementById("searchAlertStatus")
+    const searchAlertLabel = searchAlertBtn
+      ? searchAlertBtn.querySelector("[data-alert-label]")
+      : null
 
     const searchModes = {
       academic: {
@@ -367,8 +428,11 @@ export function initSite() {
     let searchMode = "academic"
     let searchTouched = false
     let searchTimer = null
+    let searchPage = 0
+    let searchPageCount = 1
+    const disabledEngines = new Set()
 
-    const SEARCH_LIMIT = 4
+    const SEARCH_PAGE_SIZE = 4
 
     function searchTerms(query) {
       return String(query || "")
@@ -406,11 +470,124 @@ export function initSite() {
         .map((entry) => entry.result)
     }
 
+    /* Result preview modal — opens a result's abstract in a dialog without
+       leaving the page. Built lazily on first open and appended to <body>. */
+    let previewOverlay = null
+    let previewTrigger = null
+    let previewCloseBtn = null
+    let previewTitle = null
+    let previewMeta = null
+    let previewTag = null
+    let previewAbstract = null
+
+    function ensureResultPreview() {
+      if (previewOverlay) return previewOverlay
+
+      const overlay = doc.createElement("div")
+      overlay.className = "result-preview-overlay"
+      overlay.hidden = true
+
+      const dialog = doc.createElement("div")
+      dialog.className = "product-window result-preview"
+      dialog.setAttribute("role", "dialog")
+      dialog.setAttribute("aria-modal", "true")
+      dialog.setAttribute("aria-labelledby", "resultPreviewTitle")
+
+      const bar = doc.createElement("div")
+      bar.className = "window-bar"
+
+      const lights = doc.createElement("div")
+      lights.className = "traffic-lights"
+      lights.setAttribute("aria-hidden", "true")
+      for (let i = 0; i < 3; i += 1) lights.appendChild(doc.createElement("i"))
+
+      const barTitle = doc.createElement("span")
+      barTitle.className = "window-bar-title"
+      barTitle.textContent = "result preview / coastal-resilience"
+
+      const status = doc.createElement("span")
+      status.className = "window-bar-status"
+      status.innerHTML = "<i></i> LOCAL"
+
+      const closeBtn = doc.createElement("button")
+      closeBtn.type = "button"
+      closeBtn.className = "result-preview-close"
+      closeBtn.setAttribute("aria-label", "Close preview")
+      const closeIcon = doc.createElementNS("http://www.w3.org/2000/svg", "svg")
+      closeIcon.setAttribute("class", "icon icon--sm")
+      const closeUse = doc.createElementNS("http://www.w3.org/2000/svg", "use")
+      closeUse.setAttribute("href", "#i-close")
+      closeIcon.appendChild(closeUse)
+      closeBtn.appendChild(closeIcon)
+
+      bar.append(lights, barTitle, status, closeBtn)
+
+      const body = doc.createElement("div")
+      body.className = "result-preview-body"
+
+      const title = doc.createElement("h3")
+      title.id = "resultPreviewTitle"
+      title.className = "result-preview-title"
+
+      const meta = doc.createElement("p")
+      meta.className = "result-preview-meta"
+
+      const tag = doc.createElement("span")
+      tag.className = "result-tag"
+
+      const abstract = doc.createElement("p")
+      abstract.className = "result-preview-abstract"
+
+      body.append(title, meta, tag, abstract)
+      dialog.append(bar, body)
+      overlay.appendChild(dialog)
+
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeResultPreview()
+      })
+      closeBtn.addEventListener("click", closeResultPreview)
+      doc.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !overlay.hidden) closeResultPreview()
+      })
+
+      doc.body.appendChild(overlay)
+
+      previewOverlay = overlay
+      previewCloseBtn = closeBtn
+      previewTitle = title
+      previewMeta = meta
+      previewTag = tag
+      previewAbstract = abstract
+      return overlay
+    }
+
+    function openResultPreview(result, trigger) {
+      ensureResultPreview()
+      previewTitle.textContent = result.title
+      previewMeta.textContent = result.source
+      previewTag.textContent = result.tag
+      previewAbstract.textContent = result.abstract
+      previewTrigger = trigger || null
+      previewOverlay.hidden = false
+      doc.body.style.overflow = "hidden"
+      previewCloseBtn.focus()
+    }
+
+    function closeResultPreview() {
+      if (!previewOverlay || previewOverlay.hidden) return
+      previewOverlay.hidden = true
+      doc.body.style.overflow = ""
+      if (previewTrigger) {
+        previewTrigger.focus()
+        previewTrigger = null
+      }
+    }
+
     function buildResultItem(result, index) {
       const button = doc.createElement("button")
       button.type = "button"
       button.className = "result-item"
-      button.setAttribute("aria-expanded", "false")
+      button.setAttribute("aria-haspopup", "dialog")
 
       const num = doc.createElement("span")
       num.className = "result-index"
@@ -427,10 +604,7 @@ export function initSite() {
       const badge = doc.createElement("span")
       badge.className = "result-tag"
       badge.textContent = result.tag
-      const abstract = doc.createElement("span")
-      abstract.className = "result-abstract"
-      abstract.textContent = result.abstract
-      body.append(heading, meta, badge, abstract)
+      body.append(heading, meta, badge)
 
       const icon = doc.createElementNS("http://www.w3.org/2000/svg", "svg")
       icon.setAttribute("class", "icon icon--xs")
@@ -439,13 +613,22 @@ export function initSite() {
       icon.appendChild(use)
 
       button.append(num, body, icon)
-      button.addEventListener("click", () => {
-        const open = !button.classList.contains("is-open")
-        button.classList.toggle("is-open", open)
-        button.setAttribute("aria-expanded", String(open))
-      })
+      button.addEventListener("click", () => openResultPreview(result, button))
 
       return button
+    }
+
+    function focusResult(index) {
+      if (!resultsList) return
+      const items = Array.from(resultsList.querySelectorAll(".result-item"))
+      const target = items[Math.max(0, Math.min(items.length - 1, index))]
+      if (target) target.focus()
+    }
+
+    function goToSearchPage(page, focusIndex) {
+      searchPage = page
+      renderSearchResults(searchTouched && searchInput ? searchInput.value : "")
+      if (focusIndex !== null && focusIndex !== undefined) focusResult(focusIndex)
     }
 
     function renderSearchResults(query) {
@@ -453,8 +636,17 @@ export function initSite() {
       if (!config || !resultsList) return
 
       const trimmed = String(query || "").trim()
-      const matches = trimmed ? matchResults(config.results, trimmed) : config.results
-      const visible = matches.slice(0, SEARCH_LIMIT)
+      const enabledResults = config.results.filter((result) => {
+        const engine = result.tag.split("·")[0].trim()
+        return !disabledEngines.has(engine)
+      })
+      const matches = trimmed ? matchResults(enabledResults, trimmed) : enabledResults
+
+      searchPageCount = Math.max(1, Math.ceil(matches.length / SEARCH_PAGE_SIZE))
+      if (searchPage >= searchPageCount) searchPage = searchPageCount - 1
+      if (searchPage < 0) searchPage = 0
+      const pageStart = searchPage * SEARCH_PAGE_SIZE
+      const visible = matches.slice(pageStart, pageStart + SEARCH_PAGE_SIZE)
 
       resultsList.textContent = ""
 
@@ -473,34 +665,96 @@ export function initSite() {
         reset.addEventListener("click", () => {
           if (searchInput) searchInput.value = ""
           searchTouched = false
+          searchPage = 0
           renderSearchResults("")
           if (searchInput) searchInput.focus()
         })
         empty.append(title, text, reset)
         resultsList.appendChild(empty)
       } else {
-        visible.forEach((result, index) => resultsList.appendChild(buildResultItem(result, index)))
+        visible.forEach((result, index) =>
+          resultsList.appendChild(buildResultItem(result, pageStart + index)),
+        )
       }
 
       if (resultsCount) {
         resultsCount.textContent = trimmed
-          ? visible.length === 1
+          ? matches.length === 1
             ? "1 result"
-            : visible.length + " results"
+            : matches.length + " results"
           : "Preview results"
+      }
+
+      const hasPages = searchPageCount > 1 && visible.length > 0
+      if (searchPager) searchPager.hidden = !hasPages
+      if (hasPages) {
+        if (searchPrevPage) searchPrevPage.disabled = searchPage === 0
+        if (searchNextPage) searchNextPage.disabled = searchPage === searchPageCount - 1
+        if (searchPageStatus) {
+          searchPageStatus.textContent =
+            "Page " + (searchPage + 1) + " of " + searchPageCount
+        }
       }
 
       if (searchFoot) {
         searchFoot.textContent = trimmed
           ? "Local demo index · " +
-            visible.length +
-            " of " +
             matches.length +
             " matches for “" +
             trimmed +
-            "” — no network requests."
+            "” — page " +
+            (searchPage + 1) +
+            " of " +
+            searchPageCount +
+            ", no network requests."
           : "Preview only — results come from a small local demo index."
       }
+    }
+
+    // Arrow-key navigation: ↑/↓ (and Home/End) move between results on the
+    // current page; ←/→ (and PageUp/PageDown) flip pages. Enter/Space already
+    // activate each result button natively.
+    if (resultsList) {
+      resultsList.addEventListener("keydown", (e) => {
+        const items = Array.from(resultsList.querySelectorAll(".result-item"))
+        if (!items.length) return
+
+        const current = items.indexOf(doc.activeElement)
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault()
+          focusResult(current < 0 ? 0 : current + 1)
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault()
+          focusResult(current < 0 ? items.length - 1 : current - 1)
+        } else if (e.key === "Home") {
+          e.preventDefault()
+          focusResult(0)
+        } else if (e.key === "End") {
+          e.preventDefault()
+          focusResult(items.length - 1)
+        } else if (
+          (e.key === "ArrowRight" || e.key === "PageDown") &&
+          searchPage < searchPageCount - 1
+        ) {
+          e.preventDefault()
+          goToSearchPage(searchPage + 1, 0)
+        } else if ((e.key === "ArrowLeft" || e.key === "PageUp") && searchPage > 0) {
+          e.preventDefault()
+          goToSearchPage(searchPage - 1, SEARCH_PAGE_SIZE - 1)
+        }
+      })
+    }
+
+    if (searchPrevPage) {
+      searchPrevPage.addEventListener("click", () => {
+        if (searchPage > 0) goToSearchPage(searchPage - 1)
+      })
+    }
+    if (searchNextPage) {
+      searchNextPage.addEventListener("click", () => {
+        goToSearchPage(searchPage + 1)
+      })
     }
 
     function renderSearchMode(mode) {
@@ -516,17 +770,37 @@ export function initSite() {
 
       if (resultsMode) resultsMode.textContent = config.label
 
+      disabledEngines.clear()
+
       if (engineRow) {
         engineRow.textContent = ""
         config.engines.forEach((engine) => {
-          const chip = doc.createElement("span")
-          chip.className = "engine-chip"
+          const chip = doc.createElement("button")
+          chip.type = "button"
+          chip.className = "engine-chip is-active"
+          chip.dataset.engine = engine
+          chip.setAttribute("aria-pressed", "true")
           chip.textContent = engine
+          chip.addEventListener("click", () => {
+            const enabled = chip.getAttribute("aria-pressed") === "true"
+            chip.setAttribute("aria-pressed", String(!enabled))
+            chip.classList.toggle("is-active", !enabled)
+            chip.classList.toggle("is-disabled", enabled)
+            if (enabled) {
+              disabledEngines.add(engine)
+            } else {
+              disabledEngines.delete(engine)
+            }
+            searchPage = 0
+            renderSearchResults(searchTouched && searchInput ? searchInput.value : "")
+          })
           engineRow.appendChild(chip)
         })
       }
 
+      searchPage = 0
       renderSearchResults(searchTouched && searchInput ? searchInput.value : "")
+      syncSearchAlertButton()
     }
 
     function runSearch() {
@@ -544,6 +818,7 @@ export function initSite() {
           searchTimer = null
           if (consoleBody) consoleBody.classList.remove("is-searching")
           if (searchGo) searchGo.disabled = false
+          searchPage = 0
           renderSearchResults(query)
         },
         reducedMotion ? 0 : 360,
@@ -562,19 +837,123 @@ export function initSite() {
         if (searchTimer) window.clearTimeout(searchTimer)
         if (consoleBody) consoleBody.classList.remove("is-searching")
         if (searchGo) searchGo.disabled = false
+        searchPage = 0
         renderSearchResults(searchInput.value)
+        syncSearchAlertButton()
       })
       searchInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
           e.preventDefault()
           runSearch()
+        } else if (e.key === "ArrowDown") {
+          // Jump from the query field into the result list.
+          const first = resultsList
+            ? resultsList.querySelector(".result-item")
+            : null
+          if (first) {
+            e.preventDefault()
+            first.focus()
+          }
         }
       })
     }
 
     if (searchGo) searchGo.addEventListener("click", runSearch)
 
+    /* ------------------------------------------------------------------
+       Search alerts — persist recurring-query email alerts in
+       localStorage. Demo-only: there is no backend mailer on the
+       marketing page, so alerts live on this device.
+    ------------------------------------------------------------------ */
+    const SEARCH_ALERTS_STORAGE_KEY = "spindle.search-alerts"
+
+    function loadSearchAlerts() {
+      try {
+        const raw = window.localStorage.getItem(SEARCH_ALERTS_STORAGE_KEY)
+        const parsed = raw ? JSON.parse(raw) : []
+        return Array.isArray(parsed) ? parsed : []
+      } catch {
+        return []
+      }
+    }
+
+    function saveSearchAlerts(alerts) {
+      try {
+        window.localStorage.setItem(SEARCH_ALERTS_STORAGE_KEY, JSON.stringify(alerts))
+      } catch {
+        // Storage unavailable (private mode, quota) — the alert still works
+        // for this visit via the in-memory list below.
+      }
+    }
+
+    function findSearchAlert(alerts, query, mode) {
+      const needle = query.toLowerCase()
+      return alerts.findIndex(
+        (alert) =>
+          alert &&
+          String(alert.query || "").toLowerCase() === needle &&
+          String(alert.mode || "academic") === mode,
+      )
+    }
+
+    // Unlike currentSearchQuery() above (which gates on searchTouched for
+    // the results pager), the alert button always reads the live input so a
+    // default query can be alerted on without typing first.
+    function currentAlertQuery() {
+      return searchInput ? searchInput.value.trim() : ""
+    }
+
+    function syncSearchAlertButton() {
+      if (!searchAlertBtn) return
+      const query = currentAlertQuery()
+      const active = Boolean(query) && findSearchAlert(loadSearchAlerts(), query, searchMode) !== -1
+      searchAlertBtn.classList.toggle("is-active", active)
+      searchAlertBtn.setAttribute("aria-pressed", String(active))
+      if (searchAlertLabel) {
+        searchAlertLabel.textContent = active ? "Alert set — remove" : "Create search alert"
+      }
+    }
+
+    function setSearchAlertStatus(message) {
+      if (searchAlertStatus) searchAlertStatus.textContent = message
+    }
+
+    if (searchAlertBtn) {
+      searchAlertBtn.addEventListener("click", () => {
+        const query = currentAlertQuery()
+        if (!query) {
+          setSearchAlertStatus("Type a query first to create an alert.")
+          if (searchInput) searchInput.focus()
+          return
+        }
+
+        const alerts = loadSearchAlerts()
+        const existing = findSearchAlert(alerts, query, searchMode)
+
+        if (existing !== -1) {
+          alerts.splice(existing, 1)
+          saveSearchAlerts(alerts)
+          setSearchAlertStatus(
+            "Alert removed for “" + query + "” (" + searchModes[searchMode].label.toLowerCase() + ").",
+          )
+        } else {
+          alerts.push({
+            query: query,
+            mode: searchMode,
+            createdAt: new Date().toISOString(),
+          })
+          saveSearchAlerts(alerts)
+          setSearchAlertStatus(
+            "Email alert set for “" + query + "” — saved on this device.",
+          )
+        }
+
+        syncSearchAlertButton()
+      })
+    }
+
     renderSearchMode("academic")
+    syncSearchAlertButton()
   }
 
   /* ----------------------------------------------------------------------

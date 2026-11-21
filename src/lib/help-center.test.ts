@@ -7,6 +7,7 @@ import {
   isHelpCategoryId,
   listArticles,
   listCategories,
+  relatedArticles,
   searchArticles,
 } from "./help-center"
 
@@ -105,6 +106,31 @@ describe("listCategories", () => {
       expect(category.count).toBe(HELP_ARTICLES.filter((a) => a.category === category.id).length)
       expect(category.count).toBeGreaterThan(0)
     }
+  })
+})
+
+describe("relatedArticles", () => {
+  it("excludes the selected article and prefers same-category matches", () => {
+    const selected = getArticleBySlug("create-your-first-workspace")
+    expect(selected).toBeDefined()
+    const pool = listArticles()
+    const selectedSummary = pool.find((a) => a.slug === selected?.slug)
+    expect(selectedSummary).toBeDefined()
+
+    const related = relatedArticles(selectedSummary!, pool, { limit: 4 })
+    expect(related.length).toBeGreaterThan(0)
+    expect(related.every((a) => a.slug !== selected?.slug)).toBe(true)
+    // Same-category articles outrank everything else.
+    expect(related.some((a) => a.category === "getting-started")).toBe(true)
+    expect(related[0]?.category).toBe("getting-started")
+  })
+
+  it("respects the limit and returns summaries only", () => {
+    const selected = listArticles()[0]
+    const related = relatedArticles(selected, listArticles(), { limit: 2 })
+    expect(related).toHaveLength(2)
+    expect(related[0]).not.toHaveProperty("body")
+    expect(related[0]).not.toHaveProperty("keywords")
   })
 })
 

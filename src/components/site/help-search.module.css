@@ -4,7 +4,7 @@
 
 .controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px);
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
   gap: 12px;
   align-items: end;
 }
@@ -190,4 +190,72 @@
   margin: 12px 0 0;
   font-size: 13px;
   color: var(--app-danger, #d97b6c);
+}
+
+.related {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.relatedTitle {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.relatedFor {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.relatedFor strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.relatedList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 24px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 720px) {
+  .relatedList {
+    grid-template-columns: 1fr;
+  }
+}
+
+.relatedItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.relatedLink {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.relatedLink:hover,
+.relatedLink:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.relatedMeta {
+  font-size: 11px;
+  color: var(--text-dim);
 }

@@ -1,4 +1,5 @@
 import "../../styles/pages.css"
+import Link from "next/link"
 
 import { createPageMetadata } from "@/lib/seo"
 import { PageTransition } from "@/components/view-transitions/view-transitions"
@@ -84,7 +85,7 @@ export default function AboutPage() {
               </p>
             </div>
             <div className="feature-grid">
-              <a href="/#files" className="feature-card">
+              <Link href="/#files" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-folder" />
@@ -95,8 +96,8 @@ export default function AboutPage() {
                   5 GB free, with more than a hundred inline previews for data, PDFs, images, and
                   code.
                 </p>
-              </a>
-              <a href="/lab" className="feature-card">
+              </Link>
+              <Link href="/lab" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-flask" />
@@ -107,8 +108,8 @@ export default function AboutPage() {
                   Jupyter notebooks, R, SQL, canvas, graphs, and math — all running against the
                   project's own files.
                 </p>
-              </a>
-              <a href="/#search" className="feature-card">
+              </Link>
+              <Link href="/#search" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-search" />
@@ -119,8 +120,8 @@ export default function AboutPage() {
                   Academic and Basic modes, run locally, with every result tied back to the source
                   it came from.
                 </p>
-              </a>
-              <a href="/automations" className="feature-card">
+              </Link>
+              <Link href="/automations" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-bolt" />
@@ -131,8 +132,8 @@ export default function AboutPage() {
                   Describe a repeated step in plain language or write the cron yourself. The
                   automation lives with the project.
                 </p>
-              </a>
-              <a href="/agent" className="feature-card">
+              </Link>
+              <Link href="/agent" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-sparkle" />
@@ -143,8 +144,8 @@ export default function AboutPage() {
                   20 requests a day on the free plan, and 50 more for a referral. It reads the
                   project, edits and moves files, and never acts without you.
                 </p>
-              </a>
-              <a href="/collaboration" className="feature-card">
+              </Link>
+              <Link href="/collaboration" className="feature-card">
                 <span className="card-icon">
                   <svg className="icon icon--sm" aria-hidden="true">
                     <use href="#i-users" />
@@ -155,7 +156,7 @@ export default function AboutPage() {
                   Live cursors, roles, shared editing, and project channels — with anonymity
                   available where it helps.
                 </p>
-              </a>
+              </Link>
             </div>
           </div>
         </section>

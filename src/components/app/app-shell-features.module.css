@@ -6,6 +6,16 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+}
+
+/* Wraps the input so the icon, clear button, and match count anchor to the
+   field rather than the whole search console (which now also holds the
+   mode toggle). */
+.pageSearchBox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pageSearchIcon {
@@ -63,6 +73,68 @@
   height: 13px;
 }
 
+.pageSearchSave {
+  position: absolute;
+  right: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+}
+
+.pageSearchSave:hover {
+  background: var(--app-panel-alt);
+  color: var(--app-text);
+}
+
+.pageSearchSaveActive {
+  color: var(--app-accent);
+}
+
+.pageSearchSaveActive:hover {
+  color: var(--app-accent);
+}
+
+.pageSearchSave svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Academic/Basic mode toggle next to the page-search input. */
+.pageSearchMode {
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  background: var(--app-panel);
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pageSearchMode:hover {
+  background: var(--app-panel-alt);
+  color: var(--app-text);
+}
+
+.pageSearchMode[aria-pressed="true"] {
+  border-color: var(--app-accent);
+  color: var(--app-accent);
+}
+
+.pageSearchMode:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .matchCount {
   position: absolute;
   top: calc(100% + 4px);
@@ -80,6 +152,13 @@
   color: inherit;
   border-radius: 3px;
   padding: 0 1px;
+}
+
+/* Stronger highlight for the match currently focused by Enter-cycling in
+   Academic search mode. */
+.markActive {
+  background: var(--app-accent);
+  color: var(--app-panel);
 }
 
 .focusExit {
