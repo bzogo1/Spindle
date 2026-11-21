@@ -36,7 +36,7 @@ export const consentCategories: readonly ConsentCategoryInfo[] = [
     id: "essential",
     label: "Essential",
     description:
-      "Keeps the site working: it remembers your cookie choice and your theme preference. These cannot be turned off.",
+      "Keeps the site working: it remembers your cookie choice. These cannot be turned off.",
     required: true,
   },
   {
@@ -75,15 +75,6 @@ export const cookieRegistry: readonly CookieRecord[] = [
     provider: "Spindle",
     category: "essential",
     lifetime: "180 days",
-  },
-  {
-    key: "spindle-site-theme",
-    storage: "Local storage",
-    purpose:
-      "Remembers whether the site (including the changelog) is drawn in the light or dark theme.",
-    provider: "Spindle",
-    category: "essential",
-    lifetime: "Until you clear site data",
   },
   {
     key: "sentryReplaySession",

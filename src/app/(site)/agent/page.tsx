@@ -1,6 +1,7 @@
 import "../../styles/agent.css"
 import { createPageMetadata } from "@/lib/seo"
 import { PageTransition } from "@/components/view-transitions/view-transitions"
+import { AgentFaq } from "@/components/site/agent-faq"
 
 export const metadata = createPageMetadata({
   title: "Agent — Spindle",
@@ -839,88 +840,7 @@ export default function AgentPage() {
                 <div className="eyebrow">Questions</div>
                 <h2 className="section-title">The practical details.</h2>
               </div>
-              <div className="agent-faq">
-                <details open>
-                  <summary>
-                    What can the agent actually change?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    Files inside the project: datasets, notebooks, scripts, spreadsheets, and notes.
-                    It can edit them in place, create folders, move and rename files, and update the
-                    references that pointed at them. It cannot reach outside the project it was
-                    invoked in.
-                  </p>
-                </details>
-                <details>
-                  <summary>
-                    How autonomous is it, really?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    A single request can carry a multi-step task: read the project, write a plan,
-                    edit or move files, run the lab, check the result, and report back. It keeps
-                    going without you between steps, and pauses at approval gates rather than
-                    guessing.
-                  </p>
-                </details>
-                <details>
-                  <summary>
-                    What counts against my 20 requests?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    One task is one request, however many steps it takes. Reviewing a diff,
-                    approving it, or rolling it back is free. A retry inside the same task does not
-                    start a new request either.
-                  </p>
-                </details>
-                <details>
-                  <summary>
-                    Do the daily 20 carry over?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    Each day brings a fresh twenty. Unused daily requests do not accumulate — which
-                    is why the referral bonus is kept separate. Those 50 are added once and never
-                    expire.
-                  </p>
-                </details>
-                <details>
-                  <summary>
-                    How do referral requests work?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    Share your link from the referral panel. When a new user creates an account with
-                    it, 50 requests are added to your plan one time. They never expire and are spent
-                    after your daily requests run out.
-                  </p>
-                </details>
-                <details>
-                  <summary>
-                    Does it work in a shared project?{" "}
-                    <svg className="icon icon--xs">
-                      <use href="#i-plus" />
-                    </svg>
-                  </summary>
-                  <p>
-                    Yes. A run is attributed to whoever started it, and the diff and run log stay in
-                    the project. Teammates can review the same changes, and the history makes it
-                    clear what moved and why.
-                  </p>
-                </details>
-              </div>
+              <AgentFaq />
             </div>
           </section>
           <section className="cta-section" id="get-started">

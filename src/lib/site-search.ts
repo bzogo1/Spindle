@@ -22,6 +22,30 @@ export const SITE_PAGES: PageEntry[] = [
   { label: "Platform", href: "/platform", keywords: "overview features", section: "Product" },
   { label: "Solutions", href: "/solutions", keywords: "use cases teams", section: "Product" },
   {
+    label: "Solutions for Researchers",
+    href: "/solutions/researchers",
+    keywords: "individual solo project",
+    section: "Product",
+  },
+  {
+    label: "Solutions for Labs",
+    href: "/solutions/labs",
+    keywords: "notebooks shared sessions",
+    section: "Product",
+  },
+  {
+    label: "Solutions for Teams",
+    href: "/solutions/teams",
+    keywords: "channels collaboration distributed",
+    section: "Product",
+  },
+  {
+    label: "Solutions for Institutions",
+    href: "/solutions/institutions",
+    keywords: "department billing onboarding",
+    section: "Product",
+  },
+  {
     label: "Lab",
     href: "/lab",
     keywords: "notebooks rstudio jupyter terminal",
@@ -36,6 +60,12 @@ export const SITE_PAGES: PageEntry[] = [
     tags: ["workflow"],
   },
   { label: "Agent", href: "/agent", keywords: "ai diffs approvals autonomy", section: "Product" },
+  {
+    label: "Search",
+    href: "/search",
+    keywords: "searxng metasearch academic basic engines",
+    section: "Product",
+  },
   {
     label: "Collaboration",
     href: "/collaboration",
@@ -58,7 +88,7 @@ export const SITE_PAGES: PageEntry[] = [
   },
   { label: "Referral", href: "/referral", keywords: "refer friend invite", section: "Product" },
   { label: "About", href: "/about", keywords: "company mission", section: "Company" },
-  { label: "Contact", href: "/about#contact", keywords: "email support sales", section: "Company" },
+  { label: "Contact", href: "/contact", keywords: "email support sales", section: "Company" },
   {
     label: "Documentation",
     href: "/docs",

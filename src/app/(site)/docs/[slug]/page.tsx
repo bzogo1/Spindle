@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import "../../../styles/pages.css"
 
 import { createDocHeading } from "@/components/docs/doc-blocks"
+import { DocsMasthead } from "@/components/docs/docs-masthead"
 import { DocsShell } from "@/components/docs/docs-shell"
 import { getGuide, getPublishedGuides } from "@/lib/docs"
 import { createPageMetadata } from "@/lib/seo"
@@ -40,24 +41,11 @@ export default async function DocsGuidePage({ params }: { params: Promise<{ slug
         <a className="doc-skip-link" href="#doc-article">
           Skip to article content
         </a>
-
-        <section className="page-hero page-hero--docs">
-          <div className="container">
-            <div className="eyebrow">{guide.eyebrow}</div>
-            <h1 className="page-title">{guide.title}</h1>
-            <p className="page-lede">{guide.description}</p>
-            <a className="doc-hero-search" href="/docs#docs-search">
-              <svg className="icon icon--sm" aria-hidden="true">
-                <use href="#i-search" />
-              </svg>
-              Search the docs
-              <span>Find a guide or section</span>
-            </a>
-          </div>
-        </section>
+        <DocsMasthead />
 
         <DocsShell id={slug}>
           <div className="doc-block">
+            <h1 className="sr-only">{guide.title}</h1>
             <GuideBody components={{ h2: createDocHeading(slug) }} />
           </div>
         </DocsShell>

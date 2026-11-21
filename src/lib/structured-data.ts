@@ -96,11 +96,11 @@ export function createWebSiteJsonLd(): WebSiteJsonLd {
 /**
  * SoftwareApplication entity describing the product itself. The `offers`
  * block mirrors the free tier on /pricing: it is only emitted when a plan
- * with a monthly price of 0 exists in `src/lib/pricing.ts`, so markup cannot
+ * with a price of 0 exists in `src/lib/pricing.ts`, so markup cannot
  * advertise a price the pricing page doesn't show.
  */
 export function createSoftwareApplicationJsonLd(): SoftwareApplicationJsonLd {
-  const freePlan = plans.find((plan) => plan.price.monthly.amount === 0)
+  const freePlan = plans.find((plan) => plan.price.amount === 0)
   return {
     "@type": "SoftwareApplication",
     "@id": `${siteUrl}/#software`,

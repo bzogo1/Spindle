@@ -8,6 +8,16 @@
 
 import manifest from "@/generated/docs-manifest.json"
 
+import {
+  DOCS_DIRECTORIES,
+  docsDirectoryIndex,
+  resolveDocsDirectory,
+  type DocsDirectoryNode,
+} from "./docs-directories"
+
+export { DOCS_DIRECTORIES }
+export type { DocsDirectory, DocsDirectoryNode } from "./docs-directories"
+
 export type DocIcon = "folder" | "bolt" | "sparkle"
 
 export type DocHeading = { id: string; title: string }
@@ -24,30 +34,25 @@ export type DocGuide = {
   order: number
   updated: string
   draft: boolean
+  /** Guide ids curated in frontmatter; rendered as quick links at the foot of the page. */
+  related?: string[]
   headings: DocHeading[]
 }
 
 const DOC_GUIDES = (manifest as { guides: DocGuide[] }).guides
 
+function directoryRank(section: string): number {
+  return docsDirectoryIndex(section)
+}
+
+function compareGuides(a: DocGuide, b: DocGuide): number {
+  const directoryDelta = directoryRank(a.section) - directoryRank(b.section)
+  return directoryDelta !== 0 ? directoryDelta : a.order - b.order
+}
+
 /** Reading order across the whole docs set, drafts excluded. */
 export function getPublishedGuides(): DocGuide[] {
-  const sectionOrder = new Map<string, number>()
-
-  for (const guide of DOC_GUIDES) {
-    const current = sectionOrder.get(guide.section)
-    if (current === undefined || guide.order < current) {
-      sectionOrder.set(guide.section, guide.order)
-    }
-  }
-
-  return DOC_GUIDES.filter((guide) => !guide.draft)
-    .slice()
-    .sort((a, b) => {
-      const sectionDelta =
-        (sectionOrder.get(a.section) ?? Number.MAX_SAFE_INTEGER) -
-        (sectionOrder.get(b.section) ?? Number.MAX_SAFE_INTEGER)
-      return sectionDelta !== 0 ? sectionDelta : a.order - b.order
-    })
+  return DOC_GUIDES.filter((guide) => !guide.draft).slice().sort(compareGuides)
 }
 
 /** Table-of-contents entries for a guide, from its `##` headings. */
@@ -58,18 +63,41 @@ export function getGuideHeadings(guide: DocGuide): DocHeading[] {
 export type DocsNavSection = {
   title: string
   guides: { id: string; title: string }[]
+  children?: DocsNavSection[]
 }
 
 export function getDocsNavigation(): DocsNavSection[] {
-  const sections: DocsNavSection[] = []
+  const guidesByNode = new Map<DocsDirectoryNode, { id: string; title: string }[]>()
+  const unknown = new Map<string, { id: string; title: string }[]>()
 
   for (const guide of getPublishedGuides()) {
-    let section = sections.find((entry) => entry.title === guide.section)
-    if (!section) {
-      section = { title: guide.section, guides: [] }
-      sections.push(section)
+    const entry = { id: guide.id, title: guide.title }
+    const directory = resolveDocsDirectory(guide.section)
+
+    if (directory) {
+      const guides = guidesByNode.get(directory.node) ?? []
+      guides.push(entry)
+      guidesByNode.set(directory.node, guides)
+    } else {
+      const guides = unknown.get(guide.section) ?? []
+      guides.push(entry)
+      unknown.set(guide.section, guides)
     }
-    section.guides.push({ id: guide.id, title: guide.title })
+  }
+
+  const build = (nodes: DocsDirectoryNode[]): DocsNavSection[] =>
+    nodes.map((node) => ({
+      title: node.title,
+      guides: guidesByNode.get(node) ?? [],
+      children: build(node.children),
+    }))
+
+  const sections = build(DOCS_DIRECTORIES)
+
+  // Guides whose frontmatter section has no directory yet still appear, after
+  // the known directories, so nothing silently drops out of the nav.
+  for (const [title, guides] of unknown) {
+    sections.push({ title, guides, children: [] })
   }
 
   return sections
@@ -77,6 +105,35 @@ export function getDocsNavigation(): DocsNavSection[] {
 
 export function getGuide(id: string): DocGuide | undefined {
   return getPublishedGuides().find((guide) => guide.id === id)
+}
+
+/**
+ * Up to two quick links for the foot of a guide page: the guide's curated
+ * `related` ids first, then neighbors in reading order fill any remaining
+ * slots so every page still offers a way onward.
+ */
+export function getGuideQuickLinks(id: string): DocGuide[] {
+  const guides = getPublishedGuides()
+  const index = guides.findIndex((guide) => guide.id === id)
+  if (index === -1) return []
+
+  const seen = new Set([id])
+  const links: DocGuide[] = []
+  const push = (target: DocGuide | undefined) => {
+    if (target && !seen.has(target.id) && links.length < 2) {
+      seen.add(target.id)
+      links.push(target)
+    }
+  }
+
+  for (const relatedId of guides[index].related ?? []) {
+    push(guides.find((guide) => guide.id === relatedId))
+  }
+  for (let step = 1; links.length < 2 && step < guides.length; step += 1) {
+    push(guides[(index + step) % guides.length])
+  }
+
+  return links
 }
 
 export type DocsPager = {

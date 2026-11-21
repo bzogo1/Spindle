@@ -56,7 +56,8 @@ describe("SiteCommandMenu", () => {
 
     const active = screen.getAllByRole("option")[0]
     expect(input.getAttribute("aria-activedescendant")).toBe(active.id)
-    expect(active).toHaveAttribute("aria-selected", "true")
+    // With an empty query nothing is highlighted until the mouse hovers an item.
+    expect(active).toHaveAttribute("aria-selected", "false")
   })
 
   it("opens when the mobile nav dispatches the open event", async () => {

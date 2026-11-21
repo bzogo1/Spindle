@@ -5,16 +5,19 @@ import type { DocGuide, DocsNavSection } from "@/lib/docs"
 
 import { DocsShell } from "./docs-shell"
 
-const { getGuide, getDocsPager, getDocsNavigation, getGuideHeadings } = vi.hoisted(() => ({
-  getGuide: vi.fn(),
-  getDocsPager: vi.fn(),
-  getDocsNavigation: vi.fn(),
-  getGuideHeadings: vi.fn(),
-}))
+const { getGuide, getDocsPager, getGuideQuickLinks, getDocsNavigation, getGuideHeadings } =
+  vi.hoisted(() => ({
+    getGuide: vi.fn(),
+    getDocsPager: vi.fn(),
+    getGuideQuickLinks: vi.fn(),
+    getDocsNavigation: vi.fn(),
+    getGuideHeadings: vi.fn(),
+  }))
 
 vi.mock("@/lib/docs", () => ({
   getGuide,
   getDocsPager,
+  getGuideQuickLinks,
   getDocsNavigation,
   getGuideHeadings,
 }))
@@ -74,6 +77,10 @@ beforeEach(() => {
     position: 1,
     total: 3,
   })
+  getGuideQuickLinks.mockReturnValue([
+    makeGuide("install", "Installation", 2),
+    makeGuide("faq", "FAQ", 9),
+  ])
   getDocsNavigation.mockReturnValue(groups)
   getGuideHeadings.mockReturnValue(guide.headings)
 })
@@ -83,7 +90,7 @@ afterEach(() => {
 })
 
 describe("DocsShell", () => {
-  it("renders breadcrumbs, the article slot, pager, sidebar and on-this-page nav", () => {
+  it("renders breadcrumbs, the article slot, quick links, sidebar and on-this-page nav", () => {
     render(
       <DocsShell id="intro">
         <h2 data-doc-heading id="intro-why">
@@ -94,7 +101,7 @@ describe("DocsShell", () => {
     )
 
     const breadcrumbs = screen.getByRole("navigation", { name: "Breadcrumb" })
-    expect(within(breadcrumbs).getByRole("link", { name: "Docs" })).toHaveAttribute("href", "/docs")
+    expect(within(breadcrumbs).queryByRole("link", { name: "Docs" })).not.toBeInTheDocument()
     expect(within(breadcrumbs).getByText("Getting started")).toBeInTheDocument()
     expect(within(breadcrumbs).getByText("Introduction")).toBeInTheDocument()
 
@@ -102,14 +109,13 @@ describe("DocsShell", () => {
     expect(article).toHaveTextContent("Article body")
     expect(article?.querySelector("[data-doc-heading]")).not.toBeNull()
 
-    const pager = screen.getByRole("navigation", { name: "Guide pagination" })
-    expect(within(pager).getByText("Guide 1 of 3")).toBeInTheDocument()
-    // First guide has no previous link, so a spacer keeps the layout balanced.
-    expect(within(pager).queryByRole("link", { name: /Previous/ })).not.toBeInTheDocument()
-    expect(within(pager).getByRole("link", { name: /Next/ })).toHaveAttribute(
-      "href",
-      "/docs/install",
-    )
+    const quickLinks = screen.getByRole("navigation", { name: "Related guides" })
+    expect(within(quickLinks).getByText("Guide 1 of 3")).toBeInTheDocument()
+    const links = within(quickLinks).getAllByRole("link")
+    expect(links).toHaveLength(2)
+    expect(links[0]).toHaveAttribute("href", "/docs/install")
+    expect(links[0]).toHaveTextContent("Installation")
+    expect(links[1]).toHaveAttribute("href", "/docs/faq")
 
     const sidebar = screen.getAllByRole("navigation", { name: "Documentation guides" })[0]
     expect(within(sidebar).getByRole("link", { name: "Installation" })).toHaveAttribute(
@@ -128,23 +134,12 @@ describe("DocsShell", () => {
     )
   })
 
-  it("links to the previous guide when the pager has one", () => {
-    getDocsPager.mockReturnValue({
-      previous: makeGuide("welcome", "Welcome", 0),
-      next: null,
-      position: 3,
-      total: 3,
-    })
+  it("omits the quick links nav when there is nothing to link to", () => {
+    getGuideQuickLinks.mockReturnValue([])
 
     render(<DocsShell id="intro">Body</DocsShell>)
 
-    const pager = screen.getByRole("navigation", { name: "Guide pagination" })
-    expect(within(pager).getByText("Guide 3 of 3")).toBeInTheDocument()
-    expect(within(pager).getByRole("link", { name: /Previous/ })).toHaveAttribute(
-      "href",
-      "/docs/welcome",
-    )
-    expect(within(pager).queryByRole("link", { name: /Next/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("navigation", { name: "Related guides" })).not.toBeInTheDocument()
   })
 
   it("renders nothing for an unknown guide id", () => {

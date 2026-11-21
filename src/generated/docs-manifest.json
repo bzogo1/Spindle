@@ -1,193 +1,18 @@
 {
   "guides": [
     {
-      "id": "quickstart",
-      "title": "Quickstart",
-      "description": "Create a free workspace, add your first files, open the lab, and run a search.",
-      "eyebrow": "Start here",
-      "section": "Getting started",
-      "order": 1,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "quickstart-whats-included",
-          "title": "What's included"
-        },
-        {
-          "id": "quickstart-create-your-first-project",
-          "title": "Create your first project"
-        },
-        {
-          "id": "quickstart-next-steps",
-          "title": "Next steps"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "quickstart",
-          "sectionTitle": "Quickstart",
-          "text": "Create a free workspace, add your first files, open the lab, and run a search."
-        },
-        {
-          "sectionId": "quickstart-whats-included",
-          "sectionTitle": "What's included",
-          "text": "A free workspace includes the whole platform. The first project is usually a folder, a notebook, and a few sources — add the rest as you need it."
-        },
-        {
-          "sectionId": "quickstart-create-your-first-project",
-          "sectionTitle": "Create your first project",
-          "text": "Pick a name you'll recognize later, like the study or lab you're working on. Upload a CSV, a notebook, or a PDF. Spindle detects common formats and previews them in place. Start RStudio, JupyterLab, VS Code, or a terminal on the same files. Save results and citations into the project instead of a browser history."
-        },
-        {
-          "sectionId": "quickstart-next-steps",
-          "sectionTitle": "Next steps",
-          "text": "Need the short sales pitch instead? See pricing or the homepage tour."
-        }
-      ]
-    },
-    {
-      "id": "workspaces",
-      "title": "Workspaces & files",
-      "description": "How each project keeps its files, notes, results, and conversations in one file tree.",
-      "eyebrow": "The basics",
-      "section": "Getting started",
-      "order": 2,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "workspaces-one-tree-per-project",
-          "title": "One tree per project"
-        },
-        {
-          "id": "workspaces-project-layout",
-          "title": "Project layout"
-        },
-        {
-          "id": "workspaces-files-and-previews",
-          "title": "Files and previews"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "workspaces",
-          "sectionTitle": "Workspaces & files",
-          "text": "How each project keeps its files, notes, results, and conversations in one file tree."
-        },
-        {
-          "sectionId": "workspaces-one-tree-per-project",
-          "sectionTitle": "One tree per project",
-          "text": "Each project has its own file tree. Files, notes, results, and conversations stay with it, so handing a project to someone else means sharing one place rather than a pile of links."
-        },
-        {
-          "sectionId": "workspaces-files-and-previews",
-          "sectionTitle": "Files and previews",
-          "text": "Upload a CSV, an Excel workbook, a notebook, a PDF, or an image and Spindle previews it in place. Common research formats are detected automatically, so you can check a table or read a paper without downloading it first. Files keep their folder, name, and history when they move. Rename an export and the notebooks that reference it can be repointed from the same project, which keeps a field season from turning into finalv7."
-        }
-      ]
-    },
-    {
-      "id": "lab",
-      "title": "Lab sessions",
-      "description": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files.",
-      "eyebrow": "Compute",
-      "section": "Using Spindle",
-      "order": 3,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "lab-a-session-on-your-files",
-          "title": "A session on your files"
-        },
-        {
-          "id": "lab-start-a-session",
-          "title": "Start a session"
-        },
-        {
-          "id": "lab-share-a-running-session",
-          "title": "Share a running session"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "lab",
-          "sectionTitle": "Lab sessions",
-          "text": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files."
-        },
-        {
-          "sectionId": "lab-a-session-on-your-files",
-          "sectionTitle": "A session on your files",
-          "text": "Lab environments boot connected to the project files. Use RStudio for statistics, JupyterLab for notebooks, VS Code for code, or a terminal for everything else. Teammates can share kernels and leave comments in context."
-        },
-        {
-          "sectionId": "lab-start-a-session",
-          "sectionTitle": "Start a session",
-          "text": "Open a project, choose a lab from the project toolbar, and pick the files or notebook you want to work on. The session starts with the same tree you see in the file browser, so there is no upload step and no second copy to reconcile."
-        },
-        {
-          "sectionId": "lab-share-a-running-session",
-          "sectionTitle": "Share a running session",
-          "text": "Sessions belong to the project, not to one browser tab. Invite a teammate to the project and they can join the same kernel, watch a cell run, and leave a comment against the result. When the session ends, outputs and notes stay with the project."
-        }
-      ]
-    },
-    {
-      "id": "search",
-      "title": "Local search",
-      "description": "Academic and Basic search through a self-hosted SearXNG instance.",
-      "eyebrow": "Sources",
-      "section": "Using Spindle",
-      "order": 4,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "search-two-search-modes",
-          "title": "Two search modes"
-        },
-        {
-          "id": "search-keep-the-sources",
-          "title": "Keep the sources"
-        },
-        {
-          "id": "search-try-it-on-the-homepage",
-          "title": "Try it on the homepage"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "search",
-          "sectionTitle": "Local search",
-          "text": "Academic and Basic search through a self-hosted SearXNG instance."
-        },
-        {
-          "sectionId": "search-two-search-modes",
-          "sectionTitle": "Two search modes",
-          "text": "Academic mode queries BASE, arXiv, Crossref, Semantic Scholar, and OpenAlex. Basic mode uses Mojeek, Brave, and DuckDuckGo. Both run through a SearXNG instance hosted alongside Spindle, so results and notes stay inside the project."
-        },
-        {
-          "sectionId": "search-keep-the-sources",
-          "sectionTitle": "Keep the sources",
-          "text": "Search results can be saved into a project as sources. A saved result keeps its title, authors, link, and the note you wrote about it, which makes a literature list part of the project instead of a browser history."
-        },
-        {
-          "sectionId": "search-try-it-on-the-homepage",
-          "sectionTitle": "Try it on the homepage",
-          "text": "Run a sample query on the homepage before you create a workspace."
-        }
-      ]
-    },
-    {
       "id": "agent",
       "title": "Working with the agent",
       "description": "Hand the agent a task, review the diff, and keep the changes that belong in the project.",
       "eyebrow": "Autonomy",
-      "section": "Using Spindle",
-      "order": 5,
+      "section": "Agent",
+      "order": 1,
       "updated": "2026-11-19",
       "draft": false,
+      "related": [
+        "automations",
+        "lab"
+      ],
       "headings": [
         {
           "id": "agent-what-the-agent-does",
@@ -235,14 +60,62 @@
       ]
     },
     {
+      "id": "automations",
+      "title": "Automations",
+      "description": "Plain-language, visual, or cron automations that live with the project.",
+      "eyebrow": "Routines",
+      "section": "Automations",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "agent",
+        "guides"
+      ],
+      "headings": [
+        {
+          "id": "automations-describe-the-routine",
+          "title": "Describe the routine"
+        },
+        {
+          "id": "automations-a-weekly-example",
+          "title": "A weekly example"
+        },
+        {
+          "id": "automations-review-the-output",
+          "title": "Review the output"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "automations",
+          "sectionTitle": "Automations",
+          "text": "Plain-language, visual, or cron automations that live with the project."
+        },
+        {
+          "sectionId": "automations-describe-the-routine",
+          "sectionTitle": "Describe the routine",
+          "text": "Describe a repeated step in plain language or write a cron job yourself. Either way, the automation lives with the project it serves and can update files, notes, or results."
+        },
+        {
+          "sectionId": "automations-review-the-output",
+          "sectionTitle": "Review the output",
+          "text": "Automations write their results back into the project, so the next run has the same context as the last one. A failed run leaves its log and the files it touched in place, which makes a quiet Monday morning fixable without guessing what happened."
+        }
+      ]
+    },
+    {
       "id": "collaboration",
       "title": "Collaboration",
       "description": "Edit the same document with live cursors, talk in project channels, and set roles and permissions.",
       "eyebrow": "Team",
-      "section": "Using Spindle",
-      "order": 6,
+      "section": "Collaboration",
+      "order": 1,
       "updated": "2026-11-19",
       "draft": false,
+      "related": [
+        "workspaces"
+      ],
       "headings": [
         {
           "id": "collaboration-work-in-the-same-document",
@@ -290,55 +163,18 @@
       ]
     },
     {
-      "id": "automations",
-      "title": "Automations",
-      "description": "Plain-language, visual, or cron automations that live with the project.",
-      "eyebrow": "Routines",
-      "section": "Using Spindle",
-      "order": 7,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "automations-describe-the-routine",
-          "title": "Describe the routine"
-        },
-        {
-          "id": "automations-a-weekly-example",
-          "title": "A weekly example"
-        },
-        {
-          "id": "automations-review-the-output",
-          "title": "Review the output"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "automations",
-          "sectionTitle": "Automations",
-          "text": "Plain-language, visual, or cron automations that live with the project."
-        },
-        {
-          "sectionId": "automations-describe-the-routine",
-          "sectionTitle": "Describe the routine",
-          "text": "Describe a repeated step in plain language or write a cron job yourself. Either way, the automation lives with the project it serves and can update files, notes, or results."
-        },
-        {
-          "sectionId": "automations-review-the-output",
-          "sectionTitle": "Review the output",
-          "text": "Automations write their results back into the project, so the next run has the same context as the last one. A failed run leaves its log and the files it touched in place, which makes a quiet Monday morning fixable without guessing what happened."
-        }
-      ]
-    },
-    {
       "id": "developers",
       "title": "Developer portal",
       "description": "Build apps on Spindle — authentication, scoped permissions, app analytics, review, and the API playground.",
       "eyebrow": "Developers",
-      "section": "Platform",
-      "order": 6,
+      "section": "Developers & API",
+      "order": 1,
       "updated": "2026-12-01",
       "draft": false,
+      "related": [
+        "guides",
+        "faq"
+      ],
       "headings": [
         {
           "id": "developers-whats-inside",
@@ -404,42 +240,18 @@
       ]
     },
     {
-      "id": "guides",
-      "title": "Guides",
-      "description": "Short walkthroughs for files, automations, and the agent.",
-      "eyebrow": "More",
-      "section": "More",
-      "order": 8,
-      "updated": "2026-11-19",
-      "draft": false,
-      "headings": [
-        {
-          "id": "guides-walkthroughs",
-          "title": "Walkthroughs"
-        }
-      ],
-      "search": [
-        {
-          "sectionId": "guides",
-          "sectionTitle": "Guides",
-          "text": "Short walkthroughs for files, automations, and the agent."
-        },
-        {
-          "sectionId": "guides-walkthroughs",
-          "sectionTitle": "Walkthroughs",
-          "text": "Short walkthroughs for the parts people use most. Each one opens the relevant preview on the homepage."
-        }
-      ]
-    },
-    {
       "id": "faq",
       "title": "FAQ",
       "description": "Practical answers about the free plan, agent requests, collaboration, and search.",
       "eyebrow": "Questions",
-      "section": "More",
-      "order": 9,
+      "section": "FAQ",
+      "order": 1,
       "updated": "2026-11-19",
       "draft": false,
+      "related": [
+        "quickstart",
+        "guides"
+      ],
       "headings": [
         {
           "id": "faq-what-does-the-free-plan-include",
@@ -510,6 +322,233 @@
           "sectionId": "faq-how-do-i-move-a-project-to-someone-else",
           "sectionTitle": "How do I move a project to someone else?",
           "text": "Share the project rather than exporting a pile of files. The tree, notes, sources, results, and run logs travel together, and their history stays attached. See workspaces and files for the layout."
+        }
+      ]
+    },
+    {
+      "id": "guides",
+      "title": "Guides",
+      "description": "Short walkthroughs for files, automations, and the agent.",
+      "eyebrow": "More",
+      "section": "Tutorials",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "quickstart",
+        "developers"
+      ],
+      "headings": [
+        {
+          "id": "guides-walkthroughs",
+          "title": "Walkthroughs"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "guides",
+          "sectionTitle": "Guides",
+          "text": "Short walkthroughs for files, automations, and the agent."
+        },
+        {
+          "sectionId": "guides-walkthroughs",
+          "sectionTitle": "Walkthroughs",
+          "text": "Short walkthroughs for the parts people use most. Each one opens the relevant preview on the homepage."
+        }
+      ]
+    },
+    {
+      "id": "lab",
+      "title": "Lab sessions",
+      "description": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files.",
+      "eyebrow": "Compute",
+      "section": "Lab & compute",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "search",
+        "agent"
+      ],
+      "headings": [
+        {
+          "id": "lab-a-session-on-your-files",
+          "title": "A session on your files"
+        },
+        {
+          "id": "lab-start-a-session",
+          "title": "Start a session"
+        },
+        {
+          "id": "lab-share-a-running-session",
+          "title": "Share a running session"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "lab",
+          "sectionTitle": "Lab sessions",
+          "text": "RStudio, JupyterLab, VS Code, and terminal sessions connected to project files."
+        },
+        {
+          "sectionId": "lab-a-session-on-your-files",
+          "sectionTitle": "A session on your files",
+          "text": "Lab environments boot connected to the project files. Use RStudio for statistics, JupyterLab for notebooks, VS Code for code, or a terminal for everything else. Teammates can share kernels and leave comments in context."
+        },
+        {
+          "sectionId": "lab-start-a-session",
+          "sectionTitle": "Start a session",
+          "text": "Open a project, choose a lab from the project toolbar, and pick the files or notebook you want to work on. The session starts with the same tree you see in the file browser, so there is no upload step and no second copy to reconcile."
+        },
+        {
+          "sectionId": "lab-share-a-running-session",
+          "sectionTitle": "Share a running session",
+          "text": "Sessions belong to the project, not to one browser tab. Invite a teammate to the project and they can join the same kernel, watch a cell run, and leave a comment against the result. When the session ends, outputs and notes stay with the project."
+        }
+      ]
+    },
+    {
+      "id": "quickstart",
+      "title": "Quickstart",
+      "description": "Create a free workspace, add your first files, open the lab, and run a search.",
+      "eyebrow": "Start here",
+      "section": "Getting started",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "workspaces",
+        "lab"
+      ],
+      "headings": [
+        {
+          "id": "quickstart-whats-included",
+          "title": "What's included"
+        },
+        {
+          "id": "quickstart-create-your-first-project",
+          "title": "Create your first project"
+        },
+        {
+          "id": "quickstart-next-steps",
+          "title": "Next steps"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "quickstart",
+          "sectionTitle": "Quickstart",
+          "text": "Create a free workspace, add your first files, open the lab, and run a search."
+        },
+        {
+          "sectionId": "quickstart-whats-included",
+          "sectionTitle": "What's included",
+          "text": "A free workspace includes the whole platform. The first project is usually a folder, a notebook, and a few sources — add the rest as you need it."
+        },
+        {
+          "sectionId": "quickstart-create-your-first-project",
+          "sectionTitle": "Create your first project",
+          "text": "Pick a name you'll recognize later, like the study or lab you're working on. Upload a CSV, a notebook, or a PDF. Spindle detects common formats and previews them in place. Start RStudio, JupyterLab, VS Code, or a terminal on the same files. Save results and citations into the project instead of a browser history."
+        },
+        {
+          "sectionId": "quickstart-next-steps",
+          "sectionTitle": "Next steps",
+          "text": "Need the short sales pitch instead? See pricing or the homepage tour."
+        }
+      ]
+    },
+    {
+      "id": "search",
+      "title": "Local search",
+      "description": "Academic and Basic search through a self-hosted SearXNG instance.",
+      "eyebrow": "Sources",
+      "section": "Search & sources",
+      "order": 1,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "lab",
+        "agent"
+      ],
+      "headings": [
+        {
+          "id": "search-two-search-modes",
+          "title": "Two search modes"
+        },
+        {
+          "id": "search-keep-the-sources",
+          "title": "Keep the sources"
+        },
+        {
+          "id": "search-try-it-on-the-homepage",
+          "title": "Try it on the homepage"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "search",
+          "sectionTitle": "Local search",
+          "text": "Academic and Basic search through a self-hosted SearXNG instance."
+        },
+        {
+          "sectionId": "search-two-search-modes",
+          "sectionTitle": "Two search modes",
+          "text": "Academic mode queries BASE, arXiv, Crossref, Semantic Scholar, and OpenAlex. Basic mode uses Mojeek, Brave, and DuckDuckGo. Both run through a SearXNG instance hosted alongside Spindle, so results and notes stay inside the project."
+        },
+        {
+          "sectionId": "search-keep-the-sources",
+          "sectionTitle": "Keep the sources",
+          "text": "Search results can be saved into a project as sources. A saved result keeps its title, authors, link, and the note you wrote about it, which makes a literature list part of the project instead of a browser history."
+        },
+        {
+          "sectionId": "search-try-it-on-the-homepage",
+          "sectionTitle": "Try it on the homepage",
+          "text": "Run a sample query on the homepage before you create a workspace."
+        }
+      ]
+    },
+    {
+      "id": "workspaces",
+      "title": "Workspaces & files",
+      "description": "How each project keeps its files, notes, results, and conversations in one file tree.",
+      "eyebrow": "The basics",
+      "section": "Getting started",
+      "order": 2,
+      "updated": "2026-11-19",
+      "draft": false,
+      "related": [
+        "quickstart",
+        "guides"
+      ],
+      "headings": [
+        {
+          "id": "workspaces-one-tree-per-project",
+          "title": "One tree per project"
+        },
+        {
+          "id": "workspaces-project-layout",
+          "title": "Project layout"
+        },
+        {
+          "id": "workspaces-files-and-previews",
+          "title": "Files and previews"
+        }
+      ],
+      "search": [
+        {
+          "sectionId": "workspaces",
+          "sectionTitle": "Workspaces & files",
+          "text": "How each project keeps its files, notes, results, and conversations in one file tree."
+        },
+        {
+          "sectionId": "workspaces-one-tree-per-project",
+          "sectionTitle": "One tree per project",
+          "text": "Each project has its own file tree. Files, notes, results, and conversations stay with it, so handing a project to someone else means sharing one place rather than a pile of links."
+        },
+        {
+          "sectionId": "workspaces-files-and-previews",
+          "sectionTitle": "Files and previews",
+          "text": "Upload a CSV, an Excel workbook, a notebook, a PDF, or an image and Spindle previews it in place. Common research formats are detected automatically, so you can check a table or read a paper without downloading it first. Files keep their folder, name, and history when they move. Rename an export and the notebooks that reference it can be repointed from the same project, which keeps a field season from turning into finalv7."
         }
       ]
     }

@@ -87,7 +87,7 @@ button {
 }
 
 /* Keyboard focus indicator for links, buttons, and prose anchors.
-   Matches the existing .cl-state-btn / .cl-theme-toggle focus rings. */
+   Matches the existing .cl-state-btn focus ring. */
 :focus-visible {
   outline: var(--focus-ring);
   outline-offset: 2px;
@@ -185,61 +185,6 @@ button {
 .cl-topbar-link:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.cl-theme-toggle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  background: var(--background);
-  color: var(--foreground);
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-
-.cl-theme-toggle:hover {
-  background: var(--accent);
-  color: var(--accent-foreground);
-}
-
-.cl-theme-toggle:focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
-}
-
-.cl-theme-toggle svg {
-  width: 1.2rem;
-  height: 1.2rem;
-  pointer-events: none;
-}
-
-.cl-icon-sun {
-  transform: rotate(0) scale(1);
-  transition: transform var(--transition-fast);
-}
-
-.cl-icon-moon {
-  position: absolute;
-  transform: rotate(90deg) scale(0);
-  transition: transform var(--transition-fast);
-}
-
-.dark .cl-icon-sun {
-  transform: rotate(-90deg) scale(0);
-}
-
-.dark .cl-icon-moon {
-  transform: rotate(0) scale(1);
 }
 
 .cl-content {
@@ -662,9 +607,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cl-theme-toggle,
-  .cl-icon-sun,
-  .cl-icon-moon,
   .cl-state-btn {
     transition: none;
   }

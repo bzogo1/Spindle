@@ -24,6 +24,7 @@ export function initLab() {
      ---------------------------------------------------------------------- */
 
   const animatedSections = $$(".lab-section")
+  const scrollSections = $$(".lab-section, .lab-quickstart")
 
   function restartAnimations(root) {
     if (reducedMotion) return
@@ -82,7 +83,7 @@ export function initLab() {
       },
       { rootMargin: "-42% 0px -52% 0px" },
     )
-    animatedSections.forEach((section) => spy.observe(section))
+    scrollSections.forEach((section) => spy.observe(section))
   }
 
   /* ----------------------------------------------------------------------
@@ -694,6 +695,134 @@ export function initLab() {
         kind === "sql" ? "sites-above-threshold.sql" : "tidal-2026.csv",
         kind === "sql" ? sampleSQL : sampleCSV,
       )
+    }),
+  )
+
+  /* ----------------------------------------------------------------------
+     12 — Environments: tab switcher with arrow-key support
+     ---------------------------------------------------------------------- */
+
+  const envTabs = $$("[data-env-tab]")
+  const envPanes = $$("[data-env-pane]")
+
+  function selectEnvTab(tab) {
+    const key = tab.getAttribute("data-env-tab")
+    envTabs.forEach((item) => {
+      const active = item === tab
+      item.classList.toggle("is-active", active)
+      item.setAttribute("aria-selected", active ? "true" : "false")
+      item.tabIndex = active ? 0 : -1
+    })
+    envPanes.forEach((pane) => {
+      const active = pane.getAttribute("data-env-pane") === key
+      pane.classList.toggle("is-active", active)
+      pane.hidden = !active
+    })
+  }
+
+  envTabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectEnvTab(tab))
+    tab.addEventListener("keydown", (event) => {
+      let next = null
+      if (event.key === "ArrowRight") next = envTabs[(index + 1) % envTabs.length]
+      else if (event.key === "ArrowLeft")
+        next = envTabs[(index - 1 + envTabs.length) % envTabs.length]
+      else if (event.key === "Home") next = envTabs[0]
+      else if (event.key === "End") next = envTabs[envTabs.length - 1]
+      if (!next) return
+      event.preventDefault()
+      selectEnvTab(next)
+      next.focus()
+    })
+  })
+
+  /* ----------------------------------------------------------------------
+     13 — Workbench: tool picker and a simulated parameterized run
+     ---------------------------------------------------------------------- */
+
+  const wbTabs = $$("[data-workbench-tool]")
+  const wbPanes = $$("[data-workbench-pane]")
+
+  function selectWorkbenchTab(tab) {
+    const key = tab.getAttribute("data-workbench-tool")
+    wbTabs.forEach((item) => {
+      const active = item === tab
+      item.classList.toggle("is-active", active)
+      item.setAttribute("aria-selected", active ? "true" : "false")
+      item.tabIndex = active ? 0 : -1
+    })
+    wbPanes.forEach((pane) => {
+      const active = pane.getAttribute("data-workbench-pane") === key
+      pane.classList.toggle("is-active", active)
+      pane.hidden = !active
+    })
+  }
+
+  wbTabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectWorkbenchTab(tab))
+    tab.addEventListener("keydown", (event) => {
+      let next = null
+      if (event.key === "ArrowDown") next = wbTabs[(index + 1) % wbTabs.length]
+      else if (event.key === "ArrowUp") next = wbTabs[(index - 1 + wbTabs.length) % wbTabs.length]
+      else if (event.key === "Home") next = wbTabs[0]
+      else if (event.key === "End") next = wbTabs[wbTabs.length - 1]
+      if (!next) return
+      event.preventDefault()
+      selectWorkbenchTab(next)
+      next.focus()
+    })
+  })
+
+  $$("[data-workbench-run]").forEach((button) =>
+    button.addEventListener("click", () => {
+      const pane = button.closest("[data-workbench-pane]")
+      if (!pane) return
+      const status = $("[data-workbench-status]", pane)
+      const history = $(".workbench-history", pane)
+      const duration = pane.getAttribute("data-workbench-duration") || "1.5"
+      button.disabled = true
+      if (status) status.textContent = "Running · inputs validated"
+      window.setTimeout(
+        () => {
+          if (status) status.textContent = "Completed · output saved to project"
+          if (history) {
+            const row = doc.createElement("div")
+            row.className = "workbench-run workbench-run--new"
+            row.innerHTML =
+              '<span class="workbench-badge is-completed">completed</span>' +
+              "<span>just now</span>" +
+              "<span>current parameters</span>" +
+              '<span class="mono">' +
+              duration +
+              " s</span>"
+            history.appendChild(row)
+          }
+          button.disabled = false
+        },
+        reducedMotion ? 40 : 900,
+      )
+    }),
+  )
+
+  /* ----------------------------------------------------------------------
+     14 — Snapshots: filter captures by environment
+     ---------------------------------------------------------------------- */
+
+  const snapFilters = $$("[data-snap-filter]")
+  const snapRows = $$("[data-snap-env]")
+  const snapCount = $("[data-snap-count]")
+
+  snapFilters.forEach((button) =>
+    button.addEventListener("click", () => {
+      const filter = button.getAttribute("data-snap-filter")
+      let visible = 0
+      snapRows.forEach((row) => {
+        const match = filter === "all" || row.getAttribute("data-snap-env") === filter
+        row.hidden = !match
+        if (match) visible++
+      })
+      snapFilters.forEach((item) => item.classList.toggle("is-active", item === button))
+      if (snapCount) snapCount.textContent = visible + (visible === 1 ? " capture" : " captures")
     }),
   )
 }

@@ -245,9 +245,6 @@ export function DocsSearch({
 
   return (
     <div className="doc-search" id={anchorId} role="search" onBlur={handleBlur}>
-      <label className="doc-search-label" htmlFor={inputId}>
-        Search the docs
-      </label>
       <div className="doc-search-field">
         <svg className="icon icon--sm" aria-hidden="true">
           <use href="#i-search" />
@@ -257,6 +254,7 @@ export function DocsSearch({
           id={inputId}
           type="search"
           role="combobox"
+          aria-label="Search the docs"
           value={query}
           placeholder="Search guides…"
           autoComplete="off"

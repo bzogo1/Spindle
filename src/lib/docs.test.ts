@@ -6,6 +6,7 @@ import {
   getDocsPager,
   getGuide,
   getGuideHeadings,
+  getGuideQuickLinks,
   getPublishedGuides,
 } from "./docs"
 
@@ -15,11 +16,34 @@ const GUIDE_IDS = [
   "lab",
   "search",
   "agent",
-  "collaboration",
   "automations",
+  "collaboration",
   "developers",
   "guides",
   "faq",
+]
+
+const DIRECTORY_TITLES = [
+  "Getting started",
+  "Core concepts",
+  "Projects",
+  "Files & data",
+  "Lab & compute",
+  "Search & sources",
+  "Agent",
+  "Automations",
+  "Collaboration",
+  "Developers & API",
+  "Integrations",
+  "Security & privacy",
+  "Deployment & infrastructure",
+  "Account & billing",
+  "Administration",
+  "Tutorials",
+  "Troubleshooting",
+  "FAQ",
+  "Reference",
+  "Release notes",
 ]
 
 describe("docs content helpers", () => {
@@ -35,13 +59,10 @@ describe("docs content helpers", () => {
   it("groups navigation by section and reading order", () => {
     const navigation = getDocsNavigation()
 
-    expect(navigation.map((section) => section.title)).toEqual([
-      "Getting started",
-      "Using Spindle",
-      "Platform",
-      "More",
-    ])
+    expect(navigation.map((section) => section.title)).toEqual(DIRECTORY_TITLES)
     expect(navigation[0].guides.map((guide) => guide.id)).toEqual(["quickstart", "workspaces"])
+    // Directories without guides yet still appear, with an empty guide list.
+    expect(navigation.find((section) => section.title === "Core concepts")?.guides).toEqual([])
     expect(getPublishedGuides().map((guide) => guide.id)).toEqual(GUIDE_IDS)
   })
 
@@ -61,6 +82,35 @@ describe("docs content helpers", () => {
 
     expect(getDocsPager("missing")).toBeNull()
     expect(getGuide("missing")).toBeUndefined()
+  })
+
+  it("prefers curated related guides, then fills from reading order", () => {
+    // developers.mdx declares related: [guides, faq] in frontmatter.
+    expect(getGuideQuickLinks("developers").map((guide) => guide.id)).toEqual([
+      "guides",
+      "faq",
+    ])
+
+    // quickstart declares two related guides, so no neighbors are added.
+    expect(getGuideQuickLinks("quickstart").map((guide) => guide.id)).toEqual([
+      "workspaces",
+      "lab",
+    ])
+
+    // agent.mdx declares related: [automations, lab].
+    expect(getGuideQuickLinks("agent").map((guide) => guide.id)).toEqual([
+      "automations",
+      "lab",
+    ])
+
+    // collaboration.mdx declares a single related id; the next guide in
+    // reading order fills the second slot.
+    expect(getGuideQuickLinks("collaboration").map((guide) => guide.id)).toEqual([
+      "workspaces",
+      "developers",
+    ])
+
+    expect(getGuideQuickLinks("missing")).toEqual([])
   })
 
   it("keeps heading ids unique across the docs set", () => {

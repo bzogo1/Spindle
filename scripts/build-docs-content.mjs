@@ -265,6 +265,14 @@ for (const file of files) {
     fail(`${file}: frontmatter "draft" must be a boolean when present.`)
   }
 
+  if (
+    data.related !== undefined &&
+    (!Array.isArray(data.related) ||
+      data.related.some((entry) => typeof entry !== "string" || !entry.trim()))
+  ) {
+    fail(`${file}: frontmatter "related" must be a list of guide ids.`)
+  }
+
   const title = typeof data.title === "string" ? data.title.trim() : ""
   const description = typeof data.description === "string" ? data.description.trim() : ""
 
@@ -282,6 +290,11 @@ for (const file of files) {
     order: Number.isInteger(data.order) ? data.order : 0,
     updated: updated ?? "",
     draft: data.draft === true,
+    ...(Array.isArray(data.related) &&
+    data.related.length > 0 &&
+    data.related.every((entry) => typeof entry === "string")
+      ? { related: data.related.map((entry) => entry.trim()) }
+      : {}),
     ...extractContent(content, { id, title, description }),
   }
 
@@ -300,6 +313,16 @@ for (const { guide, file } of guides) {
     fail(`${file}: duplicate order ${guide.order} in section "${guide.section}".`)
   }
   orders.add(orderKey)
+}
+
+for (const { guide, file } of guides) {
+  for (const relatedId of guide.related ?? []) {
+    if (relatedId === guide.id) {
+      fail(`${file}: "related" must not include the guide itself.`)
+    } else if (!ids.has(relatedId)) {
+      fail(`${file}: "related" points at unknown guide "${relatedId}".`)
+    }
+  }
 }
 
 const routePatterns = collectRoutePatterns()

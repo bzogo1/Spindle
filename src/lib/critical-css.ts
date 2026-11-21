@@ -274,8 +274,7 @@ svg {
   font-size: 13.5px;
   color: var(--text-muted);
 }
-.menu-toggle,
-.site-theme-toggle {
+.menu-toggle {
   display: flex;
   width: 34px;
   height: 34px;

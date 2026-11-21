@@ -52,6 +52,7 @@ export function SiteCommandMenu() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [hoveredOccurrence, setHoveredOccurrence] = useState<string | null>(null)
   const [recentsTick, setRecentsTick] = useState(0)
   const { t } = useLanguage()
   const router = useRouter()
@@ -144,6 +145,21 @@ export function SiteCommandMenu() {
 
   const flatItems = useMemo(() => groups.flatMap((group) => group.items), [groups])
 
+  // With an empty query the Recent group duplicates items from Pages/etc., so
+  // an id-based active highlight would mark the same item twice. Only show the
+  // selection highlight while searching; otherwise hover alone highlights.
+  const showActiveHighlight = debouncedQuery.trim() !== ""
+
+  const activeOptionId = useMemo(() => {
+    if (!activeId) return undefined
+    for (const group of groups) {
+      if (group.items.some((item) => item.id === activeId)) {
+        return `site-command-option-${group.label}:${activeId}`
+      }
+    }
+    return undefined
+  }, [groups, activeId])
+
   useEffect(() => {
     setActiveId((current) =>
       current && flatItems.some((item) => item.id === current)
@@ -235,7 +251,7 @@ export function SiteCommandMenu() {
                 role="combobox"
                 aria-expanded="true"
                 aria-controls="site-command-list"
-                aria-activedescendant={activeId ? `site-command-option-${activeId}` : undefined}
+                aria-activedescendant={activeOptionId}
                 aria-autocomplete="list"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -268,14 +284,21 @@ export function SiteCommandMenu() {
                     <div className={styles.groupLabel}>
                       {t(GROUP_LABEL_KEYS[group.label] ?? group.label)}
                     </div>
-                    {group.items.map((item) => (
+                    {group.items.map((item) => {
+                      const occurrenceId = `${group.label}:${item.id}`
+                      const isActive = hoveredOccurrence
+                        ? hoveredOccurrence === occurrenceId
+                        : showActiveHighlight && item.id === activeId
+                      return (
                       <div
-                        key={item.id}
-                        id={`site-command-option-${item.id}`}
+                        key={occurrenceId}
+                        id={`site-command-option-${occurrenceId}`}
                         role="option"
-                        aria-selected={item.id === activeId}
+                        aria-selected={isActive}
                         data-command-id={item.id}
-                        className={`${styles.item}${item.id === activeId ? ` ${styles.itemActive}` : ""}`}
+                        className={`${styles.item}${isActive ? ` ${styles.itemActive}` : ""}`}
+                        onMouseEnter={() => setHoveredOccurrence(occurrenceId)}
+                        onMouseLeave={() => setHoveredOccurrence(null)}
                         onMouseMove={() => setActiveId(item.id)}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => activateItem(item)}
@@ -295,7 +318,8 @@ export function SiteCommandMenu() {
                           ) : null}
                         </span>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ))
               )}

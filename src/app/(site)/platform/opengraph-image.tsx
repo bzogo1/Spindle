@@ -1,15 +1,15 @@
 import { ogImageContentType, ogImageSize, renderOgImage } from "@/lib/og-image"
 
-export const alt = "Spindle platform — one workspace, end to end"
+export const alt = "Spindle platform — files, lab, search, agent, collaboration, and automation"
 export const size = ogImageSize
 export const contentType = ogImageContentType
 
 export default function Image() {
   return renderOgImage({
     eyebrow: "Platform",
-    title: "One workspace, end to end.",
+    title: "The research operating system, in one project.",
     subtitle:
-      "Files, a live lab, local search, automations, an agent, and team chat — everything a project needs, together.",
+      "Files, a live lab, local search, automations, an agent, collaboration, integrations, and trust controls — one project home.",
     url: "spindle.app/platform",
   })
 }

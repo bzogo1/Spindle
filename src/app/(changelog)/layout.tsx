@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from "next"
 import "@/app/styles/changelog.css"
 
 import { ChangelogInteractions } from "@/components/site/changelog-interactions"
-import { LOCALE_BOOT_SCRIPT } from "@/lib/i18n/locale"
 import { OfflineIndicator } from "@/components/pwa/offline-status"
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration"
 import { CookieConsent } from "@/components/site/cookie-consent"
@@ -31,38 +30,6 @@ export const viewport: Viewport = {
   ],
 }
 
-// Applied before paint so the page never flashes the wrong theme.
-// Shares `spindle-site-theme` with the (site)/(auth) layouts so the theme
-// survives navigation between the changelog and the rest of the site, and
-// resolves it the same way: unset/invalid means dark, only an explicit
-// "system" follows prefers-color-scheme. The legacy `changelog-theme` key is
-// honored once, only when the shared key is unset/invalid, and is migrated
-// onto the shared key (then removed) so it can't shadow future writes.
-export const themeScript = `(function () {
-  try {
-    var saved = localStorage.getItem('spindle-site-theme');
-    if (saved !== 'light' && saved !== 'dark' && saved !== 'system') {
-      var legacy = localStorage.getItem('changelog-theme');
-      if (legacy === 'light' || legacy === 'dark' || legacy === 'system') {
-        saved = legacy;
-        localStorage.setItem('spindle-site-theme', saved);
-        localStorage.removeItem('changelog-theme');
-      }
-    }
-    var dark = true;
-    if (saved === 'light') {
-      dark = false;
-    } else if (saved === 'system') {
-      dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    document.documentElement.classList.toggle('dark', dark);
-  } catch (e) {
-    if (window.Sentry) {
-      window.Sentry.captureException(e);
-    }
-  }
-})();`
-
 export default function ChangelogLayout({ children }: { children: React.ReactNode }) {
   return (
     // The inline theme script below sets `class="dark"` before hydration, so the
@@ -70,7 +37,7 @@ export default function ChangelogLayout({ children }: { children: React.ReactNod
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* Pre-paint theme/locale boot scripts — SSR-only (see component). */}
-        <PrePaintScripts scripts={[themeScript, LOCALE_BOOT_SCRIPT]} />
+        <PrePaintScripts />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(createStructuredDataGraph()) }}

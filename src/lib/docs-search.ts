@@ -1,5 +1,7 @@
 import manifest from "@/generated/docs-manifest.json"
 
+import { docsDirectoryIndex } from "./docs-directories"
+
 export type DocsGuideSummary = {
   id: string
   title: string
@@ -8,6 +10,8 @@ export type DocsGuideSummary = {
 
 type ManifestGuide = DocsGuideSummary & {
   draft: boolean
+  section: string
+  order: number
   search: {
     sectionId: string
     sectionTitle: string
@@ -15,7 +19,11 @@ type ManifestGuide = DocsGuideSummary & {
   }[]
 }
 
-const guides = (manifest as { guides: ManifestGuide[] }).guides.filter((guide) => !guide.draft)
+// The manifest is emitted in filename order; present guides in docs reading
+// order (directory tree, then frontmatter order) instead.
+const guides = (manifest as { guides: ManifestGuide[] }).guides
+  .filter((guide) => !guide.draft)
+  .sort((a, b) => docsDirectoryIndex(a.section) - docsDirectoryIndex(b.section) || a.order - b.order)
 
 /** The plain list shown before a query is typed. */
 export const DOC_GUIDE_SUMMARIES: DocsGuideSummary[] = guides.map(({ id, title, description }) => ({

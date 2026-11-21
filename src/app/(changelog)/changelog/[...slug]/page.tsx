@@ -5,7 +5,6 @@ import { changelogReleases, getRelease, getReleasePath } from "@/lib/changelog"
 import { createPageMetadata } from "@/lib/seo"
 
 import { ChangelogReleaseArticle } from "@/components/site/changelog-release"
-import { ChangelogThemeToggle } from "@/components/site/changelog-theme-toggle"
 import { CookieSettingsButton } from "@/components/site/cookie-settings-button"
 
 export const dynamicParams = false
@@ -41,7 +40,7 @@ export async function generateMetadata({
 /**
  * Dedicated per-release permalink. Unknown slugs — and anything deeper than a
  * single segment — fall through to the changelog 404 inside this layout, so
- * the theme toggle and styles still apply.
+ * the changelog styles still apply.
  */
 export default async function ChangelogReleasePage({
   params,
@@ -61,7 +60,6 @@ export default async function ChangelogReleasePage({
               Changelog
             </a>
           </p>
-          <ChangelogThemeToggle />
         </div>
       </div>
       <main id="main-content" tabIndex={-1} className="cl-shell cl-content">

@@ -1,23 +1,17 @@
 /**
  * Single source of truth for /pricing.
  *
- * Plan cards, the comparison table, and the stats grid all read from here so
- * numbers cannot drift between sections.
- *
- * NOTE: Team and Enterprise use contact-us pricing (`amount: null`) — there
- * are no public seat prices yet. Plans with a real price expose a numeric
- * `amount`; custom plans render as "Custom" via the same path as Enterprise.
+ * Spindle has no paid plans. Hobby is free forever and funded by donations;
+ * Enterprise is a custom arrangement for organizations that need dedicated
+ * infrastructure, contracts, and support. Both cards read their price from
+ * `amount`: 0 renders "$0" and null renders "Custom".
  */
 
-export type BillingPeriod = "monthly" | "yearly"
-
 export interface PlanPrice {
-  /** Price per billing period unit, or null for custom/contact-us pricing. */
+  /** Price shown on the card, or null for custom/contact-us pricing. */
   amount: number | null
-  /** Display unit, e.g. "mo", "yr", "seat/mo". */
+  /** Small note next to the amount, e.g. "free forever". */
   unit: string
-  /** Set when the plan is billed per seat rather than flat. */
-  perSeat?: boolean
 }
 
 export interface Plan {
@@ -27,118 +21,124 @@ export interface Plan {
   badge?: string
   /** Card bullets. `link` renders an inline link after the text. */
   features: { text: string; link?: { label: string; href: string } }[]
-  price: Record<BillingPeriod, PlanPrice>
+  price: PlanPrice
   cta: {
     label: string
     href: string
   }
-  /** Comparison-table cells, aligned with `comparisonRows`. `true` = check, string = value, "—" = not included. */
-  comparison: (string | boolean)[]
 }
 
-export const billingPeriods: { id: BillingPeriod; label: string }[] = [
-  { id: "monthly", label: "Monthly" },
-  { id: "yearly", label: "Yearly" },
-]
-
-/** Shown next to the yearly toggle when a discount applies. */
-export const yearlyDiscountNote = "Save 20% with yearly billing"
+/** Where donation enquiries and recurring-donation changes are handled. */
+export const donationEmail = "mailto:hello@spindle.example?subject=Supporting%20Spindle"
 
 export const plans: Plan[] = [
   {
     id: "hobby",
     name: "Hobby",
-    tagline: "For a single researcher or a project that's just getting started.",
+    tagline:
+      "The whole product, free forever, for a single researcher or a project that's just getting started.",
+    badge: "FREE FOREVER",
     features: [
       { text: "5 GB storage" },
       { text: "Lab, Search, Files, Agent, and Chat" },
+      { text: "Real-time collaboration with live cursors, comments, and presence" },
+      { text: "Share links and inline previews for 100+ formats" },
+      { text: "Version history, run snapshots, and file recovery" },
+      { text: "Offline access when the connection drops" },
+      { text: "Zotero, JupyterLab, RStudio, and VS Code integrations" },
       { text: "Automations and cron jobs" },
       { text: "20 agent requests per day" },
       { text: "50 extra agent requests by referral" },
     ],
-    price: {
-      monthly: { amount: 0, unit: "forever" },
-      yearly: { amount: 0, unit: "forever" },
-    },
+    price: { amount: 0, unit: "free forever" },
     cta: { label: "Create your workspace", href: "/sign-up" },
-    comparison: ["5 GB", "20 / day", "1 seat", false, false, false, false, "Community", "—"],
-  },
-  {
-    id: "team",
-    name: "Team",
-    tagline: "Shared workspaces, more storage, and room to grow with your group.",
-    badge: "MOST POPULAR",
-    features: [
-      { text: "100 GB storage per seat" },
-      { text: "Everything in Hobby" },
-      { text: "Shared workspaces and real-time collaboration" },
-      { text: "500 agent requests per seat per day" },
-      { text: "Priority email support" },
-    ],
-    // Contact-us pricing, same pattern as Enterprise — no public seat price.
-    price: {
-      monthly: { amount: null, unit: "custom" },
-      yearly: { amount: null, unit: "custom" },
-    },
-    cta: { label: "Contact us", href: "/contact" },
-    comparison: [
-      "100 GB / seat",
-      "500 / seat / day",
-      "Unlimited",
-      true,
-      false,
-      false,
-      false,
-      "Priority email",
-      "—",
-    ],
   },
   {
     id: "enterprise",
     name: "Enterprise",
-    tagline: "Custom features, dedicated support, and anything your organization needs.",
+    tagline:
+      "A custom agreement for organizations that need dedicated infrastructure, contracts, and support.",
+    badge: "CUSTOM AGREEMENT",
     features: [
+      { text: "Everything in Hobby, with custom storage and agent allowances" },
+      { text: "Dedicated infrastructure and an uptime SLA" },
+      { text: "SSO, audit logs, and role controls" },
+      { text: "Onboarding and training for your organization" },
       { text: "Custom integrations and workflows" },
-      { text: "Dedicated infrastructure and SLA" },
-      { text: "Onboarding and training for your team" },
       { text: "Countersigned", link: { label: "DPA and subprocessor list", href: "/dpa" } },
-      { text: "SSO and audit logs" },
     ],
-    price: {
-      monthly: { amount: null, unit: "custom" },
-      yearly: { amount: null, unit: "custom" },
-    },
+    price: { amount: null, unit: "custom" },
     cta: { label: "Contact us", href: "/contact" },
-    comparison: [
-      "Custom",
-      "Custom",
-      "Unlimited",
-      true,
-      true,
-      true,
-      true,
-      "Dedicated + SLA",
-      "Custom",
-    ],
   },
 ]
 
-export interface ComparisonRow {
-  label: string
-  /** Optional hint shown under the label. */
-  hint?: string
+export interface FundingArea {
+  icon: string
+  title: string
+  body: string
 }
 
-export const comparisonRows: ComparisonRow[] = [
-  { label: "Storage" },
-  { label: "Agent requests" },
-  { label: "Seats" },
-  { label: "Shared workspaces" },
-  { label: "SSO / SAML" },
-  { label: "Audit logs" },
-  { label: "Uptime SLA" },
-  { label: "Support" },
-  { label: "Data region" },
+/** What donations actually pay for, in plain terms. */
+export const fundingAreas: FundingArea[] = [
+  {
+    icon: "i-server",
+    title: "Servers and compute",
+    body: "Lab sessions, agent runs, search, and the app itself all need machines that stay on. Donations cover that compute bill, not just the marketing site.",
+  },
+  {
+    icon: "i-refresh",
+    title: "Storage and backups",
+    body: "Every free workspace starts with 5 GB. Object storage, redundancy, and backups are recurring costs that grow with every project people trust us with.",
+  },
+  {
+    icon: "i-code",
+    title: "Development",
+    body: "New features and the unglamorous work behind them: the Lab runtime, the agent's review flow, real-time collaboration, accessibility, and bug fixes.",
+  },
+  {
+    icon: "i-shield",
+    title: "Maintenance and support",
+    body: "Security patches, dependency upgrades, monitoring, incident response, and answering the email that arrives when something breaks.",
+  },
+]
+
+export interface SupportOption {
+  icon: string
+  title: string
+  body: string
+  cta: { label: string; href: string; external?: boolean }
+}
+
+/** Non-monetary support counts too, but these are the ways to chip in. */
+export const supportOptions: SupportOption[] = [
+  {
+    icon: "i-refresh",
+    title: "Give monthly",
+    body: "The most useful kind of support: steady enough to plan storage and servers around instead of guessing month to month.",
+    cta: { label: "Set up a monthly donation", href: donationEmail },
+  },
+  {
+    icon: "i-bolt",
+    title: "Give once",
+    body: "A one-time contribution covers a slice of the infrastructure bill or a focused week of maintenance and fixes.",
+    cta: { label: "Make a one-time donation", href: donationEmail },
+  },
+  {
+    icon: "i-users",
+    title: "Share Spindle",
+    body: "Referrals bring in people who might use Spindle and keep it alive. You get 50 extra agent requests when someone joins.",
+    cta: { label: "See the referral program", href: "/referral" },
+  },
+  {
+    icon: "i-github",
+    title: "Contribute",
+    body: "Bug reports, documentation, and code all help. Open an issue or send a pull request on GitHub.",
+    cta: {
+      label: "Open GitHub",
+      href: "https://github.com/spindle-labs/spindle",
+      external: true,
+    },
+  },
 ]
 
 export interface Faq {
@@ -148,44 +148,64 @@ export interface Faq {
 
 export const pricingFaqs: Faq[] = [
   {
+    question: "Why is Spindle free?",
+    answer:
+      "Spindle has no paid plans. The Hobby plan is $0 forever and includes the whole product — files, Lab, Search, Agent, chat, automations, and real-time collaboration. Donations from people who find it useful pay for the servers, storage, bandwidth, and the time it takes to build and maintain it. Enterprise is the only paid arrangement, and it is a custom contract for organizations that need dedicated infrastructure and support.",
+  },
+  {
+    question: "How are donations used?",
+    answer:
+      "Donations go straight into running and improving Spindle: compute for Lab sessions and agent runs, object storage and backups, bandwidth and hosted search, security updates, monitoring, and development time. There is no advertising or data-sales revenue topping it up, so the donation total is what keeps the lights on.",
+  },
+  {
+    question: "Do I have to donate to use Spindle?",
+    answer:
+      "No. Donating is optional and unlocks nothing. Every feature on the Hobby plan is available whether or not you give, and there is no nag screen, trial clock, or locked tab waiting to be paid for.",
+  },
+  {
+    question: "Is real-time collaboration included in the free plan?",
+    answer:
+      "Yes. Shared workspaces, live cursors, presence, comments, and project chat are part of Hobby at no cost. Invite the people you work with and start in the same project — collaboration is not a paid add-on.",
+  },
+  {
+    question: "Do I pay per person?",
+    answer:
+      "No. There is no per-seat price and no seat count to manage. Hobby is one workspace with 5 GB of storage, and the people you invite do not change what you pay, because you are not paying.",
+  },
+  {
+    question: "What does Enterprise include, and how is it priced?",
+    answer:
+      "Enterprise is a custom agreement rather than a public subscription. It can include dedicated infrastructure and an uptime SLA, SSO, audit logs, role controls, onboarding and training, custom integrations, and a countersigned DPA. Pricing depends on scope and infrastructure, so contact us and we will quote the work.",
+  },
+  {
     question: "What happens when I hit the storage limit?",
     answer:
-      "Uploads pause and your existing files stay readable — nothing is deleted. You can free up space, upgrade to a larger plan, or talk to us about a custom allowance. Agent requests follow the same pattern: the daily allowance resets at midnight UTC, and referral bonus requests never expire.",
+      "Uploads and new lab-session outputs pause, and your existing files stay readable — nothing is deleted. You can free up space or talk to us about an Enterprise arrangement if your work regularly needs more than 5 GB. Agent requests follow the same pattern: the daily allowance resets at midnight UTC, and referral bonus requests never expire.",
   },
   {
     question: "How do agent requests work?",
     answer:
-      "Every agent run counts as one request against your daily allowance. The free plan includes 20 per day; referring a friend who creates an account adds 50 one-time requests that never expire. Paid plans scale the allowance per seat.",
+      "One task counts as one request, however many steps it takes. The free plan includes 20 per day; referring a friend who creates an account adds 50 one-time requests that never expire. Retrying inside the same task does not start a new one.",
   },
   {
-    question: "Can I switch between monthly and yearly billing?",
+    question: "Do you show ads or sell my data?",
     answer:
-      "Yes. You can change your billing period at any time from workspace settings. Upgrading to yearly applies the annual discount immediately and credits any unused time on your current cycle.",
+      "No. Spindle does not run ads, sell data, or build advertising profiles. Search goes through a Spindle-hosted SearXNG instance, and project content stays inside your workspace. Donations are the funding model precisely so the product does not need to monetize your research.",
   },
   {
-    question: "Can I cancel anytime?",
+    question: "How can I support Spindle if I can't donate?",
     answer:
-      "Yes — cancel from workspace settings and your plan stays active until the end of the paid period. We don't charge cancellation fees, and your data remains exportable for 90 days after the workspace closes.",
+      "Refer someone, report bugs, improve the docs, contribute code on GitHub, or simply tell people about the project. Using Spindle and telling us what breaks is real support — donations are one input, not the only one.",
   },
   {
-    question: "How do seats and collaboration work?",
+    question: "Can I stop a recurring donation?",
     answer:
-      "Team and Enterprise plans include shared workspaces where members see the same files, lab sessions, and agent history in real time. Add or remove seats at any time; seat changes are prorated on your next invoice.",
-  },
-  {
-    question: "Is there a free trial?",
-    answer:
-      "The Hobby plan is free forever with no credit card required, so you can evaluate the full workspace before paying. Paid plans can be trialed on request — contact us and we'll set one up for your team.",
+      "Yes, at any time. Email hello@spindle.example and we will cancel it or send you the current management link. Stopping a donation never changes your workspace, your storage, or your access to any feature.",
   },
   {
     question: "How is my research data handled?",
     answer:
-      "Your workspace content is yours. Spindle processes it only to provide the service, supports regional data residency on Enterprise plans, and publishes a DPA and subprocessor list for signed agreements. See the security and trust centre for details.",
-  },
-  {
-    question: "Do you offer refunds?",
-    answer:
-      "If something goes wrong in the first 14 days of a paid plan, contact us and we'll make it right — typically a full refund or credit. After that, fees are non-refundable except where the law requires otherwise, as described in the terms.",
+      "Your workspace content is yours. Spindle processes it only to provide the service, keeps projects isolated, and publishes a DPA and subprocessor list for signed agreements. Regional data residency and custom retention are available through Enterprise arrangements; the security and trust centre has the details.",
   },
 ]
 

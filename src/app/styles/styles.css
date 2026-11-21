@@ -501,31 +501,6 @@ svg {
   border-radius: 6px;
 }
 
-/* Header theme control — same chrome as .menu-toggle but always visible. */
-.site-theme-toggle {
-  display: flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    color var(--transition-normal),
-    border-color var(--transition-normal);
-}
-.site-theme-toggle:hover {
-  color: var(--text);
-  border-color: var(--border-strong);
-}
-.site-theme-toggle svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* Header language picker — a native <select> on the shared .btn chrome.
    `font: inherit` is needed because form controls don't inherit fonts. */
 .site-language-switcher {
@@ -3634,60 +3609,9 @@ svg {
 }
 
 /* ==========================================================================
-   PRICING — billing toggle, plan cards, comparison, FAQ
+   PRICING — plan cards and FAQ
    ========================================================================== */
 
-.billing-toggle {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  width: fit-content;
-  margin: 0 auto 28px;
-  padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface);
-}
-.billing-toggle__option {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text-muted);
-  font-family: var(--font);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    color var(--transition-fast),
-    background var(--transition-fast);
-}
-.billing-toggle__option:hover {
-  color: var(--text);
-}
-.billing-toggle__option[aria-pressed="true"] {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-.billing-toggle__badge {
-  padding: 2px 7px;
-  border-radius: 999px;
-  border: 1px solid var(--accent-line);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.plan-cards--three {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
 .plan-price-row {
   display: flex;
   align-items: baseline;
@@ -3699,91 +3623,9 @@ svg {
   color: var(--text-dim);
 }
 
-.compare-wrap {
-  margin-top: 56px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  scrollbar-width: thin;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-/* The 680px-min table only overflows the wrap below ~745px viewport width
-   (container padding + borders). Fade the right edge there as a scroll hint;
-   wider viewports show the full table with no affordance needed. */
-@media (max-width: 745px) {
-  .compare-wrap {
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent 100%);
-  }
-}
-.compare-table {
-  width: 100%;
-  min-width: 680px;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-.compare-caption {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.007em;
-  color: var(--text);
-  text-align: left;
-  caption-side: top;
-}
-.compare-table th,
-.compare-table td {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: middle;
-}
-.compare-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--surface-2);
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-}
-.compare-table tbody th[scope="row"] {
-  font-weight: 500;
-  color: var(--text-muted);
-}
-.compare-table tbody tr:last-child th,
-.compare-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-.compare-check {
-  color: var(--accent);
-}
-.compare-check .icon {
-  width: 15px;
-  height: 15px;
-}
-.compare-empty {
-  color: var(--text-dim);
-}
-.compare-sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 .pricing-faq {
   max-width: 780px;
-  margin: 64px auto 0;
+  margin: 0 auto;
 }
 .pricing-faq-title {
   margin: 0 0 8px;
@@ -3797,17 +3639,8 @@ svg {
 }
 
 @media (max-width: 1000px) {
-  .plan-cards--three {
+  .plan-cards {
     grid-template-columns: 1fr;
-  }
-  .billing-toggle {
-    flex-wrap: wrap;
-    justify-content: center;
-    border-radius: var(--radius);
-  }
-  .billing-toggle__option {
-    flex: 1 1 auto;
-    justify-content: center;
   }
 }
 
@@ -4315,8 +4148,8 @@ svg {
   }
 }
 
-/* Phone widths: the full action row (search trigger, theme toggle, sign-in,
-   "Start free", menu toggle) is wider than the space left beside the brand,
+/* Phone widths: the full action row (search trigger, sign-in, "Start free",
+   menu toggle) is wider than the space left beside the brand,
    so the header overflows the viewport. Drop the two non-essential actions —
    site search stays available from the mobile nav's "Search site" entry and
    the CTA moves into the mobile nav panel — and tighten the gaps. */
@@ -4328,8 +4161,8 @@ svg {
     gap: 8px;
   }
   /* The ⌘K trigger is the only direct-child <button> without one of these
-     classes (theme toggle, sign-in trigger, menu toggle). */
-  .header-actions > button:not(.menu-toggle):not(.site-theme-toggle):not(.ui-signin-trigger) {
+     classes (sign-in trigger, menu toggle). */
+  .header-actions > button:not(.menu-toggle):not(.ui-signin-trigger) {
     display: none;
   }
   .header-actions > .btn {

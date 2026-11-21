@@ -917,48 +917,125 @@
   border-top: 1px solid var(--border);
 }
 
-.agent-faq details {
+.agent-faq-item {
   border-bottom: 1px solid var(--border);
 }
 
-.agent-faq summary {
+/* Staggered entrance for the rows. The delay comes from the same
+   data-reveal-delay attribute the rest of the site uses. */
+.agent-faq-item[data-reveal] {
+  transition:
+    opacity 0.5s ease var(--reveal-delay, 0ms),
+    transform 0.5s ease var(--reveal-delay, 0ms);
+}
+
+.agent-faq-header {
+  margin: 0;
+}
+
+.agent-faq-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  width: 100%;
   padding: 20px 2px;
-  cursor: pointer;
-  list-style: none;
+  border: 0;
+  background: none;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1.5;
   color: var(--text);
+  text-align: left;
+  cursor: pointer;
   transition: color var(--transition-normal);
 }
 
-.agent-faq summary::-webkit-details-marker {
-  display: none;
-}
-.agent-faq summary:hover {
+.agent-faq-trigger:hover {
   color: var(--accent);
 }
 
-.agent-faq summary .icon {
-  color: var(--text-dim);
-  transition: transform var(--transition-normal);
+.agent-faq-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-.agent-faq details[open] summary .icon {
+.agent-faq-trigger .icon {
+  flex: none;
+  color: var(--text-dim);
+  transition:
+    transform var(--transition-normal),
+    color var(--transition-normal);
+}
+
+.agent-faq-trigger[data-state="open"] .icon {
   transform: rotate(45deg);
   color: var(--accent);
 }
 
-.agent-faq p {
+/* The panel animates between the measured content height Radix exposes and
+   zero, with a short fade and lift so an answer arrives instead of
+   appearing. */
+.agent-faq-content {
+  overflow: hidden;
+}
+
+.agent-faq-content[data-state="open"] {
+  animation: agent-faq-open 340ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.agent-faq-content[data-state="closed"] {
+  animation: agent-faq-close 220ms cubic-bezier(0.4, 0, 1, 1);
+}
+
+.agent-faq-content p {
   margin: 0;
   padding: 0 34px 22px 2px;
   max-width: 720px;
   font-size: 13px;
   line-height: 1.75;
   color: var(--text-muted);
+}
+
+@keyframes agent-faq-open {
+  from {
+    height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes agent-faq-close {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Respect the system motion preference: panels then snap between states
+   instead of expanding and collapsing. */
+@media (prefers-reduced-motion: reduce) {
+  .agent-faq-content[data-state="open"],
+  .agent-faq-content[data-state="closed"] {
+    animation: none;
+  }
+
+  .agent-faq-trigger .icon {
+    transition: color var(--transition-normal);
+  }
 }
 
 /* ==========================================================================
@@ -1083,7 +1160,7 @@
   .agent-run-footer {
     flex-wrap: wrap;
   }
-  .agent-faq p {
+  .agent-faq-content p {
     padding-right: 0;
   }
 }

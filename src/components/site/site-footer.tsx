@@ -12,9 +12,9 @@ const footerColumns: { headingKey: string; links: FooterLink[] }[] = [
     headingKey: "nav.product",
     links: [
       { href: "/platform", labelKey: "footer.platformOverview" },
-      { href: "/#files", labelKey: "nav.link.files" },
+      { href: "/files", labelKey: "nav.link.files" },
       { href: "/lab", labelKey: "footer.lab" },
-      { href: "/#search", labelKey: "footer.search" },
+      { href: "/search", labelKey: "footer.search" },
       { href: "/automations", labelKey: "nav.link.automations" },
       { href: "/infrastructure", labelKey: "nav.link.infrastructure" },
       { href: "/pricing", labelKey: "nav.pricing" },
@@ -45,7 +45,7 @@ const footerColumns: { headingKey: string; links: FooterLink[] }[] = [
     headingKey: "nav.company",
     links: [
       { href: "/about", labelKey: "nav.link.about" },
-      { href: "/about#contact", labelKey: "nav.link.contact" },
+      { href: "/contact", labelKey: "nav.link.contact" },
       { href: "/terms", labelKey: "footer.terms" },
       { href: "/privacy", labelKey: "footer.privacy" },
       { href: "/cookies", labelKey: "footer.cookiePolicy" },

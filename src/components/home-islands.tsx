@@ -266,7 +266,7 @@ export function PlanCards() {
       {plans.map((plan) => (
         <Card
           key={plan.name}
-          className={`ui-plan-card${plan.featured ? "ui-plan-card--featured" : ""}`}
+          className={`ui-plan-card${plan.featured ? " ui-plan-card--featured" : ""}`}
         >
           <CardHeader className="ui-plan-header">
             <CardTitle className="ui-plan-name">{plan.name}</CardTitle>
