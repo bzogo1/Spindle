@@ -283,7 +283,6 @@ function parse(src) {
             if (tok.t === "punct" && tok.v === "[") {
               skipType()
               expect("]")
-              tok = peek()
             }
             if (peek().t === "punct" && peek().v === "!") next()
           }

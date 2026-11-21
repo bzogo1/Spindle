@@ -1001,7 +1001,7 @@ async function main() {
   }
 
   // --- ingest events ---
-  let input = null
+  let input
   const wantsInput = !options.tick && (options.file || options.stdin || !process.stdin.isTTY)
   if (wantsInput) {
     let raw

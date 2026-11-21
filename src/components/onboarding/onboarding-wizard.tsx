@@ -144,7 +144,7 @@ export function OnboardingWizard() {
     let cancelled = false
 
     async function load() {
-      let serverRecord: OnboardingRecord | null = null
+      let serverRecord: OnboardingRecord | null
       try {
         const body = await request<OnboardingResponse>("", "/api/onboarding")
         serverRecord = body.onboarding ?? null

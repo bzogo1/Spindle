@@ -481,7 +481,7 @@ async function main() {
     return 0
   }
 
-  let config = null
+  let config
   try {
     config = await loadConfig(options.config ?? DEFAULT_CONFIG)
   } catch (error) {
@@ -496,7 +496,7 @@ async function main() {
       try {
         return { raw: w.trim(), ms: parseDuration(w) }
       } catch (error) {
-        throw new Error(error instanceof Error ? error.message : String(error))
+        throw new Error(error instanceof Error ? error.message : String(error), { cause: error })
       }
     },
   )

@@ -534,7 +534,7 @@ async function main() {
   mkdirSync(outDir, { recursive: true })
 
   let data
-  let collectorNote = ""
+  let collectorNote
   if (args.demo) {
     data = demoData()
     collectorNote = "demo"

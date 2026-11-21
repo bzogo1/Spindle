@@ -425,7 +425,6 @@ export async function executeWithRetry<T>(
 
   for (let attempt = 1; attempt <= config.maxAttempts; attempt += 1) {
     const delayMs = pendingDelayMs
-    pendingDelayMs = 0
 
     let failure: DeliveryFailure | undefined
     let thrown: unknown

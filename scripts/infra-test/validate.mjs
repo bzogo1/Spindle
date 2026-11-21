@@ -381,7 +381,7 @@ function crossCheck() {
     for (const [index, rule] of (tunnel.doc.ingress ?? []).entries()) {
       const service = rule?.service
       if (typeof service !== "string" || !/^https?:\/\//.test(service)) continue
-      let url = null
+      let url
       try {
         url = new URL(service)
       } catch {

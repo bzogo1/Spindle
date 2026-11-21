@@ -171,7 +171,7 @@ function CohortMatrix({ report }: { report: CohortReport }) {
 
   const cellKeyDown = useCallback(
     (event: KeyboardEvent<HTMLElement>, row: number, col: number) => {
-      let next: [number, number] | null = null
+      let next: [number, number] | null
       switch (event.key) {
         case "ArrowRight":
           next = [row, col + 1]

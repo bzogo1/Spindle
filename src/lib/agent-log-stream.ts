@@ -205,7 +205,7 @@ export function parseStreamPayload(
   raw: string | Record<string, unknown>,
   eventType?: string,
 ): AgentStreamEntry | null {
-  let obj: Record<string, unknown> | null = null
+  let obj: Record<string, unknown> | null
   if (typeof raw === "string") {
     const trimmed = raw.trim()
     if (trimmed === "") return null

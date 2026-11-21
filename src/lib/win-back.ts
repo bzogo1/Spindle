@@ -472,7 +472,7 @@ export const defaultWinBackUserSource: WinBackUserSource = async () => {
   // Lazy import: the auth backend module graph is heavy and only needed on
   // the server path that actually resolves activity. Best-effort — when it
   // cannot load, subscribers still surface with subscriber-derived dates.
-  let backend: AuthBackend | null = null
+  let backend: AuthBackend | null
   try {
     const mod = await import("@/lib/auth/backend")
     backend = mod.getAuthBackend()

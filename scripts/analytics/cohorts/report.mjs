@@ -173,8 +173,8 @@ function parseJsonl(text) {
 }
 
 async function loadRecords(options) {
-  let text = null
-  let source = "stdin"
+  let text
+  let source
   if (options.demo) {
     return {
       records: generateDemoRecords({

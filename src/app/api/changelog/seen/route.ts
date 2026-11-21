@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     return fail(401, "unauthenticated", "Sign in to update your changelog state.")
   }
 
-  let body: unknown = {}
+  let body: unknown
   try {
     const text = await request.text()
     body = text ? JSON.parse(text) : {}

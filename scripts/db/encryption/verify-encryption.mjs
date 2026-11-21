@@ -141,7 +141,7 @@ function scanMigrationsForCrypto() {
   const walk = (dir) => {
     for (const entry of readdirSyncSafe(dir)) {
       const path = join(dir, entry)
-      let isDir = false
+      let isDir
       try {
         isDir = statSync(path).isDirectory()
       } catch {

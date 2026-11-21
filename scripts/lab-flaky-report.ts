@@ -96,7 +96,7 @@ async function main(): Promise<number> {
   const root = snapshotRoot(cli.dir)
   const historyPath = join(root, "history.jsonl")
 
-  let content = ""
+  let content
   try {
     content = await readFile(historyPath, "utf8")
   } catch {

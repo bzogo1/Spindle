@@ -121,7 +121,7 @@ async function activeSubscriberRecipients(): Promise<ReleaseNotesRecipient[]> {
 
   let backend: {
     getUserByEmail?: (email: string) => Promise<{ name?: string | null } | null>
-  } | null = null
+  } | null
   try {
     const mod = await import("@/lib/auth/backend")
     backend = mod.getAuthBackend()

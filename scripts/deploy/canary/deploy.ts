@@ -71,7 +71,9 @@ async function run(): Promise<void> {
     try {
       await fn()
     } catch (error) {
-      throw new Error(`${label}: ${error instanceof Error ? error.message : error}`)
+      throw new Error(`${label}: ${error instanceof Error ? error.message : error}`, {
+        cause: error,
+      })
     }
   }
 

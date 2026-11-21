@@ -50,7 +50,7 @@ export function getAnonymousSubjectId(): string {
       ? crypto.randomUUID()
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 
-  let id: string | null = null
+  let id: string | null
   try {
     id = window.localStorage.getItem(ANONYMOUS_SUBJECT_STORAGE_KEY)
     if (!id) {
