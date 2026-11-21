@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ChangeEvent, DragEvent, MouseEvent as ReactMouseEvent } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ArrowUpDown, Check, Ellipsis, FolderOpen, FolderX } from "lucide-react"
@@ -234,6 +234,24 @@ function fileIconName(node: FileNode) {
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+/** Key under which manual sibling order is stored for a parent id. */
+function orderKeyFor(parentId: string | null) {
+  return parentId ?? "__root__"
+}
+
+/**
+ * File-search predicate shared by the folder filter and the project-wide
+ * tree filter: a lowercase term matches the node's name, its extension or
+ * MIME type, or — for files with inline content — the content itself.
+ */
+function matchesNodeQuery(node: FileNode, term: string) {
+  if (node.name.toLowerCase().includes(term)) return true
+  if (node.kind !== "file") return false
+  if (fileExtension(node.name).toLowerCase().includes(term)) return true
+  if (node.mimeType.toLowerCase().includes(term)) return true
+  return node.content?.toLowerCase().includes(term) ?? false
 }
 
 /** Wrap case-insensitive occurrences of `term` in <mark> for tree search hits. */
@@ -555,7 +573,23 @@ export function FilesScreen({
   const celebratedUploadIds = useRef<Set<string>>(new Set())
   const { toast } = useToast()
   const [isDragging, setIsDragging] = useState(false)
+  // True while the in-flight drag carries OS files ("Files" transfer type),
+  // distinguishing desktop file drops from in-app node moves so the upload
+  // drop overlay only appears for real file drags.
+  const [isFileDrag, setIsFileDrag] = useState(false)
   const [dropTarget, setDropTarget] = useState<string | null | false>(false)
+  // Manual sibling-order overrides produced by drag-and-drop reordering,
+  // keyed by parent id ("__root__" for top-level nodes). The workspace API
+  // has no reorder endpoint, so the order is local mock state for the session.
+  const [siblingOrder, setSiblingOrder] = useState<Record<string, string[]>>({})
+  // Before/after drop hint shown while a node hovers a sibling row.
+  const [reorderHint, setReorderHint] = useState<{
+    targetId: string
+    position: "before" | "after"
+  } | null>(null)
+  // Preview surface: deep links and row activation use the drawer; the row
+  // "Preview" action opens the same content in a centered modal.
+  const [previewVariant, setPreviewVariant] = useState<"drawer" | "modal">("drawer")
   const dragDepth = useRef(0)
   // Ids of the nodes in the in-flight HTML5 drag, so tree drag-over can
   // reject targets that cannot accept them (self, descendants) before drop.
@@ -596,6 +630,8 @@ export function FilesScreen({
   // client-side navigation (the prop may update without a remount).
   useEffect(() => {
     setPreviewFileId(initialPreviewId ?? null)
+    // Deep links always open the drawer variant.
+    setPreviewVariant("drawer")
   }, [initialPreviewId])
 
   // Mirror the open preview into the `?preview=` search param so refreshes and
@@ -662,21 +698,62 @@ export function FilesScreen({
     return () => window.clearTimeout(timer)
   }, [doneUploads])
 
+  /**
+   * Sort same-parent siblings by the manual drag order when one exists for
+   * that parent; nodes missing from the stored order (added later) fall back
+   * to name order after the ranked ones. Input is expected name-sorted.
+   */
+  const orderSiblings = useCallback(
+    (nodes: FileNode[], parentId: string | null) => {
+      const order = siblingOrder[orderKeyFor(parentId)]
+      if (!order || nodes.length < 2) return nodes
+      const rank = new Map(order.map((id, index) => [id, index] as const))
+      return [...nodes].sort((a, b) => {
+        const ra = rank.get(a.id)
+        const rb = rank.get(b.id)
+        if (ra === undefined && rb === undefined) return a.name.localeCompare(b.name)
+        if (ra === undefined) return 1
+        if (rb === undefined) return -1
+        return ra - rb || a.name.localeCompare(b.name)
+      })
+    },
+    [siblingOrder],
+  )
+
   const children = useMemo(() => {
     if (folderMissing || (!currentParentId && !isRoot)) return []
     const normalized = query.trim().toLowerCase()
+    // Manual drag order applies to the default name sort; explicit sorts by
+    // other keys take precedence over it.
+    const manualRank =
+      sort.key === "name" && sort.direction === "asc"
+        ? new Map(
+            (siblingOrder[orderKeyFor(currentParentId)] ?? []).map(
+              (id, index) => [id, index] as const,
+            ),
+          )
+        : null
     return childNodes(data.files, currentParentId)
-      .filter((node) => !normalized || node.name.toLowerCase().includes(normalized))
+      .filter((node) => !normalized || matchesNodeQuery(node, normalized))
       .sort((a, b) => {
         if (a.kind !== b.kind) return a.kind === "folder" ? -1 : 1
         const direction = sort.direction === "asc" ? 1 : -1
-        if (sort.key === "name") return a.name.localeCompare(b.name) * direction
+        if (sort.key === "name") {
+          if (manualRank && (manualRank.has(a.id) || manualRank.has(b.id))) {
+            const ra = manualRank.get(a.id)
+            const rb = manualRank.get(b.id)
+            if (ra === undefined) return 1
+            if (rb === undefined) return -1
+            if (ra !== rb) return ra - rb
+          }
+          return a.name.localeCompare(b.name) * direction
+        }
         if (sort.key === "type") return fileTypeLabel(a).localeCompare(fileTypeLabel(b)) * direction
         if (sort.key === "owner") return a.owner.localeCompare(b.owner) * direction
         if (sort.key === "updated") return a.updatedAt.localeCompare(b.updatedAt) * direction
         return (a.sizeBytes - b.sizeBytes) * direction
       })
-  }, [currentParentId, folderMissing, isRoot, query, sort, data.files])
+  }, [currentParentId, folderMissing, isRoot, query, sort, data.files, siblingOrder])
 
   const visibleIds = useMemo(() => children.map((node) => node.id), [children])
 
@@ -692,7 +769,7 @@ export function FilesScreen({
     const matches = new Set<string>()
     const ancestors = new Set<string>()
     data.files.forEach((node) => {
-      if (!node.name.toLowerCase().includes(term)) return
+      if (!matchesNodeQuery(node, term)) return
       matches.add(node.id)
       let parentId = node.parentId
       while (parentId) {
@@ -811,6 +888,7 @@ export function FilesScreen({
     }
     setSelectedIds(new Set([node.id]))
     setLastSelectedId(node.id)
+    setPreviewVariant("drawer")
     setPreviewFileId(node.id)
   }
 
@@ -819,7 +897,7 @@ export function FilesScreen({
     // Inlined copies of `visibleTreeChildren`/`isTreeExpanded` so the memo deps
     // stay on the reactive inputs rather than per-render helpers.
     const visibleChildren = (parentId: string | null) => {
-      const nodes = childNodes(data.files, parentId)
+      const nodes = orderSiblings(childNodes(data.files, parentId), parentId)
       if (!treeFilter) return nodes.filter((node) => node.kind === "folder")
       return nodes.filter((node) => treeFilter.shown.has(node.id))
     }
@@ -851,7 +929,7 @@ export function FilesScreen({
     }
     walk(null, "root", 0)
     return entries
-  }, [data.files, expanded, treeFilter])
+  }, [data.files, expanded, treeFilter, orderSiblings])
 
   const rovingTreeKey = treeEntries.some((entry) => entry.key === activeTreeKey)
     ? activeTreeKey
@@ -1181,6 +1259,7 @@ export function FilesScreen({
     if (!acceptDrop(event)) return
     dragDepth.current = 0
     setIsDragging(false)
+    setIsFileDrag(false)
     setDropTarget(false)
     const ids = draggedNodeIds(event)
     if (ids.length > 0) {
@@ -1195,12 +1274,16 @@ export function FilesScreen({
     event.preventDefault()
     dragDepth.current += 1
     setIsDragging(true)
+    setIsFileDrag(event.dataTransfer.types.includes("Files"))
   }
 
   const onDragLeave = (event: DragEvent<HTMLElement>) => {
     event.preventDefault()
     dragDepth.current = Math.max(0, dragDepth.current - 1)
-    if (dragDepth.current === 0) setIsDragging(false)
+    if (dragDepth.current === 0) {
+      setIsDragging(false)
+      setIsFileDrag(false)
+    }
   }
 
   const closeDialog = () => setDialog(null)
@@ -1228,6 +1311,20 @@ export function FilesScreen({
       toast({ variant: "error", title: result.error })
     }
     return result
+  }
+
+  /** Copy the project-relative paths of the given nodes to the clipboard. */
+  const copyNodePaths = async (nodes: FileNode[]) => {
+    const text = nodes.map((node) => fileNodePath(data.files, node).join(" / ")).join("\n")
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({
+        variant: "success",
+        title: nodes.length === 1 ? "Path copied." : `${nodes.length} paths copied.`,
+      })
+    } catch {
+      toast({ variant: "error", title: "Couldn't copy to clipboard." })
+    }
   }
 
   const trashNodes = async (ids: string[]) => {
@@ -1326,6 +1423,169 @@ export function FilesScreen({
   const endNodeDrag = () => {
     activeDragIdsRef.current = []
     setDropTarget(false)
+    setReorderHint(null)
+  }
+
+  /**
+   * The single dragged node when it can reorder among `target`'s siblings —
+   * i.e. a one-node drag whose parent matches the target's. Multi-node drags
+   * and cross-folder drags return null and keep the move-into-folder behavior.
+   */
+  const reorderableDrag = (target: FileNode) => {
+    const ids = activeDragIdsRef.current
+    if (ids.length !== 1) return null
+    const dragged = data.files.find((node) => node.id === ids[0])
+    if (!dragged || dragged.id === target.id) return null
+    if (dragged.parentId !== target.parentId) return null
+    return dragged
+  }
+
+  /**
+   * "before"/"after" drop position from the pointer's vertical position on a
+   * row. `edge` reserves the middle band (e.g. 0.25 keeps the center third of
+   * a folder row for move-inside drops); 0.5 splits the row in half.
+   */
+  const dropPositionOn = (
+    event: DragEvent<HTMLElement>,
+    edge = 0.5,
+  ): "before" | "after" | null => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    if (rect.height <= 0) return null
+    const ratio = (event.clientY - rect.top) / rect.height
+    if (ratio < edge) return "before"
+    if (ratio > 1 - edge) return "after"
+    return null
+  }
+
+  /**
+   * Commit a sibling reorder: insert `draggedId` before/after `targetId` in
+   * their shared parent's manual order. Order is local session state (the
+   * workspace API has no reorder endpoint) and shows under the default
+   * name sort.
+   */
+  const reorderNode = (draggedId: string, targetId: string, position: "before" | "after") => {
+    const dragged = data.files.find((node) => node.id === draggedId)
+    const target = data.files.find((node) => node.id === targetId)
+    if (!dragged || !target || dragged.id === target.id) return
+    if (dragged.parentId !== target.parentId) return
+    const siblings = orderSiblings(childNodes(data.files, dragged.parentId), dragged.parentId)
+      .map((node) => node.id)
+      .filter((id) => id !== draggedId)
+    const targetIndex = siblings.indexOf(targetId)
+    if (targetIndex < 0) return
+    siblings.splice(position === "before" ? targetIndex : targetIndex + 1, 0, draggedId)
+    setSiblingOrder((current) => ({
+      ...current,
+      [orderKeyFor(dragged.parentId)]: siblings,
+    }))
+    setSelectedIds(new Set([draggedId]))
+    setLastSelectedId(draggedId)
+    toast({
+      variant: "success",
+      title: `Moved "${dragged.name}" ${position} "${target.name}".`,
+    })
+  }
+
+  /** Inline indicator line for the row currently showing a reorder hint. */
+  const reorderHintStyle = (targetId: string): React.CSSProperties | undefined => {
+    if (reorderHint?.targetId !== targetId) return undefined
+    return {
+      boxShadow:
+        reorderHint.position === "before"
+          ? "inset 0 2px 0 var(--app-accent)"
+          : "inset 0 -2px 0 var(--app-accent)",
+    }
+  }
+
+  /**
+   * Drag-over/drop handlers turning a node drag over a sibling row into a
+   * before/after reorder. Drops that are not reorderable (multi-select,
+   * different folder, OS files) are left alone so they keep bubbling to the
+   * pane-level move/upload handlers.
+   */
+  const siblingReorderProps = (target: FileNode) => ({
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      if (!event.dataTransfer.types.includes(FILES_NODE_DRAG_TYPE)) return
+      if (!reorderableDrag(target)) {
+        setReorderHint((current) => (current?.targetId === target.id ? null : current))
+        return
+      }
+      const position = dropPositionOn(event)
+      if (!position) return
+      event.preventDefault()
+      event.stopPropagation()
+      event.dataTransfer.dropEffect = "move"
+      setReorderHint({ targetId: target.id, position })
+    },
+    onDragLeave: (event: DragEvent<HTMLElement>) => {
+      const next = event.relatedTarget as Node | null
+      if (next && event.currentTarget.contains(next)) return
+      setReorderHint((current) => (current?.targetId === target.id ? null : current))
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      if (!event.dataTransfer.types.includes(FILES_NODE_DRAG_TYPE)) return
+      setReorderHint(null)
+      const position = dropPositionOn(event)
+      const ids = draggedNodeIds(event)
+      if (!position || ids.length !== 1) return
+      const dragged = data.files.find((node) => node.id === ids[0])
+      if (!dragged || dragged.id === target.id || dragged.parentId !== target.parentId) return
+      event.preventDefault()
+      event.stopPropagation()
+      reorderNode(ids[0], target.id, position)
+    },
+  })
+
+  /**
+   * Folder-row drop props combining reorder zones with move-inside: the top
+   * and bottom quarters of a folder row reorder before/after it, the middle
+   * keeps the existing drop-into-folder behavior.
+   */
+  const treeFolderDropProps = (folder: FileNode) => {
+    const base = folderDropProps(folder.id)
+    const clearHint = () =>
+      setReorderHint((current) => (current?.targetId === folder.id ? null : current))
+    return {
+      onDragOver: (event: DragEvent<HTMLElement>) => {
+        if (event.dataTransfer.types.includes(FILES_NODE_DRAG_TYPE)) {
+          if (reorderableDrag(folder)) {
+            const position = dropPositionOn(event, 0.25)
+            if (position) {
+              event.preventDefault()
+              event.stopPropagation()
+              event.dataTransfer.dropEffect = "move"
+              setReorderHint({ targetId: folder.id, position })
+              setDropTarget((current) => (current === folder.id ? false : current))
+              return
+            }
+          }
+          clearHint()
+        }
+        base.onDragOver(event)
+      },
+      onDragLeave: (event: DragEvent<HTMLElement>) => {
+        clearHint()
+        base.onDragLeave(event)
+      },
+      onDrop: (event: DragEvent<HTMLElement>) => {
+        if (event.dataTransfer.types.includes(FILES_NODE_DRAG_TYPE)) {
+          const ids = draggedNodeIds(event)
+          const position = dropPositionOn(event, 0.25)
+          if (position && ids.length === 1) {
+            const dragged = data.files.find((node) => node.id === ids[0])
+            if (dragged && dragged.id !== folder.id && dragged.parentId === folder.parentId) {
+              event.preventDefault()
+              event.stopPropagation()
+              setReorderHint(null)
+              reorderNode(ids[0], folder.id, position)
+              return
+            }
+          }
+        }
+        setReorderHint(null)
+        base.onDrop(event)
+      },
+    }
   }
 
   /**
@@ -1383,10 +1643,11 @@ export function FilesScreen({
             node,
             <div
               className="fm-tree-item"
-              style={itemStyle}
+              style={{ ...itemStyle, ...reorderHintStyle(node.id) }}
               draggable
               onDragStart={startNodeDrag(node)}
               onDragEnd={endNodeDrag}
+              {...siblingReorderProps(node)}
             >
               <span className="fm-tree-toggle fm-tree-toggle--leaf" aria-hidden="true" />
               <button
@@ -1428,11 +1689,11 @@ export function FilesScreen({
           folder,
           <div
             className={`fm-tree-item${dropTarget === folder.id ? "is-drop-target" : ""}`}
-            style={itemStyle}
+            style={{ ...itemStyle, ...reorderHintStyle(folder.id) }}
             draggable
             onDragStart={startNodeDrag(folder)}
             onDragEnd={endNodeDrag}
-            {...folderDropProps(folder.id)}
+            {...treeFolderDropProps(folder)}
           >
             <button
               type="button"
@@ -1491,6 +1752,8 @@ export function FilesScreen({
             draggable
             onDragStart={startNodeDrag(node)}
             onDragEnd={endNodeDrag}
+            style={reorderHintStyle(node.id)}
+            {...siblingReorderProps(node)}
           >
             <div role="cell" className="fm-cell">
               <input
@@ -1542,6 +1805,18 @@ export function FilesScreen({
    */
   const nodeMenuEntries = (nodes: FileNode[]): NodeMenuEntry[] => {
     const entries: NodeMenuEntry[] = []
+    // Preview opens the file content in a modal without downloading; it only
+    // applies to a single file (folders have no content preview).
+    if (nodes.length === 1 && nodes[0].kind === "file") {
+      entries.push({
+        label: "Preview",
+        run: () => {
+          setPreviewVariant("modal")
+          setPreviewFileId(nodes[0].id)
+        },
+      })
+    }
+    entries.push({ label: "Copy path", run: () => void copyNodePaths(nodes) })
     if (nodes.some((node) => node.kind === "file")) {
       entries.push({ label: "Download", run: () => downloadNodes(nodes) })
     }
@@ -1786,11 +2061,15 @@ export function FilesScreen({
           </aside>
 
           <section
-            className={`app-file-pane fm-pane${isDragging ? "is-drop-target" : ""}`}
+            className={`app-file-pane fm-pane relative${isDragging ? "is-drop-target" : ""}`}
             aria-label="Current folder"
             onDragEnter={onDragEnter}
             onDragOver={(event) => {
               event.preventDefault()
+              // dragenter can be skipped when the pointer was already inside
+              // the pane (e.g. drag started over a child); keep the file-drag
+              // flag in sync from the live transfer types.
+              setIsFileDrag(event.dataTransfer.types.includes("Files"))
               event.dataTransfer.dropEffect = event.dataTransfer.types.includes(
                 FILES_NODE_DRAG_TYPE,
               )
@@ -1986,8 +2265,10 @@ export function FilesScreen({
             ) : null}
 
             <p className="fm-drop-hint">
-              Drag files here to upload them to this folder, or drag items — including folders in
-              the tree — onto a folder in the tree or breadcrumb to move them.
+              Drag one or more files here to upload them to this folder — or drag items, including
+              folders in the tree, onto a folder in the tree or breadcrumb to move them. Drag an
+              item onto the top or bottom edge of a sibling to reorder it. Use Upload to pick
+              several files at once.
             </p>
 
             {queueUploads.length > 0 ? (
@@ -2085,6 +2366,8 @@ export function FilesScreen({
                           draggable
                           onDragStart={startNodeDrag(node)}
                           onDragEnd={endNodeDrag}
+                          style={reorderHintStyle(node.id)}
+                          {...siblingReorderProps(node)}
                         >
                           <div className="fm-card-name">
                             <input
@@ -2137,6 +2420,19 @@ export function FilesScreen({
                 <span style={{ width: `${storagePercent}%` }} />
               </div>
             </div>
+
+            {/* Desktop file-drag overlay: visible only while OS files hover
+                the pane (node drags never carry the "Files" transfer type).
+                pointer-events-none keeps drop targeting on the pane itself. */}
+            {isDragging && isFileDrag ? (
+              <div
+                className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-[inherit] border-2 border-dashed border-[var(--app-accent)] bg-[color-mix(in_srgb,var(--app-panel)_82%,transparent)] text-sm font-semibold text-[var(--app-text)]"
+                role="status"
+              >
+                <Icon name="i-upload" className="icon icon--sm" />
+                Drop files to upload them to this folder
+              </div>
+            ) : null}
           </section>
         </div>
 
@@ -2218,6 +2514,8 @@ export function FilesScreen({
               // The drawer toasts the outcome; throw so it can show the error.
               if (!result.ok) throw new Error(result.error)
             }}
+            onShare={(node) => setDialog({ type: "share", node })}
+            variant={previewVariant}
             previewUrl={previewFile.previewUrl}
             versions={previewFile.versions}
           />

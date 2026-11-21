@@ -332,7 +332,7 @@ export const issues = [
     file: "src/lib/streaming/buffer.ts",
     priority: 3,
     estimate: 3,
-    labels: ["streaming", "backend"],
+    labels: ["realtime", "backend"],
     summary:
       "Add a fixed-capacity circular buffer for streaming data that supports backpressure and exposes a non-blocking read() returning whatever data is currently available. It is the shared primitive behind the backpressure handler and several streaming tests.",
     notes: [

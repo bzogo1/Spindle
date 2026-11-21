@@ -149,7 +149,7 @@ function scheduleSummary(schedule: NotificationSchedule): string {
  * Email toggles are stored for when the email API lands; the in-app feed is
  * gated live by the same preferences.
  */
-export function NotificationPreferencesScreen() {
+export function NotificationPreferencesScreen({ embedded = false }: { embedded?: boolean }) {
   const {
     notifications,
     preferences,
@@ -296,26 +296,30 @@ export function NotificationPreferencesScreen() {
   }
 
   return (
-    <div className="app-page">
-      <header className="app-page-head">
-        <div>
-          <h1>Notification preferences</h1>
-          <p className="app-page-subtitle">
-            Choose which updates reach you and how often. Changes apply immediately and are stored
-            in this browser.
-          </p>
-        </div>
-        <div className="app-page-actions">
-          <Button asChild variant="outline">
-            <Link href="/dashboard/notifications">
-              <ArrowLeft aria-hidden="true" />
-              Back to notifications
-            </Link>
-          </Button>
-        </div>
-      </header>
+    // `embedded` renders just the preference cards (no page header/back
+    // link) for use inside the notification preferences dialog.
+    <div className={embedded ? undefined : "app-page"}>
+      {embedded ? null : (
+        <header className="app-page-head">
+          <div>
+            <h1>Notification preferences</h1>
+            <p className="app-page-subtitle">
+              Choose which updates reach you and how often. Changes apply immediately and are stored
+              in this browser.
+            </p>
+          </div>
+          <div className="app-page-actions">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/notifications">
+                <ArrowLeft aria-hidden="true" />
+                Back to notifications
+              </Link>
+            </Button>
+          </div>
+        </header>
+      )}
 
-      <div className="grid max-w-3xl gap-6">
+      <div className={embedded ? "grid gap-6" : "grid max-w-3xl gap-6"}>
         <section className="app-page-card" aria-labelledby="notification-prefs-channels">
           <h2 id="notification-prefs-channels">Delivery channels</h2>
           <div className="grid gap-2.5">

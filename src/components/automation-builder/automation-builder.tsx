@@ -65,6 +65,8 @@ import { ProfilerPanel } from "./profiler-panel"
 import { OptimizationPanel } from "./optimization-panel"
 import { SecurityPanel } from "./security-panel"
 import { CompliancePanel } from "./compliance-panel"
+import { RunDiffPanel } from "./run-diff-panel"
+import { useResizableWidth } from "./resizable-panel"
 
 export interface AutomationBuilderProps {
   /**
@@ -108,6 +110,14 @@ export function AutomationBuilder({
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
   const [statuses, setStatuses] = useState<Record<string, NodeRunStatus>>({})
   const [copied, setCopied] = useState<"dsl" | "code" | null>(null)
+  // Right-hand inspector sidebar is user-resizable via the drag handle.
+  const sidebarPane = useResizableWidth({
+    initial: 288,
+    min: 240,
+    max: 560,
+    side: "right",
+    label: "Resize inspector panel",
+  })
 
   // Version history is scoped per automation; default to the graph id, but
   // let parents pass a stable key when they regenerate graph objects.
@@ -408,11 +418,27 @@ export function AutomationBuilder({
             onMoveNode={(nodeId, position) => commit(updateNode(graph, nodeId, { position }))}
             onConnectAttempt={handleConnectAttempt}
             onAddNodeAt={(type, position) => addNode(type, position)}
+            onDeleteNode={(nodeId) => {
+              commit(removeNodeFromGraph(graph, nodeId))
+              setSelectedNodeId(null)
+              setSelectedEdgeId(null)
+            }}
+            onDeleteEdge={(edgeId) => {
+              commit(removeEdgeFromGraph(graph, edgeId))
+              setSelectedEdgeId(null)
+            }}
           />
         </div>
 
-        {/* Sidebar */}
-        <div className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto">
+        {/* Sidebar — resizable via the drag handle on its left edge. */}
+        <div
+          {...sidebarPane.handleProps}
+          className="w-1 shrink-0 cursor-col-resize rounded-full bg-transparent transition-colors hover:bg-primary/40 focus-visible:bg-primary/60 focus-visible:outline-none"
+        />
+        <div
+          className="flex shrink-0 flex-col gap-3 overflow-y-auto"
+          style={{ width: sidebarPane.width }}
+        >
           <InspectorPanel
             node={selectedNode}
             onUpdateNode={handleUpdateNode}
@@ -460,6 +486,7 @@ export function AutomationBuilder({
           <SecurityPanel graph={graph} />
           <CompliancePanel graph={graph} />
           <MonitoringPanel scope={historyScope} />
+          <RunDiffPanel scope={historyScope} />
           <VersionHistoryPanel
             versions={versions}
             onRestore={restoreVersion}

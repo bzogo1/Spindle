@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { KeyboardShortcuts } from "./keyboard-shortcuts"
+import { FocusModeProvider } from "./focus-mode"
 
 const navigationMocks = { push: vi.fn() }
 
@@ -20,7 +21,11 @@ beforeEach(() => {
 
 describe("KeyboardShortcuts", () => {
   it("navigates with g <key> sequences", () => {
-    render(<KeyboardShortcuts />)
+    render(
+      <FocusModeProvider>
+        <KeyboardShortcuts />
+      </FocusModeProvider>,
+    )
 
     press("g")
     press("d")
@@ -39,7 +44,11 @@ describe("KeyboardShortcuts", () => {
   it("ignores the follow-up key after the goto window expires", () => {
     vi.useFakeTimers()
     try {
-      render(<KeyboardShortcuts />)
+      render(
+        <FocusModeProvider>
+          <KeyboardShortcuts />
+        </FocusModeProvider>,
+      )
       press("g")
       vi.advanceTimersByTime(1500)
       press("p")
@@ -53,7 +62,11 @@ describe("KeyboardShortcuts", () => {
     const listener = vi.fn()
     window.addEventListener("spindle:open-new-project", listener)
     try {
-      render(<KeyboardShortcuts />)
+      render(
+        <FocusModeProvider>
+          <KeyboardShortcuts />
+        </FocusModeProvider>,
+      )
       press("n")
       expect(listener).toHaveBeenCalledTimes(1)
       expect(sessionStorage.getItem("spindle:open-new-project")).toBe("1")
@@ -66,7 +79,11 @@ describe("KeyboardShortcuts", () => {
   })
 
   it("toggles the help overlay with ?", async () => {
-    render(<KeyboardShortcuts />)
+    render(
+      <FocusModeProvider>
+        <KeyboardShortcuts />
+      </FocusModeProvider>,
+    )
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
     press("?")
@@ -79,10 +96,10 @@ describe("KeyboardShortcuts", () => {
 
   it("does not fire while typing in form fields", () => {
     render(
-      <>
+      <FocusModeProvider>
         <KeyboardShortcuts />
         <input aria-label="field" />
-      </>,
+      </FocusModeProvider>,
     )
     const input = screen.getByLabelText("field")
 
@@ -98,10 +115,10 @@ describe("KeyboardShortcuts", () => {
 
   it("does not fire while a modal overlay is open", () => {
     render(
-      <>
+      <FocusModeProvider>
         <KeyboardShortcuts />
         <div role="dialog" aria-label="other overlay" />
-      </>,
+      </FocusModeProvider>,
     )
 
     press("g")
@@ -114,7 +131,11 @@ describe("KeyboardShortcuts", () => {
   })
 
   it("ignores chords with modifier keys", () => {
-    render(<KeyboardShortcuts />)
+    render(
+      <FocusModeProvider>
+        <KeyboardShortcuts />
+      </FocusModeProvider>,
+    )
     fireEvent.keyDown(window, { key: "g", ctrlKey: true })
     fireEvent.keyDown(window, { key: "p" })
     expect(navigationMocks.push).not.toHaveBeenCalled()

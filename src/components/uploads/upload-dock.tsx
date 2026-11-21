@@ -2,10 +2,15 @@
 
 /**
  * Floating upload dock — the globally visible surface for the chunked
- * upload queue. Renders a small pill button (with an active-file count)
- * fixed to the bottom-right of the app shell; activating it opens a panel
- * containing the shared {@link UploadQueuePanel} (drop zone, per-file
- * progress, pause/resume/retry/cancel).
+ * upload queue. Renders a small pill button fixed to the bottom-right of
+ * the app shell showing the live upload progress (active count + percent);
+ * activating it opens a collapsible panel with the shared
+ * {@link UploadQueuePanel} (drop zone, per-file progress,
+ * pause/resume/retry/cancel), the {@link UploadSettingsMenu} and the
+ * {@link UploadHistoryPanel}.
+ *
+ * When every queued file completes, a success toast confirms it
+ * ({@link toast}).
  *
  * Must be rendered inside {@link UploadsProvider}. Files dropped anywhere in
  * the app are picked up by the provider's window-level drop handler and show
@@ -17,10 +22,14 @@ import { UploadCloud, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Progress } from "@/components/ui/progress"
+import { toast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 import type { QueueSnapshot } from "@/lib/uploads/queue"
 
+import { UploadHistoryPanel } from "./upload-history"
 import { UploadQueuePanel } from "./upload-queue"
+import { UploadSettingsMenu } from "./upload-settings"
 import { useUploadsQueue } from "./upload-provider"
 
 function activeCount(snapshot: QueueSnapshot | null): number {
@@ -41,8 +50,27 @@ export function UploadQueueDock({ className }: { className?: string }) {
   const panelId = useId()
   const pillRef = useRef<HTMLButtonElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
+  // Guards the all-complete toast so it fires once per completion batch,
+  // not on every subsequent snapshot.
+  const celebratedRef = useRef(false)
 
-  useEffect(() => queue.subscribe(setSnapshot), [queue])
+  useEffect(
+    () =>
+      queue.subscribe((snap) => {
+        setSnapshot(snap)
+        // Re-arm the all-complete toast once the queue drains or a new
+        // (non-terminal) upload is queued, so each batch can celebrate.
+        if (
+          snap.files.length === 0 ||
+          snap.files.some(
+            (f) => f.status !== "completed" && f.status !== "cancelled",
+          )
+        ) {
+          celebratedRef.current = false
+        }
+      }),
+    [queue],
+  )
 
   // Move focus into the panel when it opens; callers that close the panel
   // (close button, Escape) return focus to the pill.
@@ -53,10 +81,25 @@ export function UploadQueueDock({ className }: { className?: string }) {
   const count = activeCount(snapshot)
   const total = snapshot?.files.length ?? 0
   const liveTotal = snapshot?.files.filter((f) => f.status !== "cancelled").length ?? 0
+  const percent = snapshot ? Math.round(snapshot.totals.percent) : 0
+  const hasFiles = total > 0
   const statusText =
     liveTotal > 0 && snapshot
       ? `${snapshot.totals.completedFiles} of ${liveTotal} files completed${snapshot.totals.errorFiles > 0 ? `, ${snapshot.totals.errorFiles} failed` : ""}`
       : ""
+
+  const handleAllComplete = () => {
+    if (celebratedRef.current) return
+    celebratedRef.current = true
+    const completed = queue.getSnapshot().totals.completedFiles
+    toast.success({
+      title: "All uploads complete",
+      description:
+        completed === 1
+          ? "1 file finished uploading."
+          : `${completed} files finished uploading.`,
+    })
+  }
 
   const closePanel = () => {
     setOpen(false)
@@ -82,22 +125,33 @@ export function UploadQueueDock({ className }: { className?: string }) {
           onKeyDown={(event) => {
             if (event.key === "Escape") closePanel()
           }}
-          className="border-border bg-background flex max-h-[70vh] w-[22rem] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-lg border p-3 shadow-lg"
+          className="border-border bg-background flex max-h-[70vh] w-[24rem] max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-lg border p-3 shadow-lg"
         >
-          <header className="flex items-center justify-between">
+          <header className="flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Uploads</h2>
-            <Button
-              ref={closeRef}
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={closePanel}
-              aria-label="Close"
-            >
-              <X />
-            </Button>
+            <div className="flex items-center gap-1">
+              <UploadSettingsMenu />
+              <Button
+                ref={closeRef}
+                type="button"
+                variant="ghost"
+                size="xs"
+                onClick={closePanel}
+                aria-label="Close"
+              >
+                <X />
+              </Button>
+            </div>
           </header>
-          <UploadQueuePanel queue={queue} transport={transport} className="gap-3" />
+          <UploadQueuePanel
+            queue={queue}
+            transport={transport}
+            className="gap-3"
+            onAllComplete={handleAllComplete}
+          />
+          <div className="border-border border-t pt-3">
+            <UploadHistoryPanel />
+          </div>
         </section>
       ) : null}
 
@@ -117,8 +171,23 @@ export function UploadQueueDock({ className }: { className?: string }) {
         }
       >
         <UploadCloud aria-hidden="true" />
-        Uploads {count > 0 ? <Badge variant="secondary">{count}</Badge> : null}
+        Uploads
+        {hasFiles ? (
+          <>
+            <Badge variant="secondary">{count > 0 ? count : total}</Badge>
+            <span className="text-muted-foreground text-xs" aria-hidden="true">
+              {percent}%
+            </span>
+          </>
+        ) : null}
       </Button>
+      {/* Collapsed-state progress strip so progress stays visible without
+          opening the panel. */}
+      {!open && hasFiles && liveTotal > 0 ? (
+        <div className="pointer-events-none absolute -top-1.5 right-2 left-2">
+          <Progress value={percent} className="bg-background/60 h-1" />
+        </div>
+      ) : null}
     </div>
   )
 }

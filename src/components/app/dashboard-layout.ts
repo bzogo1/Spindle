@@ -17,7 +17,13 @@ export const DASHBOARD_LAYOUT_STORAGE_KEY = "spindle.dashboard.layout:v1"
 /** Schema version stored inside the blob; must match the key suffix. */
 export const DASHBOARD_LAYOUT_VERSION = 1
 
-export const DASHBOARD_PROJECT_SORTS = ["updated", "name", "created", "files"] as const
+export const DASHBOARD_PROJECT_SORTS = [
+  "updated",
+  "name",
+  "created",
+  "files",
+  "storage",
+] as const
 export type DashboardProjectSort = (typeof DASHBOARD_PROJECT_SORTS)[number]
 
 export const DEFAULT_DASHBOARD_PROJECT_SORT: DashboardProjectSort = "updated"

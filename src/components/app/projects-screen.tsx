@@ -8,6 +8,7 @@ import {
   ArchiveRestore,
   Copy,
   FolderKanban,
+  History,
   LayoutGrid,
   List,
   Plus,
@@ -21,16 +22,20 @@ import { useToast } from "@/components/ui/toast"
 import { ScreenState } from "@/components/app/states/screen-state"
 import { EmptyState } from "@/components/app/states/empty-state"
 import { api, useMutation, useWorkspaceDashboard } from "@/lib/api"
+import { mergeActivityEvents } from "@/lib/activity/client"
+import { useActivityEvents } from "@/lib/activity/use-activity-events"
 import type { ProjectStatus, ProjectSummary, User } from "@/lib/api/types"
 
+import { ActivityFeed } from "./activity-feed"
 import { NewProjectDialog } from "./new-project-dialog"
+import { orderByManual, useProjectDragOrder, type ProjectDragBinding } from "./project-order"
 
 import { formatBytes, formatRelativeTime } from "./format"
 import { NavLink } from "@/components/view-transitions/nav-link"
 import { SharedElement } from "@/components/view-transitions/view-transitions"
 import { viewTransitionName } from "@/components/view-transitions/vt-support"
 
-type ProjectSort = "updated" | "name" | "created" | "files"
+type ProjectSort = "updated" | "name" | "created" | "files" | "storage"
 type ViewMode = "grid" | "list"
 type StatusFilter = ProjectStatus | "all"
 
@@ -39,6 +44,7 @@ const SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
   { value: "name", label: "Name" },
   { value: "created", label: "Recently created" },
   { value: "files", label: "Most files" },
+  { value: "storage", label: "Storage used" },
 ]
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -48,6 +54,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 ]
 
 const VIEW_STORAGE_KEY = "spindle.projects.view"
+const PROJECT_ORDER_STORAGE_KEY = "spindle.projects.order"
 
 const PROJECT_QUICK_ACTIONS = [
   { label: "Files", href: (id: string) => `/projects/${id}/files` },
@@ -68,6 +75,8 @@ function matchesQuery(project: ProjectSummary, query: string) {
     project.owner.name ?? "",
     project.owner.email,
     project.visibility,
+    project.status,
+    ...(project.members ?? []).map((member) => member.name ?? member.email),
   ]
     .join(" ")
     .toLowerCase()
@@ -79,6 +88,9 @@ function sortProjects(projects: ProjectSummary[], sort: ProjectSort) {
     if (sort === "name") return a.name.localeCompare(b.name)
     if (sort === "created") return b.createdAt.localeCompare(a.createdAt)
     if (sort === "files") return b.fileCount - a.fileCount || a.name.localeCompare(b.name)
+    if (sort === "storage") {
+      return b.storageBytes - a.storageBytes || a.name.localeCompare(b.name)
+    }
     return projectTimestamp(b).localeCompare(projectTimestamp(a)) || a.name.localeCompare(b.name)
   })
 }
@@ -189,6 +201,28 @@ function QuickActions({
   )
 }
 
+function projectCardClass(project: ProjectSummary, drag?: ProjectDragBinding) {
+  return [
+    "app-project-card",
+    project.status === "archived" ? "app-project-card--archived" : null,
+    drag?.dragging ? "app-project-card--dragging" : null,
+    drag?.dropTarget ? "app-project-card--drop-target" : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
+function projectRowClass(project: ProjectSummary, drag?: ProjectDragBinding) {
+  return [
+    "app-project-row",
+    project.status === "archived" ? "app-project-row--archived" : null,
+    drag?.dragging ? "app-project-row--dragging" : null,
+    drag?.dropTarget ? "app-project-row--drop-target" : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
 function ProjectCard({
   project,
   onClone,
@@ -197,6 +231,7 @@ function ProjectCard({
   onArchive,
   archiving,
   archivePending,
+  drag,
 }: {
   project: ProjectSummary
   onClone: (project: ProjectSummary) => void
@@ -205,15 +240,23 @@ function ProjectCard({
   onArchive: (project: ProjectSummary) => void
   archiving: boolean
   archivePending: boolean
+  drag?: ProjectDragBinding
 }) {
   // The title morphs into the project header on the detail page — the name
   // must match `project-home-screen.tsx` exactly.
   const titleTransitionName = viewTransitionName("project", project.id)
   const archived = project.status === "archived"
+  const dragHandlers = drag
+    ? {
+        draggable: drag.draggable,
+        onDragStart: drag.onDragStart,
+        onDragOver: drag.onDragOver,
+        onDrop: drag.onDrop,
+        onDragEnd: drag.onDragEnd,
+      }
+    : {}
   return (
-    <article
-      className={archived ? "app-project-card app-project-card--archived" : "app-project-card"}
-    >
+    <article className={projectCardClass(project, drag)} {...dragHandlers}>
       <NavLink href={`/projects/${project.id}`} className="app-project-card-open">
         <div className="app-project-card-head">
           <span className="app-project-card-icon" aria-hidden="true">
@@ -260,6 +303,7 @@ function ProjectRow({
   onArchive,
   archiving,
   archivePending,
+  drag,
 }: {
   project: ProjectSummary
   onClone: (project: ProjectSummary) => void
@@ -268,11 +312,21 @@ function ProjectRow({
   onArchive: (project: ProjectSummary) => void
   archiving: boolean
   archivePending: boolean
+  drag?: ProjectDragBinding
 }) {
   const titleTransitionName = viewTransitionName("project", project.id)
   const archived = project.status === "archived"
+  const dragHandlers = drag
+    ? {
+        draggable: drag.draggable,
+        onDragStart: drag.onDragStart,
+        onDragOver: drag.onDragOver,
+        onDrop: drag.onDrop,
+        onDragEnd: drag.onDragEnd,
+      }
+    : {}
   return (
-    <article className={archived ? "app-project-row app-project-row--archived" : "app-project-row"}>
+    <article className={projectRowClass(project, drag)} {...dragHandlers}>
       <NavLink href={`/projects/${project.id}`} className="app-project-row-open">
         <span className="app-project-card-icon" aria-hidden="true">
           <FolderKanban />
@@ -351,6 +405,9 @@ function NewProjectRow({ onClick }: { onClick: () => void }) {
 
 export function ProjectsScreen() {
   const query = useWorkspaceDashboard()
+  // Workspace-wide live activity (no project filter) merged into the feed —
+  // the same channel the dashboard activity widget uses.
+  const liveActivity = useActivityEvents()
   const router = useRouter()
   const { toast } = useToast()
   const [search, setSearch] = useState("")
@@ -372,6 +429,9 @@ export function ProjectsScreen() {
   const setProjectStatus = useMutation((input: { id: string; status: ProjectStatus }) =>
     api.projects.updateProject(input.id, { status: input.status }),
   )
+  // Manual drag-and-drop order layered on top of the active sort; persisted
+  // to localStorage so it survives reloads (no backend field yet).
+  const dragOrder = useProjectDragOrder(PROJECT_ORDER_STORAGE_KEY)
 
   // Restore the persisted view preference after mount (localStorage is not
   // available during SSR, so the first paint always uses the grid default).
@@ -415,6 +475,23 @@ export function ProjectsScreen() {
   }, [query.data, search, statusFilter, ownerFilter, sort])
 
   const hasActiveFilters = search.trim() !== "" || statusFilter !== "all" || ownerFilter !== "all"
+
+  // Displayed projects: the active sort first, then any manual drag order
+  // the user has arranged on top of it.
+  const visibleProjects = useMemo(
+    () => orderByManual(filteredProjects, dragOrder.order),
+    [filteredProjects, dragOrder.order],
+  )
+  const displayedIds = useMemo(
+    () => visibleProjects.map((project) => project.id),
+    [visibleProjects],
+  )
+
+  function handleSortChange(next: ProjectSort) {
+    setSort(next)
+    // A different sort invalidates the manual arrangement.
+    dragOrder.reset()
+  }
 
   function clearFilters() {
     setSearch("")
@@ -478,176 +555,202 @@ export function ProjectsScreen() {
       isRetrying={query.isRetrying}
       onRetry={query.refetch}
     >
-      {(dashboard) => (
-        <div className="app-page">
-          <header className="app-dashboard-header">
-            <div className="app-dashboard-heading">
-              <p className="app-eyebrow">{dashboard.workspace.name}</p>
-              <h1 className="app-page-title">Projects</h1>
-              <p className="app-page-lede">Browse every project in {dashboard.workspace.name}.</p>
-            </div>
-            <Button type="button" onClick={() => setNewProjectOpen(true)}>
-              <Plus aria-hidden="true" />
-              New project
-            </Button>
-          </header>
-
-          <section className="app-panel" aria-labelledby="projects-heading">
-            <div className="app-panel-head">
-              <div>
-                <h2 id="projects-heading">All projects</h2>
-                <p>Search, filter, and sort the project list.</p>
+      {(dashboard) => {
+        const activity = mergeActivityEvents(dashboard.activity, liveActivity)
+        return (
+          <div className="app-page">
+            <header className="app-dashboard-header">
+              <div className="app-dashboard-heading">
+                <p className="app-eyebrow">{dashboard.workspace.name}</p>
+                <h1 className="app-page-title">Projects</h1>
+                <p className="app-page-lede">Browse every project in {dashboard.workspace.name}.</p>
               </div>
-              <div className="app-toolbar">
-                <label className="app-search-field">
-                  <Search aria-hidden="true" />
-                  <span className="sr-only">Search projects</span>
-                  <Input
-                    type="search"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search projects"
-                    aria-label="Search projects"
-                  />
-                </label>
-                <label className="app-sort-field">
-                  <span className="sr-only">Filter by status</span>
-                  <select
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-                    aria-label="Filter by status"
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="app-sort-field">
-                  <span className="sr-only">Filter by owner</span>
-                  <select
-                    value={ownerFilter}
-                    onChange={(event) => setOwnerFilter(event.target.value)}
-                    aria-label="Filter by owner"
-                  >
-                    <option value="all">All owners</option>
-                    {ownerOptions.map((owner) => (
-                      <option key={owner.id} value={owner.id}>
-                        {userLabel(owner)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="app-sort-field">
-                  <span className="sr-only">Sort projects</span>
-                  <select
-                    value={sort}
-                    onChange={(event) => setSort(event.target.value as ProjectSort)}
-                    aria-label="Sort projects"
-                  >
-                    {SORT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="app-view-toggle" role="group" aria-label="Project view">
-                  <button
-                    type="button"
-                    aria-pressed={view === "grid"}
-                    aria-label="Grid view"
-                    title="Grid view"
-                    onClick={() => changeView("grid")}
-                  >
-                    <LayoutGrid aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={view === "list"}
-                    aria-label="List view"
-                    title="List view"
-                    onClick={() => changeView("list")}
-                  >
-                    <List aria-hidden="true" />
-                  </button>
+              <Button type="button" onClick={() => setNewProjectOpen(true)}>
+                <Plus aria-hidden="true" />
+                New project
+              </Button>
+            </header>
+
+            <section className="app-panel" aria-labelledby="projects-heading">
+              <div className="app-panel-head">
+                <div>
+                  <h2 id="projects-heading">All projects</h2>
+                  <p>Search, filter, and sort the project list.</p>
+                </div>
+                <div className="app-toolbar">
+                  <label className="app-search-field">
+                    <Search aria-hidden="true" />
+                    <span className="sr-only">Search projects</span>
+                    <Input
+                      type="search"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="Search projects"
+                      aria-label="Search projects"
+                    />
+                  </label>
+                  <label className="app-sort-field">
+                    <span className="sr-only">Filter by status</span>
+                    <select
+                      value={statusFilter}
+                      onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
+                      aria-label="Filter by status"
+                    >
+                      {STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="app-sort-field">
+                    <span className="sr-only">Filter by owner</span>
+                    <select
+                      value={ownerFilter}
+                      onChange={(event) => setOwnerFilter(event.target.value)}
+                      aria-label="Filter by owner"
+                    >
+                      <option value="all">All owners</option>
+                      {ownerOptions.map((owner) => (
+                        <option key={owner.id} value={owner.id}>
+                          {userLabel(owner)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="app-sort-field">
+                    <span className="sr-only">Sort projects</span>
+                    <select
+                      value={sort}
+                      onChange={(event) => handleSortChange(event.target.value as ProjectSort)}
+                      aria-label="Sort projects"
+                    >
+                      {SORT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="app-view-toggle" role="group" aria-label="Project view">
+                    <button
+                      type="button"
+                      aria-pressed={view === "grid"}
+                      aria-label="Grid view"
+                      title="Grid view"
+                      onClick={() => changeView("grid")}
+                    >
+                      <LayoutGrid aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-pressed={view === "list"}
+                      aria-label="List view"
+                      title="List view"
+                      onClick={() => changeView("list")}
+                    >
+                      <List aria-hidden="true" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {dashboard.projects.length === 0 ? (
-              <EmptyState
-                icon={<FolderKanban aria-hidden="true" />}
-                title="No projects yet"
-                body="Create a project to start collecting files, running lab sessions, and working with the agent."
-                primaryAction={{
-                  label: "New project",
-                  onClick: () => setNewProjectOpen(true),
-                }}
-              />
-            ) : filteredProjects.length === 0 ? (
-              <EmptyState
-                title="No matching projects"
-                body={
-                  hasActiveFilters
-                    ? "Nothing matches the current search and filters. Try adjusting or clearing them."
-                    : `Nothing matches “${search.trim()}”. Try a different name, owner, or visibility.`
-                }
-                primaryAction={{
-                  label: "Clear filters",
-                  variant: "secondary",
-                  onClick: clearFilters,
-                }}
-              />
-            ) : view === "grid" ? (
-              <div className="app-project-grid">
-                {filteredProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    onClone={handleClone}
-                    cloning={cloningId === project.id}
-                    clonePending={cloningId !== null}
-                    onArchive={handleArchive}
-                    archiving={archivingId === project.id}
-                    archivePending={archivingId !== null}
-                  />
-                ))}
-                <NewProjectCard onClick={() => setNewProjectOpen(true)} />
-              </div>
-            ) : (
-              <div className="app-project-list">
-                {filteredProjects.map((project) => (
-                  <ProjectRow
-                    key={project.id}
-                    project={project}
-                    onClone={handleClone}
-                    cloning={cloningId === project.id}
-                    clonePending={cloningId !== null}
-                    onArchive={handleArchive}
-                    archiving={archivingId === project.id}
-                    archivePending={archivingId !== null}
-                  />
-                ))}
-                <NewProjectRow onClick={() => setNewProjectOpen(true)} />
-              </div>
-            )}
-          </section>
+              {dashboard.projects.length === 0 ? (
+                <EmptyState
+                  icon={<FolderKanban aria-hidden="true" />}
+                  title="No projects yet"
+                  body="Create a project to start collecting files, running lab sessions, and working with the agent."
+                  primaryAction={{
+                    label: "New project",
+                    onClick: () => setNewProjectOpen(true),
+                  }}
+                />
+              ) : filteredProjects.length === 0 ? (
+                <EmptyState
+                  title="No matching projects"
+                  body={
+                    hasActiveFilters
+                      ? "Nothing matches the current search and filters. Try adjusting or clearing them."
+                      : `Nothing matches “${search.trim()}”. Try a different name, owner, or visibility.`
+                  }
+                  primaryAction={{
+                    label: "Clear filters",
+                    variant: "secondary",
+                    onClick: clearFilters,
+                  }}
+                />
+              ) : view === "grid" ? (
+                <div className="app-project-grid">
+                  {visibleProjects.map((project) => (
+                    <ProjectCard
+                      key={project.id}
+                      project={project}
+                      onClone={handleClone}
+                      cloning={cloningId === project.id}
+                      clonePending={cloningId !== null}
+                      onArchive={handleArchive}
+                      archiving={archivingId === project.id}
+                      archivePending={archivingId !== null}
+                      drag={dragOrder.bind(project.id, displayedIds)}
+                    />
+                  ))}
+                  <NewProjectCard onClick={() => setNewProjectOpen(true)} />
+                </div>
+              ) : (
+                <div className="app-project-list">
+                  {visibleProjects.map((project) => (
+                    <ProjectRow
+                      key={project.id}
+                      project={project}
+                      onClone={handleClone}
+                      cloning={cloningId === project.id}
+                      clonePending={cloningId !== null}
+                      onArchive={handleArchive}
+                      archiving={archivingId === project.id}
+                      archivePending={archivingId !== null}
+                      drag={dragOrder.bind(project.id, displayedIds)}
+                    />
+                  ))}
+                  <NewProjectRow onClick={() => setNewProjectOpen(true)} />
+                </div>
+              )}
+            </section>
 
-          <NewProjectDialog
-            open={newProjectOpen}
-            onOpenChange={setNewProjectOpen}
-            onCreated={(project) =>
-              toast({
-                title: "Project created",
-                description: `${project.name} is ready to use.`,
-                variant: "success",
-              })
-            }
-          />
-        </div>
-      )}
+            <section className="app-panel" aria-labelledby="projects-activity-heading">
+              <div className="app-panel-head">
+                <div>
+                  <h2 id="projects-activity-heading">Activity across projects</h2>
+                  <p>
+                    Recent events from every project in {dashboard.workspace.name}, newest first.
+                  </p>
+                </div>
+                <History aria-hidden="true" className="app-panel-icon" />
+              </div>
+              {activity.length === 0 ? (
+                <EmptyState
+                  icon={<History aria-hidden="true" />}
+                  title="No recent activity"
+                  body="Project events will appear here as files, sessions, messages, and runs change."
+                />
+              ) : (
+                <ActivityFeed events={activity} groupByDay pageSize={10} />
+              )}
+            </section>
+
+            <NewProjectDialog
+              open={newProjectOpen}
+              onOpenChange={setNewProjectOpen}
+              onCreated={(project) =>
+                toast({
+                  title: "Project created",
+                  description: `${project.name} is ready to use.`,
+                  variant: "success",
+                })
+              }
+            />
+          </div>
+        )
+      }}
     </ScreenState>
   )
 }

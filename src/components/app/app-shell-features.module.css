@@ -1,0 +1,367 @@
+/* Styles for the app-shell feature additions: in-page search, focus mode,
+   and the help dialog. Uses the same --app-* tokens as app.css so light and
+   dark themes flip automatically. */
+
+.pageSearch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pageSearchIcon {
+  position: absolute;
+  left: 9px;
+  width: 14px;
+  height: 14px;
+  color: var(--app-text-muted);
+  pointer-events: none;
+}
+
+.pageSearchInput {
+  height: 34px;
+  width: 168px;
+  padding: 0 26px 0 30px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  background: var(--app-panel);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.pageSearchInput::placeholder {
+  color: var(--app-text-muted);
+}
+
+.pageSearchInput:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.pageSearchClear {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--app-text-muted);
+  cursor: pointer;
+}
+
+.pageSearchClear:hover {
+  background: var(--app-panel-alt);
+  color: var(--app-text);
+}
+
+.pageSearchClear svg {
+  width: 13px;
+  height: 13px;
+}
+
+.matchCount {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* <mark> elements injected into #main-content by PageSearch. The hashed
+   module name is applied from JS via styles.mark. */
+.mark {
+  background: color-mix(in srgb, var(--app-accent) 30%, transparent);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.focusExit {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--app-shadow);
+  cursor: pointer;
+}
+
+.focusExit:hover {
+  background: var(--app-panel-alt);
+}
+
+.focusExit svg {
+  width: 15px;
+  height: 15px;
+}
+
+.focusContent {
+  padding: 16px 24px 48px;
+  max-width: none;
+}
+
+/* ---------- Help dialog ---------- */
+
+.helpSearch {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.helpSearchIcon {
+  position: absolute;
+  left: 10px;
+  width: 15px;
+  height: 15px;
+  color: var(--app-text-muted);
+  pointer-events: none;
+}
+
+.helpSearchInput {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px 0 34px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  background: var(--app-panel);
+  color: var(--app-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.helpSearchInput:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.helpStatus {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--app-text-muted);
+}
+
+.helpResults {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.helpResult {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--app-text);
+}
+
+.helpResult:hover,
+.helpResult:focus-visible {
+  background: var(--app-panel-alt);
+  outline: none;
+}
+
+.helpResultTitle {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.helpResultMeta {
+  display: block;
+  font-size: 11px;
+  color: var(--app-text-muted);
+  margin-top: 1px;
+}
+
+.helpResultSnippet {
+  display: block;
+  font-size: 12px;
+  color: var(--app-text-muted);
+  margin-top: 2px;
+}
+
+.helpLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.helpLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius);
+  background: var(--app-panel);
+  color: var(--app-text);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.helpLink:hover {
+  background: var(--app-panel-alt);
+}
+
+.helpLink svg {
+  width: 14px;
+  height: 14px;
+  color: var(--app-text-muted);
+}
+
+/* ---------- Brand mark animation ---------- */
+
+/* The logo mark rotates on hover/focus of the brand link. */
+.brandLink .brandMark svg {
+  transition: transform 320ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  transform-origin: center;
+}
+
+.brandLink:hover .brandMark svg,
+.brandLink:focus-visible .brandMark svg {
+  transform: rotate(24deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandLink .brandMark svg {
+    transition: none;
+  }
+
+  .brandLink:hover .brandMark svg,
+  .brandLink:focus-visible .brandMark svg {
+    transform: none;
+  }
+}
+
+/* ---------- Top-bar breadcrumb ---------- */
+
+.breadcrumb {
+  flex: 1;
+  min-width: 0;
+  margin-left: 4px;
+}
+
+/* Unlayered module CSS beats the Tailwind utilities layered inside the
+   breadcrumb primitives, so pin the colors to the app palette. */
+.breadcrumb ol {
+  color: var(--app-text-muted);
+}
+
+.breadcrumb [data-slot="breadcrumb-page"],
+.breadcrumb a {
+  color: var(--app-text);
+}
+
+.breadcrumb a:hover {
+  color: var(--app-accent);
+}
+
+/* Below 900px the sidebar collapses into the drawer and the old
+   .app-topbar-title was hidden; the breadcrumb goes with it. */
+@media (max-width: 900px) {
+  .breadcrumb {
+    display: none;
+  }
+}
+
+/* ---------- Compact mode ---------- */
+
+/* `.compact` sits on the same element as `.app-shell`; :global() reaches the
+   unlayered app.css chrome so density overrides win on specificity. */
+.compact :global(.app-sidebar) {
+  gap: 12px;
+  padding: 10px 8px;
+}
+
+.compact :global(.app-sidebar-head) {
+  padding: 0 4px;
+}
+
+.compact :global(.app-brand-name) {
+  font-size: 15px;
+}
+
+.compact :global(.app-nav-link) {
+  gap: 10px;
+  padding: 7px 8px;
+  font-size: 13px;
+}
+
+.compact :global(.app-nav-icon) {
+  width: 18px;
+  height: 18px;
+}
+
+.compact :global(.app-topbar) {
+  gap: 10px;
+  padding: 8px 16px;
+}
+
+.compact :global(.app-content) {
+  padding: 20px 24px 48px;
+}
+
+.compact :global(.app-page-title) {
+  font-size: 22px;
+}
+
+.compact :global(.app-page-lede) {
+  font-size: 14px;
+}
+
+/* Collapsed rail + compact: keep icon-only links tight too. The extra
+   :global(.app-shell) raises specificity above
+   `.app-shell.is-collapsed .app-nav-link` in app.css. */
+:global(.app-shell).compact:global(.is-collapsed) :global(.app-nav-link) {
+  padding: 8px 0;
+}
+
+/* ---------- Modal dim overlay ---------- */
+
+/* Sits above the app chrome (topbar z-30, drawer overlay z-40) but below
+   dialog/drawer content and their overlays (z-50), and never intercepts
+   pointer events — Radix owns dismissal. */
+.dimOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: rgba(5, 10, 7, 0.45);
+  pointer-events: none;
+  animation: app-shell-dim-in 160ms ease;
+}
+
+@keyframes app-shell-dim-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dimOverlay {
+    animation: none;
+  }
+}

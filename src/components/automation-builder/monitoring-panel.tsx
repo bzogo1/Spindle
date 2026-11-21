@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Activity, Trash2 } from "lucide-react"
+import { Activity, Download, Trash2 } from "lucide-react"
 
 import {
   clearAutomationRuns,
+  readAutomationRuns,
   useAutomationRunMetrics,
   type AutomationRunRecord,
 } from "@/lib/automation-graph"
@@ -12,6 +13,8 @@ import { formatRelativeTime } from "@/components/app/format"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+
+import { automationRunRecordsToCsv, downloadCsvFile } from "./run-log-csv"
 
 interface MonitoringPanelProps {
   /** localStorage scope for the run log (same scope as version history). */
@@ -61,26 +64,44 @@ export function MonitoringPanel({ scope }: MonitoringPanelProps) {
           <Activity className="size-3.5" aria-hidden="true" />
           Monitoring
         </h3>
-        {metrics.totalRuns > 0 ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 px-1.5 text-[10px]"
-            onClick={() => {
-              if (confirmClear) {
-                clearAutomationRuns(scope)
-                setConfirmClear(false)
-              } else {
-                setConfirmClear(true)
-                setTimeout(() => setConfirmClear(false), 3000)
-              }
-            }}
-          >
-            <Trash2 aria-hidden="true" />
-            {confirmClear ? "Confirm clear" : "Clear"}
-          </Button>
-        ) : null}
+        <div className="flex items-center gap-1">
+          {metrics.totalRuns > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-[10px]"
+              aria-label="Export run log as CSV"
+              onClick={() => {
+                const slug = scope.replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "") || "runs"
+                downloadCsvFile(`${slug}-run-log.csv`, automationRunRecordsToCsv(readAutomationRuns(scope)))
+              }}
+            >
+              <Download aria-hidden="true" />
+              CSV
+            </Button>
+          ) : null}
+          {metrics.totalRuns > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-[10px]"
+              onClick={() => {
+                if (confirmClear) {
+                  clearAutomationRuns(scope)
+                  setConfirmClear(false)
+                } else {
+                  setConfirmClear(true)
+                  setTimeout(() => setConfirmClear(false), 3000)
+                }
+              }}
+            >
+              <Trash2 aria-hidden="true" />
+              {confirmClear ? "Confirm clear" : "Clear"}
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {metrics.totalRuns === 0 ? (

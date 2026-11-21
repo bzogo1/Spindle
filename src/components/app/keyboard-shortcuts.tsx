@@ -14,6 +14,8 @@ import {
 
 import { NAV_ITEMS } from "./nav-items"
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NEW_PROJECT_STORAGE_KEY } from "./new-project-events"
+import { FOCUS_PAGE_SEARCH_EVENT, OPEN_SHORTCUTS_EVENT } from "./app-shell-events"
+import { useFocusMode } from "./focus-mode"
 
 /** How long a leading "g" stays armed for the follow-up navigation key. */
 const GOTO_TIMEOUT_MS = 1000
@@ -69,6 +71,8 @@ function ShortcutKeys({ keys }: { keys: string[] }) {
  *
  * - `g` then a key jumps to a section (`g d` dashboard, `g p` projects, …)
  * - `n` opens the "New project" flow via the same event the command menu uses
+ * - `/` focuses the "search this page" box in the top bar
+ * - `Shift+F` toggles focus mode (hides sidebar and top bar); `Esc` exits it
  * - `?` toggles a help overlay listing every shortcut
  *
  * Shortcuts never fire while typing in form fields or while a modal overlay
@@ -77,9 +81,20 @@ function ShortcutKeys({ keys }: { keys: string[] }) {
 export function KeyboardShortcuts() {
   const router = useRouter()
   const pathname = usePathname()
+  const { focusMode, setFocusMode } = useFocusMode()
   const [helpOpen, setHelpOpen] = useState(false)
   /** Timestamp of the last bare "g"; expires after GOTO_TIMEOUT_MS. */
   const gotoArmedAt = useRef(0)
+
+  // The help dialog and command menu ask us to open the shortcuts overlay
+  // through a window event so they don't need a handle on this component.
+  useEffect(() => {
+    function onOpenShortcuts() {
+      setHelpOpen(true)
+    }
+    window.addEventListener(OPEN_SHORTCUTS_EVENT, onOpenShortcuts)
+    return () => window.removeEventListener(OPEN_SHORTCUTS_EVENT, onOpenShortcuts)
+  }, [])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -97,6 +112,28 @@ export function KeyboardShortcuts() {
         return
       }
       if (hasOpenOverlay()) return
+
+      // Escape leaves focus mode. (While a dialog is open the early return
+      // above leaves Escape to Radix, which closes the overlay instead.)
+      if (key === "escape") {
+        if (focusMode) {
+          event.preventDefault()
+          setFocusMode(false)
+        }
+        return
+      }
+
+      // "/" jumps into the page-search box; Shift+F toggles focus mode.
+      if (event.key === "/") {
+        event.preventDefault()
+        window.dispatchEvent(new Event(FOCUS_PAGE_SEARCH_EVENT))
+        return
+      }
+      if (event.shiftKey && key === "f") {
+        event.preventDefault()
+        setFocusMode(!focusMode)
+        return
+      }
 
       // `g <key>` navigation. A second "g" re-arms the sequence.
       const gotoArmed = Date.now() - gotoArmedAt.current < GOTO_TIMEOUT_MS
@@ -133,7 +170,7 @@ export function KeyboardShortcuts() {
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [pathname, router])
+  }, [pathname, router, focusMode, setFocusMode])
 
   return (
     <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
@@ -170,6 +207,18 @@ export function KeyboardShortcuts() {
             <li className="app-shortcuts-row">
               <span>New project</span>
               <ShortcutKeys keys={["n"]} />
+            </li>
+            <li className="app-shortcuts-row">
+              <span>Search this page</span>
+              <ShortcutKeys keys={["/"]} />
+            </li>
+            <li className="app-shortcuts-row">
+              <span>Focus mode</span>
+              <ShortcutKeys keys={["Shift", "F"]} />
+            </li>
+            <li className="app-shortcuts-row">
+              <span>Exit focus mode</span>
+              <ShortcutKeys keys={["Esc"]} />
             </li>
             <li className="app-shortcuts-row">
               <span>Command menu</span>

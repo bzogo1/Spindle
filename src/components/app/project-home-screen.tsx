@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 
 import { ActivityFeed } from "@/components/app/activity-feed"
+import { ProjectShareDialog } from "@/components/app/project-share-dialog"
 import { ScreenState } from "@/components/app/states/screen-state"
 import { EmptyState } from "@/components/app/states/empty-state"
 import { InlineError } from "@/components/app/states/inline-error"
@@ -181,9 +182,19 @@ function InviteMemberForm({
   )
 }
 
-function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; projectId: string }) {
+function ProjectHomeLoaded({
+  data,
+  projectId,
+  onChanged,
+}: {
+  data: ProjectHomeData
+  projectId: string
+  /** Refetches project home data after membership changes (share dialog). */
+  onChanged: () => void
+}) {
   const [invitedMembers, setInvitedMembers] = useState<ProjectMember[]>([])
   const [inviteOpen, setInviteOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   // Live activity events merge with the fetched feed by id so new events
   // appear without a refetch (same channel as the project activity page).
   const liveActivity = useActivityEvents(projectId)
@@ -212,6 +223,7 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
   useEffect(() => {
     setInvitedMembers([])
     setInviteOpen(false)
+    setShareOpen(false)
   }, [projectId])
 
   return (
@@ -247,6 +259,10 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
                 <FlaskConical aria-hidden="true" />
                 Open lab
               </Link>
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setShareOpen(true)}>
+              <UserPlus aria-hidden="true" />
+              Share
             </Button>
             <Button asChild>
               <Link href={`/projects/${projectId}/agent`}>
@@ -529,6 +545,13 @@ function ProjectHomeLoaded({ data, projectId }: { data: ProjectHomeData; project
           <ActivityFeed events={recentActivity} projectId={projectId} />
         )}
       </section>
+
+      <ProjectShareDialog
+        project={project}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        onChanged={onChanged}
+      />
     </div>
   )
 }
@@ -545,7 +568,7 @@ export function ProjectHomeScreen({ projectId }: { projectId: string }) {
       isRetrying={query.isRetrying}
       onRetry={query.refetch}
     >
-      {(data) => <ProjectHomeLoaded data={data} projectId={projectId} />}
+      {(data) => <ProjectHomeLoaded data={data} projectId={projectId} onChanged={query.refetch} />}
     </ScreenState>
   )
 }

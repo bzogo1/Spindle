@@ -18,6 +18,7 @@ import {
   History,
   Pencil,
   RotateCcw,
+  Share2,
   Trash2,
   X,
 } from "lucide-react"
@@ -417,13 +418,21 @@ export function FilePreviewDrawer({
   previewUrl,
   onRename,
   onRestore,
+  onShare,
   error,
   onRetry,
+  variant = "drawer",
 }: {
   file: FileNode
   files: FileNode[]
   projectId: string
   onClose: () => void
+  /**
+   * Surface the preview renders in. `"drawer"` (default) is the right-side
+   * panel used by deep links and row activation; `"modal"` renders the same
+   * content in a centered dialog for the row "Preview" action.
+   */
+  variant?: "drawer" | "modal"
   onDownload: (file: FileNode) => void
   onDelete: (file: FileNode) => void
   /** Optional version history; the API does not expose this yet. */
@@ -436,6 +445,9 @@ export function FilePreviewDrawer({
   /** Optional restore handler wired to `workspace.restoreFileNodeVersion`;
    * enables the per-version Restore action. */
   onRestore?: (file: FileNode, version: FileVersion) => void | Promise<unknown>
+  /** Optional share handler; enables the Share action that opens the
+   * file-share dialog for this node. */
+  onShare?: (file: FileNode) => void
   /** Upstream load error; shows the error state instead of the preview. */
   error?: string | null
   onRetry?: () => void
@@ -637,7 +649,11 @@ export function FilePreviewDrawer({
     >
       <DialogContent
         showCloseButton={false}
-        className="data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right top-0 right-0 bottom-0 left-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none p-0 sm:left-auto sm:max-w-xl"
+        className={
+          variant === "modal"
+            ? "h-[85vh] max-h-[85vh] w-[calc(100%-2rem)] max-w-2xl gap-0 overflow-hidden rounded-xl p-0 sm:max-w-3xl"
+            : "data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right top-0 right-0 bottom-0 left-0 w-full max-w-none translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-none p-0 sm:left-auto sm:max-w-xl"
+        }
       >
         <div className="fm-drawer">
           <header className="fm-drawer-head">
@@ -968,6 +984,11 @@ export function FilePreviewDrawer({
               {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
               {copied ? "Copied" : "Copy link"}
             </button>
+            {onShare ? (
+              <button type="button" className="fm-btn" onClick={() => onShare(file)}>
+                <Share2 aria-hidden="true" /> Share
+              </button>
+            ) : null}
             <button type="button" className="fm-btn fm-btn--danger" onClick={() => onDelete(file)}>
               <Trash2 aria-hidden="true" /> Delete
             </button>

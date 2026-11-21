@@ -15,6 +15,7 @@ import { OfflineIndicator } from "@/components/pwa/offline-status"
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration"
 import { AppNotificationsProvider } from "@/components/app/notifications-provider"
 import { UploadQueueDock } from "@/components/uploads/upload-dock"
+import { UploadQueueIndicator } from "@/components/uploads/upload-queue-indicator"
 import { UploadsProvider } from "@/components/uploads/upload-provider"
 import { IconSprite } from "@/components/site/icon-sprite"
 import { LanguageProvider } from "@/components/i18n/language-provider"
@@ -55,11 +56,18 @@ export const viewport: Viewport = {
 }
 
 // Applied before paint so the shell never flashes the wrong theme. Defaults to
-// dark, matching the marketing site; "light" is the only override.
+// dark, matching the marketing site; "light" is absolute, and "system" follows
+// prefers-color-scheme (live OS changes are handled by useAppTheme).
 const themeScript = `(function () {
   try {
     var saved = localStorage.getItem('spindle-app-theme');
-    document.documentElement.classList.toggle('dark', saved !== 'light');
+    var dark = true;
+    if (saved === 'light') {
+      dark = false;
+    } else if (saved === 'system') {
+      dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    document.documentElement.classList.toggle('dark', dark);
   } catch (e) {
     document.documentElement.classList.add('dark');
   }
@@ -140,6 +148,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                     {children}
                   </AppShell>
                   <UploadQueueDock />
+                  <UploadQueueIndicator />
                 </UploadsProvider>
               </AppNotificationsProvider>
             </MockSessionProvider>

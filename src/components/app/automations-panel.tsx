@@ -1,20 +1,39 @@
 "use client"
 
-import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from "react"
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react"
 import {
   ArrowDown,
   ArrowUp,
+  Braces,
+  Bug,
   CalendarClock,
+  CalendarDays,
   ChartColumn,
   ChevronDown,
   ChevronRight,
+  Download,
+  FileCode2,
+  FileJson,
   FlaskConical,
+  GitCompareArrows,
   History,
+  Link2,
   Pencil,
   Play,
   Plus,
+  RotateCcw,
   Sparkles,
   Trash2,
+  Upload,
   Webhook,
   X,
   Zap,
@@ -33,8 +52,20 @@ import {
 } from "@/lib/automations/schedule"
 import { graphToStudioDraft, starterAutomationGraph } from "@/lib/automations/graph-draft"
 import { automationStats, workspaceAutomationStats } from "@/lib/automations/stats"
-import { isGraphValid, type AutomationGraph } from "@/lib/automation-graph"
+import {
+  GRAPH_TRANSFER_MAX_BYTES,
+  graphTransferFormatForFileName,
+  isGraphValid,
+  parseGraphImport,
+  type AutomationGraph,
+} from "@/lib/automation-graph"
 import { AutomationBuilder } from "@/components/automation-builder"
+import { AutomationDebugDialog } from "./automation-debug-dialog"
+import { AutomationLogViewer } from "./automation-log-viewer"
+import {
+  AutomationScheduleCalendar,
+  type ScheduleCalendarEntry,
+} from "./automation-schedule-calendar"
 import {
   builderStateFromCron,
   builderTriggerLabel,
@@ -52,17 +83,47 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { SkeletonTable } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { useToast } from "@/components/ui/toast"
 import { EmptyState } from "@/components/app/states/empty-state"
 import { InlineError } from "@/components/app/states/inline-error"
+import { AutomationRunLog } from "@/components/app/automation-run-log"
+import {
+  AutomationRunPreviewDialog,
+  type AutomationRunResult,
+} from "@/components/app/automation-run-preview-dialog"
+import {
+  AutomationScheduleDialog,
+  type ScheduleDialogResult,
+} from "@/components/app/automation-schedule-dialog"
+import {
+  AutomationVariablesDialog,
+  type AutomationVariables,
+} from "@/components/app/automation-variables-dialog"
+import { AutomationTestDialog } from "@/components/app/automation-test-dialog"
 
 import { formatDateTime, formatDurationMs, formatRelativeTime } from "./format"
+import {
+  AUTOMATION_SHARE_PARAM,
+  automationShareHref,
+  automationToShareConfig,
+  downloadAutomationConfig,
+  readAutomationShareParam,
+  type AutomationShareConfig,
+} from "./automation-share"
+import { useNow } from "./agent-run-log-shared"
+import { downloadAutomationRunsCsv, RunDiff } from "./automation-run-diff"
 
 type TriggerKind = "schedule" | "event" | "webhook"
 type RunStatus = "succeeded" | "failed" | "running" | "queued" | "cancelled"
@@ -111,6 +172,10 @@ type Automation = {
   createdVia?: StudioMode
   /** Resolved run schedule; cron expressions also live in `trigger.meta`. */
   schedule?: AutomationSchedule
+  /** When false, the workspace doesn't notify on failed runs. */
+  failureAlerts: boolean
+  /** User-defined variables available to the automation's steps. */
+  variables?: AutomationVariables
 }
 
 /** Fully-resolved configuration produced by any of the three studio modes. */
@@ -185,10 +250,12 @@ const MOCK_AUTOMATIONS: Automation[] = [
       meta: "0 9 * * *",
     },
     enabled: true,
+    failureAlerts: true,
     lastRunAt: "2026-11-19T09:00:00.000Z",
     lastRunStatus: "succeeded",
     createdVia: "ask",
     schedule: { kind: "cron", expr: "0 9 * * *" },
+    variables: { channel: "#project-updates", lookback: "24h" },
     steps: [
       {
         id: "step_digest_trigger",
@@ -258,6 +325,7 @@ const MOCK_AUTOMATIONS: Automation[] = [
       meta: "workspace event",
     },
     enabled: true,
+    failureAlerts: true,
     lastRunAt: "2026-11-18T16:42:00.000Z",
     lastRunStatus: "failed",
     createdVia: "build",
@@ -314,6 +382,7 @@ const MOCK_AUTOMATIONS: Automation[] = [
       meta: "0 17 * * 5",
     },
     enabled: false,
+    failureAlerts: true,
     lastRunAt: "2026-11-14T17:00:00.000Z",
     lastRunStatus: "succeeded",
     createdVia: "cron",
@@ -381,6 +450,39 @@ function conditionLabelFor(key: string) {
 function statusLabel(status: RunStatus | null) {
   if (!status) return "Never run"
   return status.replace(/_/g, " ")
+}
+
+/**
+ * Live-updating run status pill. Re-renders on a timer — every second while a
+ * run is queued/running (showing elapsed time), otherwise every 30s so the
+ * label stays fresh without churning the table.
+ */
+function LiveRunStatus({
+  status,
+  startedAt,
+}: {
+  status: RunStatus | null
+  startedAt?: string | null
+}) {
+  const inFlight = status === "running" || status === "queued"
+  const now = useNow(inFlight ? 1000 : 30_000)
+  const elapsedMs =
+    inFlight && startedAt ? Math.max(0, now - new Date(startedAt).getTime()) : null
+  return (
+    <span
+      className={`app-automation-status${status ? ` is-${status}` : ""}`}
+      aria-live={inFlight ? "polite" : undefined}
+    >
+      <span
+        className={`app-status-dot${status ? ` is-${status}` : ""}`}
+        aria-hidden="true"
+      />
+      {statusLabel(status)}
+      {elapsedMs !== null && !Number.isNaN(elapsedMs) ? (
+        <small aria-hidden="true"> · {formatDurationMs(elapsedMs)}</small>
+      ) : null}
+    </span>
+  )
 }
 
 function successRateLabel(rate: number | null) {
@@ -871,15 +973,63 @@ function CronPanel({
   )
 }
 
+/** Convert a decoded share-link config back into a studio draft for review. */
+function shareConfigToStudioDraft(config: AutomationShareConfig): StudioDraft {
+  return {
+    name: config.name,
+    triggerKind: config.triggerKind,
+    triggerDetail: config.triggerDetail,
+    triggerMeta: config.triggerMeta,
+    eventName: config.eventName,
+    webhookUrl: config.webhookUrl,
+    actionKey: config.actionKey,
+    actionLabel: config.actionLabel,
+    prompt: config.prompt,
+    steps: config.steps.map((step) => ({
+      id: nextStepId("share"),
+      kind: step.kind,
+      label: step.label,
+      detail: step.detail,
+    })),
+    mode: config.mode,
+    schedule: config.schedule,
+  }
+}
+
+/**
+ * Convert an imported automation graph (see `transfer.ts`) into a studio
+ * draft so it opens in the create dialog for review — the same flow shared
+ * links use. Returns null when the graph can't be flattened into the studio
+ * model (e.g. no mappable action node).
+ */
+function importedGraphToStudioDraft(graph: AutomationGraph): StudioDraft | null {
+  const promptNode = graph.nodes.find((node) => node.type === "agent.task")
+  const prompt =
+    typeof promptNode?.config.prompt === "string" ? String(promptNode.config.prompt) : ""
+  const draft = graphToStudioDraft(graph, { name: graph.name, prompt })
+  if (!draft) return null
+  return {
+    ...draft,
+    actionLabel: actionLabelFor(draft.actionKey),
+    schedule:
+      draft.triggerKind === "schedule" && draft.triggerMeta
+        ? { kind: "cron", expr: draft.triggerMeta }
+        : undefined,
+  }
+}
+
 function StudioDialog({
   open,
   onOpenChange,
   editing,
+  initialDraft,
   onSave,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   editing: Automation | null
+  /** Pre-filled draft from a shared automation link (create mode only). */
+  initialDraft?: StudioDraft | null
   onSave: (draft: StudioDraft) => void
 }) {
   const [mode, setMode] = useState<StudioMode>("ask")
@@ -908,6 +1058,75 @@ function StudioDialog({
   const [graph, setGraph] = useState<AutomationGraph>(() => starterAutomationGraph(""))
 
   const [errors, setErrors] = useState<DraftErrors>({})
+
+  /**
+   * Seed every tab's state from a shared-link draft so whichever mode it was
+   * authored in reopens with the same values. Steps are reverse-mapped to
+   * action/condition keys by label; anything unrecognised falls back to the
+   * draft's primary action.
+   */
+  function seedSharedDraft(draft: StudioDraft) {
+    setMode(draft.mode)
+    setName(draft.name)
+    setPrompt(draft.prompt)
+    setAskText(draft.prompt)
+    setAskResult(null)
+
+    // Builder tab (schedule/event only — webhook drafts live on the Graph tab).
+    setBTriggerKind(draft.triggerKind === "event" ? "event" : "schedule")
+    setBEventName(draft.eventName ?? "file.uploaded")
+    const cronExpr =
+      draft.triggerMeta ?? (draft.schedule?.kind === "cron" ? draft.schedule.expr : "")
+    const restored = cronExpr ? builderStateFromCron(cronExpr) : null
+    if (restored) {
+      setBFrequency(restored.frequency)
+      setBTime(restored.time)
+      setBDays(restored.days)
+    } else {
+      setBFrequency("daily")
+      setBTime("17:00")
+      setBDays([1])
+    }
+    const actionKeys = new Set<string>()
+    const conditionKeys = new Set<string>()
+    for (const step of draft.steps) {
+      if (step.kind === "action") {
+        const key = ACTION_OPTIONS.find((option) => option.label === step.label)?.value
+        if (key) actionKeys.add(key)
+      } else if (step.kind === "condition") {
+        const key = CONDITION_OPTIONS.find((option) => option.label === step.label)?.value
+        if (key) conditionKeys.add(key)
+      }
+    }
+    setBActions(actionKeys.size > 0 ? [...actionKeys] : [draft.actionKey])
+    setBConditions([...conditionKeys])
+
+    // Cron tab.
+    if (draft.schedule?.kind === "interval") {
+      setCKind("interval")
+      setCEvery(String(draft.schedule.every))
+      setCUnit(draft.schedule.unit)
+    } else {
+      setCKind("cron")
+      setCExpr(cronExpr || "0 17 * * *")
+    }
+    setCActionKey(draft.actionKey)
+
+    // Graph tab — rebuild the closest starter graph for the trigger kind.
+    const graphTrigger =
+      draft.triggerKind === "webhook"
+        ? "webhook"
+        : draft.triggerKind === "event"
+          ? "event"
+          : "schedule"
+    setGraph(
+      starterAutomationGraph(
+        draft.name,
+        graphTrigger,
+        graphTrigger === "webhook" ? (draft.webhookUrl ?? "") : cronExpr || "0 9 * * *",
+      ),
+    )
+  }
 
   useEffect(() => {
     if (!open) return
@@ -956,6 +1175,8 @@ function StudioDialog({
       }
       setBTriggerKind(isEvent ? "event" : "schedule")
       if (editing.actionKey) setCActionKey(editing.actionKey)
+    } else if (initialDraft) {
+      seedSharedDraft(initialDraft)
     } else {
       setMode("ask")
       setAskText("")
@@ -974,7 +1195,7 @@ function StudioDialog({
       setCActionKey("agent-task")
       setGraph(starterAutomationGraph(""))
     }
-  }, [open, editing])
+  }, [open, editing, initialDraft])
 
   useEffect(
     () => () => {
@@ -1300,7 +1521,9 @@ function StudioDialog({
           <DialogDescription>
             {editing
               ? "Update this workspace automation. Changes apply to local state only."
-              : "Create a mock automation for this workspace. It is saved to local state only."}
+              : initialDraft
+                ? "Prefilled from a shared automation link — review the config and save to add it. Saved to local state only."
+                : "Create a mock automation for this workspace. It is saved to local state only."}
           </DialogDescription>
         </DialogHeader>
 
@@ -1537,6 +1760,22 @@ export function AutomationsPanel() {
   const [editing, setEditing] = useState<Automation | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Automation | null>(null)
   const [expandedAutomationId, setExpandedAutomationId] = useState<string | null>(null)
+  const [diffAutomationId, setDiffAutomationId] = useState<string | null>(null)
+  // Draft pre-filled from a shared automation link (?automation=<config>)
+  // or an imported graph file.
+  const [pendingShare, setPendingShare] = useState<StudioDraft | null>(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [debugTarget, setDebugTarget] = useState<Automation | null>(null)
+  const [runPreview, setRunPreview] = useState<{
+    automation: Automation
+    runId: string
+  } | null>(null)
+  const [scheduleTarget, setScheduleTarget] = useState<Automation | null>(null)
+  const [variablesTarget, setVariablesTarget] = useState<Automation | null>(null)
+  const [testTarget, setTestTarget] = useState<Automation | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
+  // Pending simulated run completions; cleared on unmount.
+  const runTimers = useRef<number[]>([])
 
   const load = useCallback(() => {
     setLoadState("loading")
@@ -1553,6 +1792,37 @@ export function AutomationsPanel() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Shared automation links carry the full config in `?automation=`; decode
+  // it once on mount, strip the param so a refresh doesn't re-import, and
+  // reopen the create dialog pre-filled for review.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has(AUTOMATION_SHARE_PARAM)) return
+    const config = readAutomationShareParam(window.location.search)
+    const url = new URL(window.location.href)
+    url.searchParams.delete(AUTOMATION_SHARE_PARAM)
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`)
+    if (!config) {
+      toast({
+        variant: "error",
+        title: "Invalid share link",
+        description: "That automation link didn't contain a valid config.",
+      })
+      return
+    }
+    setEditing(null)
+    setPendingShare(shareConfigToStudioDraft(config))
+    setStudioOpen(true)
+  }, [])
+
+  useEffect(
+    () => () => {
+      runTimers.current.forEach((timer) => window.clearTimeout(timer))
+      runTimers.current = []
+    },
+    [],
+  )
 
   function setAutomationEnabled(id: string, enabled: boolean) {
     setAutomations((current) =>
@@ -1572,14 +1842,130 @@ export function AutomationsPanel() {
     setExpandedAutomationId((current) => (current === id ? null : id))
   }
 
+  /** Per-automation failure-alert preference (mock — swap for the API). */
+  function setFailureAlerts(id: string, enabled: boolean) {
+    setAutomations((current) =>
+      current.map((automation) =>
+        automation.id === id ? { ...automation, failureAlerts: enabled } : automation,
+      ),
+    )
+    const automation = automations.find((a) => a.id === id)
+    toast({
+      variant: enabled ? "success" : "default",
+      title: enabled ? "Failure alerts on" : "Failure alerts off",
+      description: automation
+        ? `"${automation.name}" ${enabled ? "will notify you when a run fails." : "won't send failure notifications."}`
+        : undefined,
+    })
+  }
+
+  /**
+   * Import an automation config file. Accepts the graph DSL produced by
+   * `serializeGraph`/`serializeGraphYaml` (JSON or YAML, see `transfer.ts`);
+   * the parsed graph is flattened into a studio draft and opened in the
+   * create dialog for review — the same flow shared links use.
+   */
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    // Reset so picking the same file twice still fires onChange.
+    event.target.value = ""
+    if (!file) return
+
+    if (file.size > GRAPH_TRANSFER_MAX_BYTES) {
+      toast({
+        variant: "error",
+        title: "File too large",
+        description: `Automation files must be ${Math.round(GRAPH_TRANSFER_MAX_BYTES / 1024)} KB or smaller.`,
+      })
+      return
+    }
+
+    let source: string
+    try {
+      source = await file.text()
+    } catch {
+      toast({
+        variant: "error",
+        title: "Couldn't read file",
+        description: `"${file.name}" could not be read — check the file and try again.`,
+      })
+      return
+    }
+
+    const format = graphTransferFormatForFileName(file.name)
+    const result = parseGraphImport(source, format)
+    if (!result.ok) {
+      toast({
+        variant: "error",
+        title: "Import failed",
+        description: result.error,
+      })
+      return
+    }
+
+    const draft = importedGraphToStudioDraft(result.graph)
+    if (!draft) {
+      toast({
+        variant: "error",
+        title: "Import failed",
+        description:
+          "The graph is valid but can't be represented as a workspace automation (it needs a recognized trigger and action).",
+      })
+      return
+    }
+
+    setEditing(null)
+    setPendingShare(draft)
+    setStudioOpen(true)
+    const warnings = result.issues.filter((issue) => issue.severity === "warning").length
+    toast({
+      variant: "success",
+      title: "Automation imported",
+      description:
+        `"${draft.name}" was loaded into the editor — review and save to add it.` +
+        (warnings > 0 ? ` ${warnings} warning${warnings === 1 ? "" : "s"} reported by validation.` : ""),
+    })
+  }
+
   function openCreate() {
     setEditing(null)
+    setPendingShare(null)
     setStudioOpen(true)
   }
 
   function openEdit(automation: Automation) {
     setEditing(automation)
+    setPendingShare(null)
     setStudioOpen(true)
+  }
+
+  /**
+   * Copy a shareable link encoding this automation's config in the
+   * `?automation=` param — opening it re-creates the config via the studio
+   * dialog (see `automation-share.ts`).
+   */
+  async function shareAutomation(automation: Automation) {
+    try {
+      await navigator.clipboard.writeText(
+        automationShareHref(automationToShareConfig(automation)),
+      )
+      toast({
+        variant: "success",
+        title: "Share link copied",
+        description: `"${automation.name}" config is encoded in the link.`,
+      })
+    } catch {
+      toast({
+        variant: "error",
+        title: "Couldn't copy link",
+        description: "Clipboard access was denied — copy the URL manually instead.",
+      })
+    }
+  }
+
+  /** Download the automation config as JSON or YAML (`automation-share.ts`). */
+  function exportAutomationConfig(automation: Automation, format: "json" | "yaml") {
+    downloadAutomationConfig(automationToShareConfig(automation), format)
   }
 
   function saveDraft(draft: StudioDraft) {
@@ -1628,6 +2014,7 @@ export function AutomationsPanel() {
         trigger,
         schedule,
         enabled: true,
+        failureAlerts: true,
         lastRunAt: null,
         lastRunStatus: null,
         runs: [],
@@ -1646,14 +2033,122 @@ export function AutomationsPanel() {
     })
     setStudioOpen(false)
     setEditing(null)
+    setPendingShare(null)
   }
 
   /**
    * Mock manual run — prepends a "running" entry to the automation's history
    * and stamps lastRunAt so interval schedules re-anchor from this moment.
-   * Swap for the automations API when it lands.
+   * A simulated completion lands a couple of seconds later so the status
+   * indicator visibly transitions. Swap for the automations API when it lands.
    */
-  function runNow(automation: Automation) {
+  function runNow(
+    automation: Automation,
+    options?: { label?: string; trigger?: string; intro?: string },
+  ) {
+    const startedAt = new Date().toISOString()
+    const run: AutomationRun = {
+      id: `run_now_${Date.now().toString(36)}`,
+      label: options?.label ?? "Manual run",
+      trigger: options?.trigger ?? "manual",
+      startedAt,
+      duration: "—",
+      status: "running",
+      logs: [
+        `${formatDateTime(startedAt)} ${options?.intro ?? "Triggered manually from the automations panel"}`,
+        "Queued for the automation runner…",
+      ],
+    }
+    setAutomations((current) =>
+      current.map((item) =>
+        item.id === automation.id
+          ? {
+              ...item,
+              lastRunAt: startedAt,
+              lastRunStatus: "running" as RunStatus,
+              runs: [run, ...item.runs],
+            }
+          : item,
+      ),
+    )
+    toast({
+      variant: "success",
+      title: "Run started",
+      description: `"${automation.name}" was triggered manually.`,
+    })
+
+    // Deterministic-ish mock outcome derived from the run id: ~80% succeed.
+    const seed = [...run.id].reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    const durationMs = 2_200 + (seed % 1_800)
+    const succeeded = seed % 5 !== 0
+    const timer = window.setTimeout(() => {
+      const finishedAt = new Date().toISOString()
+      const status = (succeeded ? "succeeded" : "failed") as RunStatus
+      setAutomations((current) =>
+        current.map((item) => {
+          if (item.id !== automation.id) return item
+          // Only stamp lastRunStatus if this run is still the newest one.
+          const isNewest = item.runs[0]?.id === run.id
+          return {
+            ...item,
+            lastRunStatus: isNewest ? status : item.lastRunStatus,
+            runs: item.runs.map((entry) =>
+              entry.id === run.id
+                ? {
+                    ...entry,
+                    status,
+                    duration: formatDurationMs(durationMs),
+                    durationMs,
+                    logs: [
+                      ...entry.logs,
+                      succeeded
+                        ? `${formatDateTime(finishedAt)} Completed in ${formatDurationMs(durationMs)}`
+                        : `${formatDateTime(finishedAt)} Failed: simulated runner error after ${formatDurationMs(durationMs)}`,
+                    ],
+                  }
+                : entry,
+            ),
+          }
+        }),
+      )
+    }, durationMs)
+    runTimers.current.push(timer)
+  }
+
+  /**
+   * Retry — re-runs the automation with the same parameters as its latest
+   * run. The mock runner doesn't distinguish parameters, so this is a manual
+   * run labelled as a retry of the previous attempt.
+   */
+  function retryRun(automation: Automation) {
+    const lastRun = automation.runs[0]
+    runNow(automation, {
+      label: lastRun ? `Retry of ${lastRun.label}` : "Retry run",
+      trigger: "retry",
+      intro: `Re-running "${automation.name}" with the same parameters as the previous run`,
+    })
+  }
+
+  /** Download the automation's full run history as a CSV file. */
+  function exportRunLog(automation: Automation) {
+    downloadAutomationRunsCsv(automation.name, automation.runs)
+    toast({
+      variant: "success",
+      title: "Run log exported",
+      description: `"${automation.name}" run history was downloaded as CSV.`,
+    })
+  }
+
+  function toggleRunDiff(id: string) {
+    setDiffAutomationId((current) => (current === id ? null : id))
+  }
+
+  /**
+   * "Run now" with preview: records a running entry immediately, then opens
+   * the run-preview dialog which streams the simulated execution. The dialog
+   * reports back via `handlePreviewFinish`/`handlePreviewProgress`.
+   */
+  function startRunPreview(automation: Automation) {
     const startedAt = new Date().toISOString()
     const run: AutomationRun = {
       id: `run_now_${Date.now().toString(36)}`,
@@ -1679,11 +2174,134 @@ export function AutomationsPanel() {
           : item,
       ),
     )
+    setRunPreview({ automation, runId: run.id })
     toast({
       variant: "success",
       title: "Run started",
       description: `"${automation.name}" was triggered manually.`,
     })
+  }
+
+  /** Mirror streamed log lines into the pending run so history stays live. */
+  function handlePreviewProgress(lines: string[]) {
+    const current = runPreview
+    if (!current) return
+    const { automation, runId } = current
+    setAutomations((items) =>
+      items.map((item) =>
+        item.id === automation.id
+          ? {
+              ...item,
+              runs: item.runs.map((entry) =>
+                entry.id === runId ? { ...entry, logs: lines } : entry,
+              ),
+            }
+          : item,
+      ),
+    )
+  }
+
+  /** Record the preview outcome on the pending run entry. */
+  function handlePreviewFinish(result: AutomationRunResult) {
+    const current = runPreview
+    setRunPreview(null)
+    if (!current) return
+    const { automation, runId } = current
+    const status = result.status as RunStatus
+    setAutomations((items) =>
+      items.map((item) => {
+        if (item.id !== automation.id) return item
+        const isNewest = item.runs[0]?.id === runId
+        return {
+          ...item,
+          lastRunStatus: isNewest ? status : item.lastRunStatus,
+          runs: item.runs.map((entry) =>
+            entry.id === runId
+              ? {
+                  ...entry,
+                  status,
+                  duration:
+                    result.status === "cancelled"
+                      ? entry.duration
+                      : formatDurationMs(result.durationMs),
+                  durationMs: result.durationMs,
+                  logs: result.logs,
+                }
+              : entry,
+          ),
+        }
+      }),
+    )
+    toast({
+      variant: result.status === "succeeded" ? "success" : "default",
+      title:
+        result.status === "succeeded"
+          ? "Run completed"
+          : result.status === "cancelled"
+            ? "Run cancelled"
+            : "Run failed",
+      description: `"${automation.name}" ${result.status} in ${formatDurationMs(result.durationMs)}.`,
+    })
+  }
+
+  /** Persist a new schedule from the schedule modal onto the automation. */
+  function saveSchedule(automationId: string, result: ScheduleDialogResult) {
+    setAutomations((current) =>
+      current.map((automation) =>
+        automation.id === automationId
+          ? {
+              ...automation,
+              schedule: result.schedule,
+              trigger: {
+                kind: "schedule" as const,
+                label: "Schedule",
+                detail: result.detail,
+                meta: result.meta,
+              },
+              steps: automation.steps?.map((step, index) =>
+                index === 0 && step.kind === "trigger"
+                  ? {
+                      ...step,
+                      label: result.detail,
+                      detail:
+                        result.schedule.kind === "cron"
+                          ? result.schedule.expr
+                          : `${result.schedule.every} ${result.schedule.unit}`,
+                    }
+                  : step,
+              ),
+            }
+          : automation,
+      ),
+    )
+    const automation = automations.find((a) => a.id === automationId)
+    toast({
+      variant: "success",
+      title: "Schedule updated",
+      description: automation
+        ? `"${automation.name}" now runs: ${result.detail}.`
+        : result.detail,
+    })
+    setScheduleTarget(null)
+  }
+
+  /** Persist user-defined variables onto the automation. */
+  function saveVariables(automationId: string, variables: AutomationVariables) {
+    setAutomations((current) =>
+      current.map((automation) =>
+        automation.id === automationId ? { ...automation, variables } : automation,
+      ),
+    )
+    const automation = automations.find((a) => a.id === automationId)
+    const count = Object.keys(variables).length
+    toast({
+      variant: "success",
+      title: "Variables saved",
+      description: automation
+        ? `"${automation.name}" has ${count} variable${count === 1 ? "" : "s"} defined.`
+        : undefined,
+    })
+    setVariablesTarget(null)
   }
 
   function confirmDelete(id: string) {
@@ -1702,6 +2320,22 @@ export function AutomationsPanel() {
     automations.map((automation) => [automation.id, automationStats(automation.runs)]),
   )
 
+  // Entries for the schedule calendar — interval schedules keep their
+  // last-run anchor so occurrences line up with real executions.
+  const calendarEntries = useMemo<ScheduleCalendarEntry[]>(
+    () =>
+      automations.map((automation) => ({
+        id: automation.id,
+        name: automation.name,
+        enabled: automation.enabled,
+        triggerKind: automation.trigger.kind,
+        schedule: automation.schedule ?? cronScheduleFromTrigger(automation),
+        lastRunAt: automation.lastRunAt,
+        detail: automation.trigger.detail,
+      })),
+    [automations],
+  )
+
   return (
     <TooltipProvider delayDuration={0}>
       <section className="app-panel app-automations" aria-labelledby="automations-heading">
@@ -1713,10 +2347,38 @@ export function AutomationsPanel() {
               automations API lands.
             </p>
           </div>
-          <Button type="button" onClick={openCreate} disabled={loadState !== "ready"}>
-            <Plus aria-hidden="true" />
-            New automation
-          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,.yaml,.yml,application/json"
+              className="hidden"
+              aria-label="Import automation file"
+              onChange={(event) => void handleImportFile(event)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loadState !== "ready"}
+              onClick={() => importInputRef.current?.click()}
+            >
+              <Upload aria-hidden="true" />
+              Import
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loadState !== "ready"}
+              onClick={() => setCalendarOpen(true)}
+            >
+              <CalendarDays aria-hidden="true" />
+              Schedule
+            </Button>
+            <Button type="button" onClick={openCreate} disabled={loadState !== "ready"}>
+              <Plus aria-hidden="true" />
+              New automation
+            </Button>
+          </div>
         </div>
 
         {loadState === "ready" && automations.length > 0 ? (
@@ -1936,13 +2598,7 @@ export function AutomationsPanel() {
                           )}
                         </td>
                         <td>
-                          <span className={`app-automation-status${status ? ` is-${status}` : ""}`}>
-                            <span
-                              className={`app-status-dot${status ? ` is-${status}` : ""}`}
-                              aria-hidden="true"
-                            />
-                            {statusLabel(status)}
-                          </span>
+                          <LiveRunStatus status={status} startedAt={automation.lastRunAt} />
                         </td>
                         <td>
                           <Switch
@@ -1979,30 +2635,94 @@ export function AutomationsPanel() {
                               variant="ghost"
                               size="sm"
                               aria-label={`Run ${automation.name} now`}
-                              onClick={() => runNow(automation)}
+                              onClick={() => startRunPreview(automation)}
                             >
                               <Play aria-hidden="true" />
                             </Button>
-                            {/* Disabled buttons swallow pointer events, so the
-                              tooltip trigger wraps a focusable span instead. */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="app-automation-dry-run">
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled
-                                    aria-label={`Dry run ${automation.name}`}
-                                  >
-                                    <FlaskConical aria-hidden="true" />
-                                  </Button>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Dry run is unavailable until the automations API lands.
-                              </TooltipContent>
-                            </Tooltip>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Retry ${automation.name}`}
+                              disabled={
+                                automation.runs[0]?.status === "running" ||
+                                automation.runs[0]?.status === "queued"
+                              }
+                              onClick={() => retryRun(automation)}
+                            >
+                              <RotateCcw aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Test ${automation.name} in sandbox`}
+                              onClick={() => setTestTarget(automation)}
+                            >
+                              <FlaskConical aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Schedule ${automation.name}`}
+                              onClick={() => setScheduleTarget(automation)}
+                            >
+                              <CalendarClock aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Variables for ${automation.name}`}
+                              onClick={() => setVariablesTarget(automation)}
+                            >
+                              <Braces aria-hidden="true" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Share ${automation.name}`}
+                              onClick={() => void shareAutomation(automation)}
+                            >
+                              <Link2 aria-hidden="true" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  aria-label={`Export ${automation.name} config`}
+                                >
+                                  <Download aria-hidden="true" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onSelect={() => exportAutomationConfig(automation, "json")}
+                                >
+                                  <FileJson aria-hidden="true" />
+                                  Export JSON
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => exportAutomationConfig(automation, "yaml")}
+                                >
+                                  <FileCode2 aria-hidden="true" />
+                                  Export YAML
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Debug ${automation.name}`}
+                              onClick={() => setDebugTarget(automation)}
+                            >
+                              <Bug aria-hidden="true" />
+                            </Button>
                             <Button
                               type="button"
                               variant="ghost"
@@ -2036,8 +2756,51 @@ export function AutomationsPanel() {
                                     provide live history.
                                   </p>
                                 </div>
-                                <History aria-hidden="true" className="app-panel-icon" />
+                                <div className="flex items-center gap-2">
+                                  <span className="flex items-center gap-2 text-xs text-[var(--app-text-muted)]">
+                                    <span>Failure alerts</span>
+                                    <Switch
+                                      checked={automation.failureAlerts}
+                                      onCheckedChange={(checked) =>
+                                        setFailureAlerts(automation.id, checked)
+                                      }
+                                      aria-label={`Failure alerts for ${automation.name}`}
+                                    />
+                                  </span>
+                                  {automation.runs.length >= 2 ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      aria-expanded={diffAutomationId === automation.id}
+                                      onClick={() => toggleRunDiff(automation.id)}
+                                    >
+                                      <GitCompareArrows aria-hidden="true" />
+                                      {diffAutomationId === automation.id
+                                        ? "Hide run diff"
+                                        : "Compare last two runs"}
+                                    </Button>
+                                  ) : null}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={automation.runs.length === 0}
+                                    onClick={() => exportRunLog(automation)}
+                                  >
+                                    <Download aria-hidden="true" />
+                                    Export CSV
+                                  </Button>
+                                  <History aria-hidden="true" className="app-panel-icon" />
+                                </div>
                               </div>
+                              {diffAutomationId === automation.id &&
+                              automation.runs.length >= 2 ? (
+                                <RunDiff
+                                  previous={automation.runs[1]}
+                                  current={automation.runs[0]}
+                                />
+                              ) : null}
                               {automation.steps?.length ? (
                                 <ol className="app-automation-step-list">
                                   {automation.steps.map((step) => (
@@ -2056,13 +2819,7 @@ export function AutomationsPanel() {
                                   {automation.runs.map((run) => (
                                     <li key={run.id} className="app-automation-run">
                                       <div className="app-automation-run-head">
-                                        <span className={`app-automation-status is-${run.status}`}>
-                                          <span
-                                            className={`app-status-dot is-${run.status}`}
-                                            aria-hidden="true"
-                                          />
-                                          {statusLabel(run.status)}
-                                        </span>
+                                        <LiveRunStatus status={run.status} startedAt={run.startedAt} />
                                         <strong>{run.label}</strong>
                                         <span className="app-automation-run-trigger">
                                           {run.trigger}
@@ -2074,9 +2831,11 @@ export function AutomationsPanel() {
                                           {run.duration}
                                         </span>
                                       </div>
-                                      <pre className="app-automation-log">
-                                        {run.logs.join("\n")}
-                                      </pre>
+                                      {run.status === "running" ? (
+                                        <AutomationRunLog lines={run.logs} live />
+                                      ) : (
+                                        <AutomationLogViewer logs={run.logs} />
+                                      )}
                                     </li>
                                   ))}
                                 </ol>
@@ -2097,9 +2856,13 @@ export function AutomationsPanel() {
           open={studioOpen}
           onOpenChange={(open) => {
             setStudioOpen(open)
-            if (!open) setEditing(null)
+            if (!open) {
+              setEditing(null)
+              setPendingShare(null)
+            }
           }}
           editing={editing}
+          initialDraft={pendingShare}
           onSave={saveDraft}
         />
 
@@ -2107,6 +2870,67 @@ export function AutomationsPanel() {
           automation={deleteTarget}
           onClose={() => setDeleteTarget(null)}
           onConfirm={confirmDelete}
+        />
+
+        <AutomationScheduleCalendar
+          open={calendarOpen}
+          onOpenChange={setCalendarOpen}
+          entries={calendarEntries}
+        />
+
+        <AutomationDebugDialog
+          automation={debugTarget}
+          open={debugTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setDebugTarget(null)
+          }}
+        />
+
+        <AutomationRunPreviewDialog
+          source={runPreview?.automation ?? null}
+          open={runPreview !== null}
+          onOpenChange={(open) => {
+            if (!open) setRunPreview(null)
+          }}
+          onFinish={handlePreviewFinish}
+          onProgress={handlePreviewProgress}
+        />
+
+        <AutomationScheduleDialog
+          automationName={scheduleTarget?.name ?? ""}
+          schedule={
+            scheduleTarget?.schedule ??
+            (scheduleTarget?.trigger.meta && humanizeCron(scheduleTarget.trigger.meta).valid
+              ? { kind: "cron" as const, expr: scheduleTarget.trigger.meta }
+              : null)
+          }
+          open={scheduleTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setScheduleTarget(null)
+          }}
+          onSave={(result) => {
+            if (scheduleTarget) saveSchedule(scheduleTarget.id, result)
+          }}
+        />
+
+        <AutomationVariablesDialog
+          automationName={variablesTarget?.name ?? ""}
+          variables={variablesTarget?.variables}
+          open={variablesTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setVariablesTarget(null)
+          }}
+          onSave={(variables) => {
+            if (variablesTarget) saveVariables(variablesTarget.id, variables)
+          }}
+        />
+
+        <AutomationTestDialog
+          automation={testTarget}
+          open={testTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setTestTarget(null)
+          }}
         />
       </section>
     </TooltipProvider>

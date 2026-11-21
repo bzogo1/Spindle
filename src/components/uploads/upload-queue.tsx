@@ -2,7 +2,16 @@
 
 import { useEffect, useRef, useState } from "react"
 import type { ChangeEvent, DragEvent } from "react"
-import { FileUp, Pause, Play, RotateCcw, Trash2, UploadCloud, X } from "lucide-react"
+import {
+  Ban,
+  FileUp,
+  Pause,
+  Play,
+  RotateCcw,
+  Trash2,
+  UploadCloud,
+  X,
+} from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -155,6 +164,56 @@ export function UploadQueuePanel({
             <span>{Math.round(totals.percent)}%</span>
           </div>
           <Progress value={totals.percent} />
+        </div>
+      )}
+
+      {totals && files.length > 0 && (
+        <div className="flex items-center gap-1.5">
+          {totals.errorFiles > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                for (const file of files) {
+                  if (file.status === "error") queue.retry(file.id)
+                }
+              }}
+            >
+              <RotateCcw /> Retry failed ({totals.errorFiles})
+            </Button>
+          )}
+          {totals.activeFiles + totals.queuedFiles > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() => {
+                for (const file of files) {
+                  if (
+                    file.status === "queued" ||
+                    file.status === "uploading" ||
+                    file.status === "paused"
+                  ) {
+                    queue.cancel(file.id)
+                  }
+                }
+              }}
+            >
+              <Ban /> Cancel all
+            </Button>
+          )}
+          {totals.completedFiles > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              className="text-muted-foreground ml-auto"
+              onClick={() => queue.clearCompleted()}
+            >
+              <Trash2 /> Clear completed
+            </Button>
+          )}
         </div>
       )}
 

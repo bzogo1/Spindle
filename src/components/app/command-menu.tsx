@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { LogOut, Plus, Search, SunMoon, Users } from "lucide-react"
+import { Keyboard, LogOut, Plus, Search, SunMoon, Users } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ import {
 import { recentIds, recordUse } from "@/lib/search/recency"
 import { useSearchIndex } from "@/lib/search/use-search-index"
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NEW_PROJECT_STORAGE_KEY } from "./new-project-events"
+import { OPEN_SHORTCUTS_EVENT } from "./app-shell-events"
 
 // Cross-component signal for the dashboard's "New project" dialog. The event
 // names live in ./new-project-events so dashboard-screen can subscribe
@@ -186,6 +187,14 @@ export function CommandMenu() {
         icon: <SunMoon aria-hidden="true" />,
         action: "toggle-theme",
       },
+      {
+        id: "action:keyboard-shortcuts",
+        title: "Keyboard shortcuts",
+        subtitle: "Action",
+        keywords: "help keys hotkeys",
+        icon: <Keyboard aria-hidden="true" />,
+        action: "keyboard-shortcuts",
+      },
     ]
     for (const option of switchOptions) {
       if (option.slug === workspace?.slug) continue
@@ -300,6 +309,11 @@ export function CommandMenu() {
         break
       case "toggle-theme":
         toggleTheme()
+        break
+      case "keyboard-shortcuts":
+        // KeyboardShortcuts owns the shortcuts dialog; it listens for this
+        // event so the palette doesn't need a handle on that component.
+        window.dispatchEvent(new Event(OPEN_SHORTCUTS_EVENT))
         break
       case "switch-workspace": {
         const slug = item.meta?.slug

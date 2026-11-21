@@ -8,6 +8,7 @@ import { InlineError } from "@/components/app/states/inline-error"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { slugifyWorkspace, WORKSPACE_NAME_MAX as NAME_MAX } from "./create-workspace-dialog"
 
 /**
  * "New workspace" screen for `/app/workspaces/new`: a single-field form that
@@ -17,14 +18,12 @@ import { Input } from "@/components/ui/input"
  * members page is also where invitations are sent, so it doubles as the
  * "invite teammates" entry point.
  *
- * The slug preview mirrors `slugifyWorkspace` in `src/lib/auth/backend.ts`
- * (not exported there): lowercase, non-alphanumeric runs collapse to `-`,
- * edges trimmed, capped at 48 chars, falling back to "workspace".
+ * The slug preview uses `slugifyWorkspace` from create-workspace-dialog.tsx,
+ * which mirrors `slugifyWorkspace` in `src/lib/auth/backend.ts` (not
+ * exported there).
  */
 
 const WORKSPACES_API = "/api/workspaces"
-const NAME_MAX = 80
-const SLUG_MAX = 48
 
 interface CreatedWorkspace {
   id: string
@@ -38,16 +37,6 @@ interface WorkspacesResponse {
   ok: boolean
   workspace?: CreatedWorkspace
   message?: string
-}
-
-function slugifyWorkspace(name: string): string {
-  const slug = name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, SLUG_MAX)
-  return slug || "workspace"
 }
 
 export function CreateWorkspaceScreen() {

@@ -4,9 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import {
+  Archive,
+  ArchiveRestore,
   Bot,
   FolderKanban,
   HardDrive,
+  LayoutGrid,
+  List,
   Play,
   Plus,
   Search,
@@ -27,10 +31,11 @@ import {
   NoProjectsEmptyState,
   SearchNoResultsEmptyState,
 } from "@/components/dashboard/empty-states"
-import { useWorkspaceDashboard } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
+import { api, useMutation, useWorkspaceDashboard } from "@/lib/api"
 import { mergeActivityEvents } from "@/lib/activity/client"
 import { useActivityEvents } from "@/lib/activity/use-activity-events"
-import type { ProjectSummary, User } from "@/lib/api/types"
+import type { ProjectStatus, ProjectSummary, User } from "@/lib/api/types"
 
 import { ActivityFeed } from "./activity-feed"
 import { CopyButton } from "./copy-button"
@@ -42,19 +47,25 @@ import {
   type DashboardWidgetId,
 } from "./dashboard-widgets"
 import { NewProjectDialog } from "./new-project-dialog"
+import { orderByManual, useProjectDragOrder, type ProjectDragBinding } from "./project-order"
 import { dashboardMock } from "./dashboard-mock"
 import { formatBytes, formatRelativeTime } from "./format"
 import { OPEN_NEW_PROJECT_EVENT, OPEN_NEW_PROJECT_STORAGE_KEY } from "./new-project-events"
 import { useDashboardLayout, type DashboardProjectSort } from "./dashboard-layout"
 
 type ProjectSort = DashboardProjectSort
+type ViewMode = "grid" | "list"
 
 const SORT_OPTIONS: { value: ProjectSort; label: string }[] = [
   { value: "updated", label: "Recently updated" },
   { value: "name", label: "Name" },
   { value: "created", label: "Recently created" },
   { value: "files", label: "Most files" },
+  { value: "storage", label: "Storage used" },
 ]
+
+const DASHBOARD_VIEW_STORAGE_KEY = "spindle.dashboard.projects.view"
+const DASHBOARD_ORDER_STORAGE_KEY = "spindle.dashboard.projects.order"
 
 function projectTimestamp(project: ProjectSummary) {
   return project.latestActivityAt ?? project.updatedAt
@@ -69,6 +80,8 @@ function matchesQuery(project: ProjectSummary, query: string) {
     project.owner.name ?? "",
     project.owner.email,
     project.visibility,
+    project.status,
+    ...(project.members ?? []).map((member) => member.name ?? member.email),
   ]
     .join(" ")
     .toLowerCase()
@@ -80,6 +93,9 @@ function sortProjects(projects: ProjectSummary[], sort: ProjectSort) {
     if (sort === "name") return a.name.localeCompare(b.name)
     if (sort === "created") return b.createdAt.localeCompare(a.createdAt)
     if (sort === "files") return b.fileCount - a.fileCount || a.name.localeCompare(b.name)
+    if (sort === "storage") {
+      return b.storageBytes - a.storageBytes || a.name.localeCompare(b.name)
+    }
     return projectTimestamp(b).localeCompare(projectTimestamp(a)) || a.name.localeCompare(b.name)
   })
 }
@@ -124,17 +140,95 @@ const PROJECT_CARD_ACTIONS = [
   { label: "Chat", href: (id: string) => `/projects/${id}/chat` },
 ] as const
 
-function ProjectCard({ project }: { project: ProjectSummary }) {
+function projectCardClass(project: ProjectSummary, drag?: ProjectDragBinding) {
+  return [
+    "app-project-card",
+    project.status === "archived" ? "app-project-card--archived" : null,
+    drag?.dragging ? "app-project-card--dragging" : null,
+    drag?.dropTarget ? "app-project-card--drop-target" : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
+function projectRowClass(project: ProjectSummary, drag?: ProjectDragBinding) {
+  return [
+    "app-project-row",
+    project.status === "archived" ? "app-project-row--archived" : null,
+    drag?.dragging ? "app-project-row--dragging" : null,
+    drag?.dropTarget ? "app-project-row--drop-target" : null,
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
+function dragArticleProps(drag?: ProjectDragBinding) {
+  if (!drag) return {}
+  return {
+    draggable: drag.draggable,
+    onDragStart: drag.onDragStart,
+    onDragOver: drag.onDragOver,
+    onDrop: drag.onDrop,
+    onDragEnd: drag.onDragEnd,
+  }
+}
+
+function ArchiveAction({
+  project,
+  onArchive,
+  archiving,
+  archivePending,
+}: {
+  project: ProjectSummary
+  onArchive: (project: ProjectSummary) => void
+  archiving: boolean
+  archivePending: boolean
+}) {
+  const archived = project.status === "archived"
   return (
-    <article className="app-project-card">
+    <button
+      type="button"
+      className="app-card-action"
+      onClick={() => onArchive(project)}
+      disabled={archivePending}
+    >
+      {archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}
+      {archiving ? (archived ? "Restoring…" : "Archiving…") : archived ? "Restore" : "Archive"}
+    </button>
+  )
+}
+
+function ProjectCard({
+  project,
+  onArchive,
+  archiving,
+  archivePending,
+  drag,
+}: {
+  project: ProjectSummary
+  onArchive: (project: ProjectSummary) => void
+  archiving: boolean
+  archivePending: boolean
+  drag?: ProjectDragBinding
+}) {
+  const archived = project.status === "archived"
+  return (
+    <article className={projectCardClass(project, drag)} {...dragArticleProps(drag)}>
       <Link href={`/projects/${project.id}`} className="app-project-card-open">
         <div className="app-project-card-head">
           <span className="app-project-card-icon" aria-hidden="true">
             <FolderKanban />
           </span>
-          <Badge variant="outline" className="app-project-visibility">
-            {project.visibility}
-          </Badge>
+          <span className="app-project-card-badges">
+            {archived ? (
+              <Badge variant="outline" className="app-project-status">
+                Archived
+              </Badge>
+            ) : null}
+            <Badge variant="outline" className="app-project-visibility">
+              {project.visibility}
+            </Badge>
+          </span>
         </div>
         <h3>{project.name}</h3>
         <p>{project.description ?? "No description yet."}</p>
@@ -174,6 +268,78 @@ function ProjectCard({ project }: { project: ProjectSummary }) {
             {action.label}
           </Link>
         ))}
+        <ArchiveAction
+          project={project}
+          onArchive={onArchive}
+          archiving={archiving}
+          archivePending={archivePending}
+        />
+      </div>
+    </article>
+  )
+}
+
+function ProjectRow({
+  project,
+  onArchive,
+  archiving,
+  archivePending,
+  drag,
+}: {
+  project: ProjectSummary
+  onArchive: (project: ProjectSummary) => void
+  archiving: boolean
+  archivePending: boolean
+  drag?: ProjectDragBinding
+}) {
+  const archived = project.status === "archived"
+  return (
+    <article className={projectRowClass(project, drag)} {...dragArticleProps(drag)}>
+      <Link href={`/projects/${project.id}`} className="app-project-row-open">
+        <span className="app-project-card-icon" aria-hidden="true">
+          <FolderKanban />
+        </span>
+        <span className="app-project-row-main">
+          <span className="app-project-row-title">
+            <strong>{project.name}</strong>
+            {archived ? (
+              <Badge variant="outline" className="app-project-status">
+                Archived
+              </Badge>
+            ) : null}
+            <Badge variant="outline" className="app-project-visibility">
+              {project.visibility}
+            </Badge>
+          </span>
+          <small>{project.description ?? "No description yet."}</small>
+          <span className="app-project-row-meta">
+            <span>{project.owner.name ?? project.owner.email}</span>
+            <span aria-hidden="true">·</span>
+            <span>{project.memberCount} members</span>
+            <span aria-hidden="true">·</span>
+            <span>{project.fileCount} files</span>
+            <span aria-hidden="true">·</span>
+            <span>{formatBytes(project.storageBytes)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{formatRelativeTime(projectTimestamp(project))}</span>
+          </span>
+        </span>
+        <span className="app-project-row-side">
+          <MemberStack project={project} />
+        </span>
+      </Link>
+      <div className="app-project-row-actions" aria-label={`Quick actions for ${project.name}`}>
+        {PROJECT_CARD_ACTIONS.map((action) => (
+          <Link key={action.label} href={action.href(project.id)} className="app-card-action">
+            {action.label}
+          </Link>
+        ))}
+        <ArchiveAction
+          project={project}
+          onArchive={onArchive}
+          archiving={archiving}
+          archivePending={archivePending}
+        />
       </div>
     </article>
   )
@@ -183,6 +349,7 @@ export function DashboardScreen() {
   const query = useWorkspaceDashboard()
   // Workspace-wide live activity (no project filter) merged into the feed.
   const liveActivity = useActivityEvents()
+  const { toast } = useToast()
   const [search, setSearch] = useState("")
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -200,6 +367,64 @@ export function DashboardScreen() {
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [customizeOpen, setCustomizeOpen] = useState(false)
   const widgets = useDashboardWidgets(shareParams.widgets)
+  const [view, setView] = useState<ViewMode>("grid")
+  const [archivingId, setArchivingId] = useState<string | null>(null)
+  const setProjectStatus = useMutation((input: { id: string; status: ProjectStatus }) =>
+    api.projects.updateProject(input.id, { status: input.status }),
+  )
+  // Manual drag-and-drop order layered on top of the active sort; persisted
+  // to localStorage (no backend field for custom order yet).
+  const dragOrder = useProjectDragOrder(DASHBOARD_ORDER_STORAGE_KEY)
+
+  // Restore the persisted grid/list preference after mount (localStorage is
+  // not available during SSR, so the first paint always uses the grid default).
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(DASHBOARD_VIEW_STORAGE_KEY) === "list") setView("list")
+    } catch {
+      // Storage can be unavailable (private mode).
+    }
+  }, [])
+
+  function changeView(next: ViewMode) {
+    setView(next)
+    try {
+      window.localStorage.setItem(DASHBOARD_VIEW_STORAGE_KEY, next)
+    } catch {
+      // Storage can be unavailable (private mode).
+    }
+  }
+
+  function handleSortChange(next: ProjectSort) {
+    setSort(next)
+    // A different sort invalidates the manual drag arrangement.
+    dragOrder.reset()
+  }
+
+  async function handleArchive(project: ProjectSummary) {
+    if (archivingId) return
+    const archived = project.status !== "archived"
+    setArchivingId(project.id)
+    try {
+      await setProjectStatus.mutate({ id: project.id, status: archived ? "archived" : "active" })
+      toast({
+        title: archived ? "Project archived" : "Project restored",
+        description: archived
+          ? `${project.name} was moved to the archive. You can restore it anytime.`
+          : `${project.name} is active again.`,
+        variant: "success",
+      })
+      query.refetch()
+    } catch (error) {
+      toast({
+        variant: "error",
+        title: archived ? "Couldn't archive project" : "Couldn't restore project",
+        description: error instanceof Error ? error.message : undefined,
+      })
+    } finally {
+      setArchivingId(null)
+    }
+  }
 
   // The command menu's "New project" action reaches this screen either through
   // the window event (already mounted) or the storage flag (navigated here).
@@ -229,6 +454,16 @@ export function DashboardScreen() {
       sort,
     )
   }, [query.data, search, sort])
+
+  // Displayed projects: the active sort first, then any manual drag order.
+  const visibleProjects = useMemo(
+    () => orderByManual(filteredProjects, dragOrder.order),
+    [filteredProjects, dragOrder.order],
+  )
+  const displayedIds = useMemo(
+    () => visibleProjects.map((project) => project.id),
+    [visibleProjects],
+  )
 
   const storagePercent = query.data
     ? query.data.storage.totalBytes > 0
@@ -483,7 +718,9 @@ export function DashboardScreen() {
                           <span className="sr-only">Sort projects</span>
                           <select
                             value={sort}
-                            onChange={(event) => setSort(event.target.value as ProjectSort)}
+                            onChange={(event) =>
+                              handleSortChange(event.target.value as ProjectSort)
+                            }
                             aria-label="Sort projects"
                           >
                             {SORT_OPTIONS.map((option) => (
@@ -493,6 +730,26 @@ export function DashboardScreen() {
                             ))}
                           </select>
                         </label>
+                        <div className="app-view-toggle" role="group" aria-label="Project view">
+                          <button
+                            type="button"
+                            aria-pressed={view === "grid"}
+                            aria-label="Grid view"
+                            title="Grid view"
+                            onClick={() => changeView("grid")}
+                          >
+                            <LayoutGrid aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={view === "list"}
+                            aria-label="List view"
+                            title="List view"
+                            onClick={() => changeView("list")}
+                          >
+                            <List aria-hidden="true" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -514,10 +771,30 @@ export function DashboardScreen() {
                           onClick: () => setSearch(""),
                         }}
                       />
-                    ) : (
+                    ) : view === "grid" ? (
                       <div className="app-project-grid">
-                        {filteredProjects.map((project) => (
-                          <ProjectCard key={project.id} project={project} />
+                        {visibleProjects.map((project) => (
+                          <ProjectCard
+                            key={project.id}
+                            project={project}
+                            onArchive={handleArchive}
+                            archiving={archivingId === project.id}
+                            archivePending={archivingId !== null}
+                            drag={dragOrder.bind(project.id, displayedIds)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="app-project-list">
+                        {visibleProjects.map((project) => (
+                          <ProjectRow
+                            key={project.id}
+                            project={project}
+                            onArchive={handleArchive}
+                            archiving={archivingId === project.id}
+                            archivePending={archivingId !== null}
+                            drag={dragOrder.bind(project.id, displayedIds)}
+                          />
                         ))}
                       </div>
                     )}

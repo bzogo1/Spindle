@@ -128,7 +128,8 @@ describe("UploadQueuePanel", () => {
     expect(await screen.findByText("Error")).toBeInTheDocument()
 
     failing = false
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }))
+    // Exact name avoids the bulk "Retry failed (n)" toolbar button.
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
     await waitFor(() => expect(screen.getByText("Completed")).toBeInTheDocument())
   })
 
@@ -138,7 +139,7 @@ describe("UploadQueuePanel", () => {
 
     selectFiles(container, [makeFile("cancel.bin", 64)])
 
-    const cancelButton = await screen.findByRole("button", { name: /cancel/i })
+    const cancelButton = await screen.findByRole("button", { name: "Cancel" })
     fireEvent.click(cancelButton)
     expect(await screen.findByText("Cancelled")).toBeInTheDocument()
 
@@ -206,8 +207,8 @@ describe("UploadQueuePanel", () => {
     expect(onAllComplete).not.toHaveBeenCalled()
 
     // Retrying the failed file lets the queue reach all-complete, which fires
-    // the callback exactly once.
-    fireEvent.click(screen.getByRole("button", { name: /retry/i }))
+    // the callback exactly once. Exact name skips the bulk "Retry failed" button.
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }))
     await waitFor(() => expect(onAllComplete).toHaveBeenCalledTimes(1))
   })
 

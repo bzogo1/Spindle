@@ -36,6 +36,7 @@ import {
   snapshotDiffStatusLabel,
 } from "./lab-snapshot-thresholds"
 import { SnapshotHistoryPanel } from "./lab-snapshot-history"
+import { NotebookView } from "@/components/lab/notebook-view"
 import { LabBenchmarkPanel } from "./lab-benchmarks-panel"
 import { SnapshotBrowserMatrix } from "./lab-snapshot-browser-matrix"
 import { CopyButton } from "./copy-button"
@@ -109,24 +110,7 @@ plot(model)`}
   }
 
   if (kind === "jupyter") {
-    return (
-      <div className="app-lab-pane">
-        <div className="app-lab-pane-title">analysis.ipynb — JupyterLab</div>
-        <div className="app-notebook-cell">
-          <span className="app-cell-badge">In [3]</span>
-          <code>df = pd.read_csv("data/tidal-2026.csv")</code>
-        </div>
-        <div className="app-notebook-cell app-notebook-cell--output">
-          <span className="app-cell-badge">Out[3]</span>
-          <code>shape: (240, 3) · salinity mean 29.8 PSU</code>
-        </div>
-        <div className="app-notebook-plot" aria-label="Mock matplotlib output">
-          <span className="app-plot-line" />
-          <span className="app-plot-line app-plot-line--soft" />
-          <span className="app-plot-line app-plot-line--dashed" />
-        </div>
-      </div>
-    )
+    return <NotebookView />
   }
 
   if (kind === "vscode") {

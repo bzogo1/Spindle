@@ -65,8 +65,11 @@ describe("UploadQueueDock", () => {
     fireEvent.click(screen.getByRole("button", { name: /open upload queue/i }))
 
     await waitFor(() => expect(screen.getByText("report.pdf")).toBeInTheDocument())
-    // Chunked engine runs through the mock transport and completes.
-    await waitFor(() => expect(screen.getByText("Completed")).toBeInTheDocument())
+    // Chunked engine runs through the mock transport and completes. The
+    // history panel renders its own "Completed" badge, so allow multiples.
+    await waitFor(() =>
+      expect(screen.getAllByText("Completed").length).toBeGreaterThan(0),
+    )
   })
 
   it("exposes disclosure semantics and restores focus on Escape", async () => {
@@ -100,6 +103,8 @@ describe("UploadQueueDock", () => {
     expect(await screen.findByText("Paused")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: /resume/i }))
-    await waitFor(() => expect(screen.getByText("Completed")).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getAllByText("Completed").length).toBeGreaterThan(0),
+    )
   })
 })

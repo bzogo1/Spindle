@@ -14,10 +14,31 @@ import {
   XIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 type ToastVariant = "default" | "loading" | "success" | "error" | "warning" | "info"
 type ToastPosition = "top" | "bottom"
 type ToastSwipeDirection = "up" | "down" | "left" | "right"
+
+/**
+ * Declarative toast action rendered as a button inside the toast (e.g.
+ * "Undo", "View"). Alternatively, `ToastOptions.action` accepts a plain
+ * `React.ReactNode` rendered as-is for full custom control.
+ */
+interface ToastAction {
+  /** Button label. */
+  label: React.ReactNode
+  /** Called when the action button is clicked. */
+  onClick?: () => void
+  /** Button visual variant. @defaultValue "outline" */
+  variant?: React.ComponentProps<typeof Button>["variant"]
+  /**
+   * Dismiss the toast after `onClick` runs. Set `false` to keep the toast
+   * visible (e.g. a non-blocking "View" link).
+   * @defaultValue true
+   */
+  dismissOnAction?: boolean
+}
 
 interface ToastOptions {
   /** Toast heading. Falls back to a plain text/message toast when omitted. */
@@ -27,8 +48,11 @@ interface ToastOptions {
   variant?: ToastVariant
   /** Auto-dismiss delay in ms. `Infinity` keeps the toast until dismissed. */
   duration?: number
-  /** Optional action element (e.g. an undo button) rendered inside the toast. */
-  action?: React.ReactNode
+  /**
+   * Optional action rendered inside the toast — either a {@link ToastAction}
+   * descriptor rendered as a button, or a custom `React.ReactNode`.
+   */
+  action?: ToastAction | React.ReactNode
   /**
    * When `false` the toast renders no close button and ignores swipe and
    * Escape dismissal. Pair with `duration: Infinity` for a fully sticky toast.
@@ -155,6 +179,17 @@ function getMountedSnapshot() {
 
 function getServerMountedSnapshot() {
   return false
+}
+
+/** Distinguish a declarative {@link ToastAction} from a raw ReactNode action. */
+function isToastAction(action: ToastOptions["action"]): action is ToastAction {
+  return (
+    typeof action === "object" &&
+    action !== null &&
+    !React.isValidElement(action) &&
+    !Array.isArray(action) &&
+    "label" in action
+  )
 }
 
 function normalizeToastInput(input: ToastInput): ToastOptions {
@@ -352,6 +387,7 @@ function Toaster({
         const variant = item.variant ?? "default"
         const Icon = toastIcons[variant]
         const dismissible = item.dismissible !== false
+        const action = item.action
 
         return (
           <ToastPrimitive.Root
@@ -409,7 +445,25 @@ function Toaster({
                 </ToastPrimitive.Description>
               ) : null}
             </div>
-            {item.action}
+            {isToastAction(action) ? (
+              <Button
+                type="button"
+                data-slot="toast-action"
+                variant={action.variant ?? "outline"}
+                size="xs"
+                className="mt-1 self-start"
+                onClick={() => {
+                  action.onClick?.()
+                  if (action.dismissOnAction !== false) {
+                    dismissToast(item.id)
+                  }
+                }}
+              >
+                {action.label}
+              </Button>
+            ) : (
+              action
+            )}
             {dismissible ? (
               <ToastPrimitive.Close
                 data-slot="toast-close"
@@ -439,6 +493,7 @@ function Toaster({
 export { Toaster, toast, useToast }
 export type {
   Toast,
+  ToastAction,
   ToastOptions,
   ToastPosition,
   ToastPromiseMessages,

@@ -276,6 +276,66 @@ describe("toast API", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument()
   })
 
+  it("renders a declarative action as a button that runs onClick and dismisses", async () => {
+    const onUndo = vi.fn()
+    render(
+      <>
+        <button
+          onClick={() =>
+            toast({
+              title: "File deleted",
+              action: { label: "Undo", onClick: onUndo },
+            })
+          }
+        >
+          delete
+        </button>
+        <Toaster />
+      </>,
+    )
+
+    fireEvent.click(screen.getByText("delete"))
+
+    const undo = await screen.findByRole("button", { name: "Undo" })
+    expect(undo).toHaveAttribute("data-slot", "toast-action")
+
+    fireEvent.click(undo)
+
+    expect(onUndo).toHaveBeenCalledTimes(1)
+    await waitFor(() => {
+      expect(renderedToasts()).toHaveLength(0)
+    })
+    expect(screen.queryByText("File deleted")).not.toBeInTheDocument()
+  })
+
+  it("keeps the toast open when the action sets dismissOnAction=false", async () => {
+    render(
+      <>
+        <button
+          onClick={() =>
+            toast({
+              title: "Changes saved",
+              action: { label: "View", onClick: () => {}, dismissOnAction: false },
+            })
+          }
+        >
+          save
+        </button>
+        <Toaster />
+      </>,
+    )
+
+    fireEvent.click(screen.getByText("save"))
+
+    fireEvent.click(await screen.findByRole("button", { name: "View" }))
+
+    // The toast stays visible until dismissed another way.
+    await waitFor(() => {
+      expect(renderedToasts()).toHaveLength(1)
+    })
+    expect(screen.getByText("Changes saved")).toBeInTheDocument()
+  })
+
   it("anchors the viewport to the top when position=top", async () => {
     render(
       <>

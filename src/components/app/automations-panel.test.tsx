@@ -240,28 +240,42 @@ describe("AutomationsPanel", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument()
   })
 
-  it("shows a disabled dry-run button with a tooltip until the API lands", async () => {
+  it("opens a sandboxed test dialog wired to the dry-run panel", async () => {
     render(<AutomationsPanel />)
 
     await screen.findAllByText("Daily results digest")
 
-    const dryRun = screen.getByRole("button", { name: "Dry run Daily results digest" })
-    expect(dryRun).toBeDisabled()
+    await userEvent.click(
+      screen.getByRole("button", { name: "Test Daily results digest in sandbox" }),
+    )
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText(/Sandboxed preview/)).toBeInTheDocument()
+    // The embedded builder exposes the dry-run panel for simulated execution.
+    expect(
+      await within(dialog).findByRole("button", { name: /Run dry run/ }),
+    ).toBeInTheDocument()
   })
 
-  it("runs an automation manually and records a running entry", async () => {
+  it("runs an automation manually with a live run preview", async () => {
     render(<AutomationsPanel />)
 
     await screen.findAllByText("Daily results digest")
     await userEvent.click(screen.getByRole("button", { name: "Run Daily results digest now" }))
+
+    const dialog = await screen.findByRole("dialog")
+    expect(within(dialog).getByText(/Run preview/)).toBeInTheDocument()
+
+    // Cancelling mid-run records a cancelled entry in the run history.
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel run" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
 
     await userEvent.click(
       screen.getByRole("button", { name: "Show run history for Daily results digest" }),
     )
 
     expect(await screen.findByText("Manual run")).toBeInTheDocument()
-    // Both the status column and the history entry report the run as running.
-    expect(screen.getAllByText("running").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("cancelled").length).toBeGreaterThan(0)
   })
 
   it("shows per-automation run analytics", async () => {

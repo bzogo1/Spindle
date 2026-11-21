@@ -55,6 +55,9 @@ interface GraphCanvasProps {
   /** Returns whether the connection was accepted; rejection reason shown in canvas. */
   onConnectAttempt: (conn: GraphConnection) => ConnectionResult
   onAddNodeAt: (type: string, position: Point) => void
+  /** Optional delete handlers — wired to Delete/Backspace when a selection exists. */
+  onDeleteNode?: (nodeId: string) => void
+  onDeleteEdge?: (edgeId: string) => void
 }
 
 function toLocalPoint(container: HTMLElement, clientX: number, clientY: number): Point {
@@ -297,6 +300,8 @@ export function GraphCanvas({
   onMoveNode,
   onConnectAttempt,
   onAddNodeAt,
+  onDeleteNode,
+  onDeleteEdge,
 }: GraphCanvasProps) {
   const innerRef = useRef<HTMLDivElement>(null)
   const [pending, setPending] = useState<PendingConnection | null>(null)
@@ -330,6 +335,47 @@ export function GraphCanvas({
   )
 
   const pendingActive = pending !== null
+
+  // Keyboard delete: Backspace/Delete removes the selected edge first, then
+  // the selected node. Skipped while typing in form controls so palette
+  // search and inspector fields keep their native behavior.
+  useEffect(() => {
+    if (!onDeleteNode && !onDeleteEdge) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Delete" && event.key !== "Backspace") return
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT")
+      ) {
+        return
+      }
+      if (selectedEdgeId && onDeleteEdge) {
+        event.preventDefault()
+        onDeleteEdge(selectedEdgeId)
+        onSelectEdge(null)
+        return
+      }
+      if (selectedNodeId && onDeleteNode) {
+        event.preventDefault()
+        onDeleteNode(selectedNodeId)
+        onSelectNode(null)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [
+    selectedNodeId,
+    selectedEdgeId,
+    onDeleteNode,
+    onDeleteEdge,
+    onSelectNode,
+    onSelectEdge,
+  ])
+
   useEffect(() => {
     if (!pendingRef.current) return
     function onMove(event: PointerEvent) {
@@ -502,7 +548,10 @@ export function GraphCanvas({
             </button>
           </span>
         ) : (
-          <span>Drag from an output port (right) to an input port (left) to connect nodes.</span>
+          <span>
+            Drag from an output port (right) to an input port (left) to connect ·{" "}
+            <kbd className="border-border rounded border px-1">Del</kbd> removes the selection.
+          </span>
         )}
       </div>
     </div>

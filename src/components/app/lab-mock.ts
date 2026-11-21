@@ -367,6 +367,400 @@ export const LAB_SNAPSHOTS: LabSnapshot[] = [
 ]
 
 /* -------------------------------------------------------------------------- */
+/* Notebook view (JupyterLab environment)                                      */
+/* -------------------------------------------------------------------------- */
+
+export interface LabNotebookTableColumn {
+  /** Row key this column reads. */
+  key: string
+  label: string
+}
+
+/** Mock DataFrame preview rendered as a sortable table inside a cell output. */
+export interface LabNotebookTable {
+  columns: LabNotebookTableColumn[]
+  rows: Record<string, string | number>[]
+}
+
+export interface LabNotebookOutput {
+  id: string
+  kind: "text" | "error" | "table"
+  content: string
+  /** Required when `kind === "table"`; ignored otherwise. */
+  table?: LabNotebookTable
+}
+
+export interface LabNotebookCell {
+  id: string
+  /** Jupyter-style execution count; `null` for markdown cells. */
+  executionCount: number | null
+  kind: "code" | "markdown"
+  source: string
+  outputs: LabNotebookOutput[]
+}
+
+/**
+ * Static cells for the mock Jupyter notebook. Outputs are pre-rendered so the
+ * pane reads like an executed notebook; the Run buttons in `NotebookView`
+ * simulate re-execution until a real kernel backend exists.
+ */
+export const LAB_NOTEBOOK_CELLS: LabNotebookCell[] = [
+  {
+    id: "cell-01",
+    executionCount: null,
+    kind: "markdown",
+    source: "# Tidal analysis\n\nLoad the 2026 tidal export and inspect salinity by site.",
+    outputs: [],
+  },
+  {
+    id: "cell-02",
+    executionCount: 1,
+    kind: "code",
+    source: 'import pandas as pd\n\ndf = pd.read_csv("data/tidal-2026.csv")\ndf.head()',
+    outputs: [
+      {
+        id: "cell-02-out-1",
+        kind: "text",
+        content: "shape: (240, 3) · salinity mean 29.8 PSU",
+      },
+      {
+        id: "cell-02-out-2",
+        kind: "table",
+        content: "",
+        table: {
+          columns: [
+            { key: "site", label: "site" },
+            { key: "salinity", label: "salinity (PSU)" },
+            { key: "turbidity", label: "turbidity (NTU)" },
+          ],
+          rows: [
+            { site: "Harbor North", salinity: 30.4, turbidity: 12.1 },
+            { site: "Harbor South", salinity: 29.7, turbidity: 18.4 },
+            { site: "Estuary Mouth", salinity: 28.9, turbidity: 34.2 },
+            { site: "Reef Flat", salinity: 31.2, turbidity: 8.7 },
+            { site: "Channel East", salinity: 27.6, turbidity: 41.5 },
+            { site: "Channel West", salinity: 30.8, turbidity: 15.9 },
+            { site: "Lagoon Inner", salinity: 32.1, turbidity: 6.3 },
+            { site: "Outer Shoal", salinity: 26.9, turbidity: 48.2 },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    id: "cell-03",
+    executionCount: 2,
+    kind: "code",
+    source: 'df.groupby("site")["salinity"].describe()',
+    outputs: [
+      {
+        id: "cell-03-out-1",
+        kind: "text",
+        content:
+          "count  mean   std   min   25%   50%   75%   max\n120   29.7  1.4   26.9  28.9  29.8  30.6  33.1",
+      },
+    ],
+  },
+  {
+    id: "cell-04",
+    executionCount: 3,
+    kind: "code",
+    source:
+      'ax = df.plot.line(x="hour", y="salinity", by="site")\nax.figure.savefig("outputs/salinity-by-site.png")',
+    outputs: [
+      {
+        id: "cell-04-out-1",
+        kind: "text",
+        content: "saved outputs/salinity-by-site.png (640×480)",
+      },
+    ],
+  },
+  {
+    id: "cell-05",
+    executionCount: 4,
+    kind: "code",
+    source:
+      'model = df[df["quality"] == "good"].copy()\nmodel["salinity"].corr(model["turbidity"])',
+    outputs: [
+      {
+        id: "cell-05-out-1",
+        kind: "text",
+        content: "-0.42",
+      },
+    ],
+  },
+]
+
+export interface LabNotebookRevision {
+  id: string
+  /** Short revision tag, e.g. "rev-12". */
+  label: string
+  author: string
+  createdAt: string
+  /** One-line description of what changed in this revision. */
+  summary: string
+}
+
+/**
+ * Seeded notebook revision history, newest first. `NotebookView` keeps the
+ * active pointer in state so "Restore" can roll the notebook back (mock)
+ * until checkpoint storage exists.
+ */
+export const LAB_NOTEBOOK_HISTORY: LabNotebookRevision[] = [
+  {
+    id: "rev-12",
+    label: "rev-12",
+    author: "ada",
+    createdAt: "2026-11-19T15:42:00.000Z",
+    summary: "Filtered the salinity plot to quality-checked rows.",
+  },
+  {
+    id: "rev-11",
+    label: "rev-11",
+    author: "ada",
+    createdAt: "2026-11-18T11:20:00.000Z",
+    summary: "Added the groupby describe cell for per-site salinity stats.",
+  },
+  {
+    id: "rev-10",
+    label: "rev-10",
+    author: "bogdan",
+    createdAt: "2026-11-17T09:05:00.000Z",
+    summary: "Initial notebook scaffold with the tidal-2026 loader.",
+  },
+]
+
+export const LAB_NOTEBOOK_CURRENT_REVISION = "rev-12"
+
+/* -------------------------------------------------------------------------- */
+/* Notebook templates                                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface LabNotebookTemplate {
+  id: string
+  name: string
+  description: string
+  /** Display name used in the pane title and exported files. */
+  fileName: string
+  cells: LabNotebookCell[]
+}
+
+function templateCell(
+  id: string,
+  kind: LabNotebookCell["kind"],
+  executionCount: number | null,
+  source: string,
+  output?: string,
+): LabNotebookCell {
+  return {
+    id,
+    kind,
+    executionCount,
+    source,
+    outputs: output ? [{ id: `${id}-out`, kind: "text", content: output }] : [],
+  }
+}
+
+/**
+ * Pre-built notebook templates for the JupyterLab environment pane. Picking
+ * one in the template dropdown swaps the whole notebook — same client-side
+ * pattern as the seeded snapshot baselines until a notebook backend exists.
+ */
+export const LAB_NOTEBOOK_TEMPLATES: LabNotebookTemplate[] = [
+  {
+    id: "analysis",
+    name: "analysis.ipynb",
+    description: "The seeded tidal notebook shipped with the JupyterLab environment.",
+    fileName: "analysis.ipynb",
+    cells: LAB_NOTEBOOK_CELLS,
+  },
+  {
+    id: "tidal-baseline",
+    name: "Tide analysis baseline",
+    description: "Harmonic decomposition of the November tidal dataset.",
+    fileName: "tidal-analysis.ipynb",
+    cells: [
+      templateCell(
+        "tidal-md-1",
+        "markdown",
+        null,
+        "# Tide analysis baseline\n\nDecompose the November 2026 tidal record into harmonic constituents and check residual drift against the harbor baseline.",
+      ),
+      templateCell(
+        "tidal-code-1",
+        "code",
+        1,
+        'tidal = pd.read_csv("data/tidal-2026.csv")\ntidal.head()',
+        "shape: (240, 3) · salinity mean 29.8 PSU",
+      ),
+      templateCell(
+        "tidal-code-2",
+        "code",
+        2,
+        'sites = gpd.read_file("data/sites.geojson")\nmodel = smf.ols("salinity ~ turbidity + C(site)", data=tidal).fit()\nmodel.summary()',
+        "R-squared: 0.87 · residuals look clean",
+      ),
+    ],
+  },
+  {
+    id: "survey-cleaning",
+    name: "Survey cleaning pass",
+    description: "Validate a survey export and flag low-confidence records.",
+    fileName: "survey-cleaning.ipynb",
+    cells: [
+      templateCell(
+        "survey-md-1",
+        "markdown",
+        null,
+        "# Survey cleaning pass\n\nDrop empty rows, normalize site codes, and mark records below the confidence floor for review.",
+      ),
+      templateCell(
+        "survey-code-1",
+        "code",
+        1,
+        'raw = pd.read_csv("data/survey-export.csv")\nclean = raw.dropna(subset=["site", "reading"])\nclean["site"] = clean["site"].str.upper()\nclean.shape',
+        "(1,284, 6) rows kept · 37 dropped",
+      ),
+      templateCell(
+        "survey-code-2",
+        "code",
+        2,
+        'low_conf = clean[clean["confidence"] < 0.6]\nlow_conf.to_csv("outputs/low-confidence.csv", index=False)',
+        "outputs/low-confidence.csv written",
+      ),
+    ],
+  },
+  {
+    id: "species-grid",
+    name: "Species distribution grid",
+    description: "Rasterize occurrence records into a coastal distribution grid.",
+    fileName: "species-grid.ipynb",
+    cells: [
+      templateCell(
+        "species-md-1",
+        "markdown",
+        null,
+        "# Species distribution grid\n\nBuffer the coastline and rasterize Larus argentatus occurrences onto a 1 km grid.",
+      ),
+      templateCell(
+        "species-code-1",
+        "code",
+        1,
+        'occ = pd.read_csv("data/occurrences.csv")\ngrid = rasterize(occ, resolution_km=1, buffer_km=10)\ngrid.plot(figsize=(8, 6))',
+        "grid: 214 cells · 61 occupied",
+      ),
+    ],
+  },
+]
+
+/** Default template loaded when the JupyterLab pane first renders. */
+export const LAB_NOTEBOOK_DEFAULT_TEMPLATE_ID = "analysis"
+
+/**
+ * Serialize notebook cells to a nbformat 4 document (`.ipynb`). Text outputs
+ * become stream payloads, tables become `execute_result` text grids, errors
+ * become error outputs, and markdown cells pass through as markdown.
+ */
+export function labNotebookToIpynb(cells: LabNotebookCell[]) {
+  return {
+    cells: cells.map((cell) => {
+      const source = cell.source.split("\n")
+      if (cell.kind === "markdown") {
+        return { cell_type: "markdown", metadata: {}, source }
+      }
+      const outputs = cell.outputs.map((output) => {
+        if (output.kind === "error") {
+          return {
+            output_type: "error",
+            ename: "Error",
+            evalue: output.content,
+            traceback: [],
+          }
+        }
+        if (output.kind === "table" && output.table) {
+          const table = output.table
+          const header = table.columns.map((column) => column.label).join("  ")
+          const body = table.rows.map((row) =>
+            table.columns.map((column) => String(row[column.key] ?? "")).join("  "),
+          )
+          return {
+            output_type: "execute_result",
+            execution_count: cell.executionCount,
+            metadata: {},
+            data: { "text/plain": [header, ...body].join("\n") },
+          }
+        }
+        return {
+          output_type: "stream",
+          name: "stdout",
+          text: output.content.split("\n"),
+        }
+      })
+      return {
+        cell_type: "code",
+        execution_count: cell.executionCount,
+        metadata: {},
+        outputs,
+        source,
+      }
+    }),
+    metadata: {
+      kernelspec: {
+        display_name: "Python 3 (ipykernel)",
+        language: "python",
+        name: "python3",
+      },
+      language_info: { name: "python", version: "3.12.1" },
+    },
+    nbformat: 4,
+    nbformat_minor: 5,
+  }
+}
+
+/** Rows appended to a notebook table output each time its cell re-runs. */
+export const LAB_NOTEBOOK_APPENDED_ROWS_PER_RUN = 8
+
+/**
+ * Deterministic extra rows for one re-execution of a table-output cell.
+ * Numeric columns jitter around their first-row value; string columns cycle
+ * through the values already present, so appended batches read like fresh
+ * readings of the same survey. Same `table` + `batch` always yields the same
+ * rows, which keeps shared `?nbexec=` links reproducible.
+ */
+export function labNotebookAppendedRows(
+  table: LabNotebookTable,
+  batch: number,
+): Record<string, string | number>[] {
+  const prototype = table.rows[0] ?? {}
+  const stringValues = new Map<string, string[]>()
+  for (const column of table.columns) {
+    if (typeof prototype[column.key] === "number") continue
+    const seen = new Set<string>()
+    for (const row of table.rows) {
+      const value = row[column.key]
+      if (typeof value === "string" && value !== "") seen.add(value)
+    }
+    stringValues.set(column.key, [...seen])
+  }
+
+  return Array.from({ length: LAB_NOTEBOOK_APPENDED_ROWS_PER_RUN }, (_, index) => {
+    const n = batch * LAB_NOTEBOOK_APPENDED_ROWS_PER_RUN + index
+    const row: Record<string, string | number> = {}
+    for (const column of table.columns) {
+      const base = prototype[column.key]
+      if (typeof base === "number") {
+        // ±0.5 jitter around the column's reference value, one decimal place.
+        row[column.key] = Number((base + (((n * 37) % 11) - 5) / 10).toFixed(1))
+      } else {
+        const values = stringValues.get(column.key) ?? []
+        row[column.key] = values.length > 0 ? values[n % values.length] : `${column.label} ${n + 1}`
+      }
+    }
+    return row
+  })
+}
+
+/* -------------------------------------------------------------------------- */
 /* Performance benchmarks                                                      */
 /* -------------------------------------------------------------------------- */
 
