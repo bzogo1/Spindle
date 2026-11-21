@@ -55,7 +55,7 @@ jobs:
       # Lighthouse needs a Chrome binary; playwright's chromium is not on
       # chrome-launcher's default search path.
       - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
 
