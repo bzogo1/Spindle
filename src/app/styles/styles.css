@@ -3295,6 +3295,11 @@ svg {
   height: 340px;
   border-radius: 50%;
   overflow: hidden;
+  /* Ambient bloom outside the clip: `overflow: hidden` trims the globe's own
+     overhang but not this shadow, so the light bleeds past the rim. */
+  box-shadow:
+    0 0 42px rgba(200, 240, 131, 0.16),
+    0 0 90px rgba(150, 216, 173, 0.08);
 }
 .globe-mount {
   position: absolute;
@@ -4592,6 +4597,11 @@ svg {
 }
 :root:not(.dark) .globe-glow--wide {
   background: radial-gradient(circle, rgba(47, 125, 79, 0.08), transparent 65%);
+}
+:root:not(.dark) .globe-sphere {
+  box-shadow:
+    0 0 42px rgba(63, 100, 24, 0.12),
+    0 0 90px rgba(47, 125, 79, 0.06);
 }
 
 /* Subtle white-alpha fills inside theme surfaces → dark-ink washes. */
