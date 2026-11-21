@@ -102,7 +102,7 @@ jobs:
       # fail — they are the fastest way to see which audit regressed.
       - name: Upload Lighthouse reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-reports
           path: .lighthouseci/
