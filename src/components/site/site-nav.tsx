@@ -54,12 +54,12 @@ type NavLinkItem = {
 const productLinks: NavLinkItem[] = [
   {
     id: "workspaceOverview",
-    href: "/#platform",
+    href: "/workspace",
     icon: Layers3,
   },
   {
     id: "files",
-    href: "/#files",
+    href: "/files",
     icon: FolderOpen,
   },
   {
@@ -69,12 +69,12 @@ const productLinks: NavLinkItem[] = [
   },
   {
     id: "labPreview",
-    href: "/#lab",
+    href: "/lab-notebook-preview",
     icon: NotebookPen,
   },
   {
     id: "localSearch",
-    href: "/#search",
+    href: "/search",
     icon: Search,
   },
   {
@@ -112,22 +112,22 @@ const productLinks: NavLinkItem[] = [
 const solutionLinks: NavLinkItem[] = [
   {
     id: "researchers",
-    href: "/solutions#researchers",
+    href: "/solutions/researchers",
     icon: NotebookPen,
   },
   {
     id: "labs",
-    href: "/solutions#labs",
+    href: "/solutions/labs",
     icon: FlaskConical,
   },
   {
     id: "teams",
-    href: "/solutions#teams",
+    href: "/solutions/teams",
     icon: Users,
   },
   {
     id: "institutions",
-    href: "/solutions#institutions",
+    href: "/solutions/institutions",
     icon: Building2,
   },
 ]
@@ -168,7 +168,7 @@ const companyLinks: NavLinkItem[] = [
   },
   {
     id: "contact",
-    href: "/about#contact",
+    href: "/contact",
     icon: Mail,
   },
 ]

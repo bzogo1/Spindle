@@ -79,7 +79,6 @@ describe("CookieConsent", () => {
 
     const table = await screen.findByRole("table")
     expect(table).toHaveTextContent("spindle_consent")
-    expect(table).toHaveTextContent("spindle-site-theme")
     expect(table).toHaveTextContent("sentryReplaySession")
     expect(table).toHaveTextContent("Lifetime")
   })

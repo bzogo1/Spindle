@@ -156,9 +156,8 @@ const SITE_RULES = [
 
 /**
  * Representative rules duplicated into AUTH_CRITICAL_CSS. Deliberately
- * excludes `.menu-toggle, .site-theme-toggle`: the critical CSS merges those
- * selectors and intentionally overrides `display`/`cursor`, so it is not a
- * verbatim copy.
+ * excludes `.menu-toggle`: the critical CSS intentionally overrides
+ * `display`/`cursor`, so it is not a verbatim copy.
  */
 const AUTH_RULES = [
   ".auth-body",

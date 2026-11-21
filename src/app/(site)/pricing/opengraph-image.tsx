@@ -1,15 +1,15 @@
 import { ogImageContentType, ogImageSize, renderOgImage } from "@/lib/og-image"
 
-export const alt = "Spindle pricing — start free, bring a project"
+export const alt = "Spindle pricing — free forever, funded by donations"
 export const size = ogImageSize
 export const contentType = ogImageContentType
 
 export default function Image() {
   return renderOgImage({
     eyebrow: "Pricing",
-    title: "Start free, bring a project",
+    title: "Free forever, funded by you",
     subtitle:
-      "Free for one researcher with 5 GB of storage. Team and Enterprise plans add shared workspaces, more storage, and dedicated support.",
+      "Every feature, 5 GB of storage, and real-time collaboration on the $0 Hobby plan. Donations keep the servers on; Enterprise is a custom agreement.",
     url: "spindle.app/pricing",
   })
 }

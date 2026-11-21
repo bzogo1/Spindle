@@ -15,13 +15,50 @@ export function initSite() {
   const doc = document
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
+  /* Page-scoped demos are wired lazily (see scanAdded near the bottom): the
+     (site) layout persists across client-side navigations, so page markup
+     mounts — and PageTransition can swap subtrees — after this script runs.
+     Wiring state lives on the element itself (not a module-level WeakSet) so
+     a re-imported module instance — e.g. after HMR — can't double-bind. */
+  const WIRED_KEY = "__spindleSiteWired"
+
+  function isWired(el) {
+    return Boolean(el && el[WIRED_KEY])
+  }
+
+  function markWired(el) {
+    if (el) el[WIRED_KEY] = true
+  }
+
+  function wireOnce(key, fn) {
+    if (isWired(key)) return
+    markWired(key)
+    fn()
+  }
+
+  /* The file manager's "New" menu actions are delegated on the document once;
+     each file manager instance registers its handler so revisits don't stack
+     listeners that mutate detached DOM. */
+  let fmActionHandler = null
+  let fmActionsBound = false
+
+  function bindFmActions() {
+    if (fmActionsBound) return
+    fmActionsBound = true
+    doc.addEventListener("click", (e) => {
+      const item = e.target.closest("[data-fm-action]")
+      if (!item || !item.isConnected || !fmActionHandler) return
+      fmActionHandler(item.getAttribute("data-fm-action"))
+    })
+  }
+
   /* ----------------------------------------------------------------------
      Header border on scroll
   ---------------------------------------------------------------------- */
-  const header = doc.getElementById("header")
   let scrollQueued = false
 
   function onScroll() {
+    const header = doc.getElementById("header")
     if (header) header.classList.toggle("scrolled", window.scrollY > 12)
     scrollQueued = false
   }
@@ -39,38 +76,57 @@ export function initSite() {
   /* ----------------------------------------------------------------------
      Mobile navigation
   ---------------------------------------------------------------------- */
-  const menuToggle = doc.getElementById("menuToggle")
-  const mobileNav = doc.getElementById("mobileNav")
-
   /* The React header renders translated labels into data-label-open /
      data-label-close; read them live so a locale switch applies without a
      reload. English literals are the fallback for markup without them. */
   function menuToggleLabel(open) {
+    const menuToggle = doc.getElementById("menuToggle")
     if (!menuToggle) return ""
     const key = open ? "labelClose" : "labelOpen"
     return menuToggle.dataset[key] || (open ? "Close menu" : "Open menu")
   }
 
-  const closeMenu = () => {
+  function closeMenu() {
+    const menuToggle = doc.getElementById("menuToggle")
+    const mobileNav = doc.getElementById("mobileNav")
     if (!menuToggle || !mobileNav) return
     mobileNav.classList.remove("open")
     menuToggle.setAttribute("aria-expanded", "false")
     menuToggle.setAttribute("aria-label", menuToggleLabel(false))
   }
 
-  if (menuToggle && mobileNav) {
-    menuToggle.addEventListener("click", () => {
-      const open = mobileNav.classList.toggle("open")
-      menuToggle.setAttribute("aria-expanded", String(open))
-      menuToggle.setAttribute("aria-label", menuToggleLabel(open))
-    })
+  /* Bound once on the document; they resolve the current elements on every
+     event so a remounted header keeps working. */
+  doc.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenu()
+  })
+  doc.addEventListener("click", (e) => {
+    const mobileNav = doc.getElementById("mobileNav")
+    const menuToggle = doc.getElementById("menuToggle")
+    if (
+      mobileNav &&
+      menuToggle &&
+      !mobileNav.contains(e.target) &&
+      !menuToggle.contains(e.target)
+    ) {
+      closeMenu()
+    }
+  })
 
-    mobileNav.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeMenu))
-    doc.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeMenu()
-    })
-    doc.addEventListener("click", (e) => {
-      if (!mobileNav.contains(e.target) && !menuToggle.contains(e.target)) closeMenu()
+  function wireMobileNav() {
+    const menuToggle = doc.getElementById("menuToggle")
+    const mobileNav = doc.getElementById("mobileNav")
+    if (!menuToggle || !mobileNav || isWired(menuToggle)) return
+    wireOnce(menuToggle, () => {
+      menuToggle.addEventListener("click", () => {
+        const open = mobileNav.classList.toggle("open")
+        menuToggle.setAttribute("aria-expanded", String(open))
+        menuToggle.setAttribute("aria-label", menuToggleLabel(open))
+      })
+
+      mobileNav.querySelectorAll("a").forEach((link) =>
+        link.addEventListener("click", closeMenu),
+      )
     })
   }
 
@@ -78,16 +134,16 @@ export function initSite() {
      Scroll reveal
   ---------------------------------------------------------------------- */
   const revealables = doc.querySelectorAll("[data-reveal]")
+  const tracked = new WeakSet()
 
-  revealables.forEach((el) => {
+  const trackReveal = (el) => {
+    if (tracked.has(el)) return
+    tracked.add(el)
     const delay = el.getAttribute("data-reveal-delay")
     if (delay) el.style.setProperty("--reveal-delay", delay + "ms")
-  })
+  }
 
   if ("IntersectionObserver" in window && !reducedMotion) {
-    // Hide only from here: if this script never runs, the content stays visible.
-    revealables.forEach((el) => el.classList.add("is-pending"))
-
     const revealObserver = new IntersectionObserver(
       (entries, observer) => {
         entries.forEach((entry) => {
@@ -99,9 +155,35 @@ export function initSite() {
       { threshold: 0.1, rootMargin: "0px 0px -36px 0px" },
     )
 
-    revealables.forEach((el) => revealObserver.observe(el))
+    const observeReveal = (el) => {
+      if (tracked.has(el)) return
+      trackReveal(el)
+      // Hide only from here: if this script never runs, the content stays visible.
+      el.classList.add("is-pending")
+      revealObserver.observe(el)
+    }
+
+    revealables.forEach(observeReveal)
+
+    // PageTransition swaps its children for a <ViewTransition> wrapper just
+    // after hydration and route changes mount fresh page nodes, so the first
+    // pass can miss elements that are now in the document. Pick those up
+    // instead of leaving them stuck in their hidden state.
+    const revealMutations = new MutationObserver((records) => {
+      records.forEach((record) => {
+        record.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) return
+          if (node.hasAttribute("data-reveal")) observeReveal(node)
+          node.querySelectorAll("[data-reveal]").forEach(observeReveal)
+        })
+      })
+    })
+    revealMutations.observe(doc.body, { childList: true, subtree: true })
   } else {
-    revealables.forEach((el) => el.classList.add("is-visible"))
+    revealables.forEach((el) => {
+      trackReveal(el)
+      el.classList.add("is-visible")
+    })
   }
 
   /* ----------------------------------------------------------------------
@@ -109,129 +191,123 @@ export function initSite() {
      IntersectionObserver in HeroAppWindow, so listeners are delegated and
      tabs/panels are queried at event time rather than at init.
   ---------------------------------------------------------------------- */
-  const heroTabs = () => Array.from(doc.querySelectorAll("[data-hero-tab]"))
-  const heroPanels = () => Array.from(doc.querySelectorAll("[data-hero-panel]"))
+  function wireHeroTabs() {
+    const heroTabs = Array.from(doc.querySelectorAll("[data-hero-tab]"))
+    const heroPanels = Array.from(doc.querySelectorAll("[data-hero-panel]"))
+    if (!heroTabs.length || !heroPanels.length) return
 
-  function showHeroPanel(name) {
-    heroTabs().forEach((tab) => {
-      const active = tab.getAttribute("data-hero-tab") === name
-      tab.classList.toggle("is-active", active)
-      tab.setAttribute("aria-selected", String(active))
-      tab.tabIndex = active ? 0 : -1
-    })
-    heroPanels().forEach((panel) => {
-      const active = panel.getAttribute("data-hero-panel") === name
-      panel.classList.toggle("is-active", active)
-      panel.hidden = !active
-    })
-  }
-
-  doc.addEventListener("click", (e) => {
-    const tab = e.target.closest("[data-hero-tab]")
-    if (tab) showHeroPanel(tab.getAttribute("data-hero-tab"))
-  })
-
-  doc.addEventListener("keydown", (e) => {
-    const tab = e.target.closest("[data-hero-tab]")
-    if (!tab) return
-    const tabs = heroTabs()
-    const index = tabs.indexOf(tab)
-    if (index === -1) return
-    let nextIndex = -1
-    if (e.key === "ArrowRight") nextIndex = (index + 1) % tabs.length
-    else if (e.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length
-    else if (e.key === "Home") nextIndex = 0
-    else if (e.key === "End") nextIndex = tabs.length - 1
-    if (nextIndex === -1) return
-    e.preventDefault()
-    tabs[nextIndex].focus()
-    tabs[nextIndex].click()
-  })
-
-  // Select the default panel once the (possibly lazy-mounted) tabs exist.
-  const selectOverview = () => {
-    if (heroTabs().length && heroPanels().length) {
-      showHeroPanel("overview")
-      return true
+    function showHeroPanel(name) {
+      heroTabs.forEach((tab) => {
+        const active = tab.getAttribute("data-hero-tab") === name
+        tab.classList.toggle("is-active", active)
+        tab.setAttribute("aria-selected", String(active))
+        tab.tabIndex = active ? 0 : -1
+      })
+      heroPanels.forEach((panel) => {
+        const active = panel.getAttribute("data-hero-panel") === name
+        panel.classList.toggle("is-active", active)
+        panel.hidden = !active
+      })
     }
-    return false
-  }
-  if (!selectOverview() && "MutationObserver" in window) {
-    const observer = new MutationObserver(() => {
-      if (selectOverview()) observer.disconnect()
+
+    wireOnce(heroTabs[0], () => {
+      showHeroPanel("overview")
+
+      heroTabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => showHeroPanel(tab.getAttribute("data-hero-tab")))
+        tab.addEventListener("keydown", (e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
+          e.preventDefault()
+          const next =
+            (index + (e.key === "ArrowRight" ? 1 : -1) + heroTabs.length) % heroTabs.length
+          heroTabs[next].focus()
+          heroTabs[next].click()
+        })
+      })
     })
-    observer.observe(doc.body, { childList: true, subtree: true })
   }
 
   /* ----------------------------------------------------------------------
      Lab — environment tabs
   ---------------------------------------------------------------------- */
-  const labTabs = Array.from(doc.querySelectorAll("[data-lab-tab]"))
-  const labPanels = Array.from(doc.querySelectorAll("[data-lab-panel]"))
-  const labWindowTitle = doc.getElementById("labWindowTitle")
-  const labWindowStatus = doc.getElementById("labWindowStatus")
+  function wireLabTabs() {
+    const labTabs = Array.from(doc.querySelectorAll("[data-lab-tab]"))
+    const labPanels = Array.from(doc.querySelectorAll("[data-lab-panel]"))
+    if (!labTabs.length || !labPanels.length) return
 
-  function showLabPanel(tab) {
-    const name = tab.getAttribute("data-lab-tab")
+    function showLabPanel(tab) {
+      const name = tab.getAttribute("data-lab-tab")
 
-    labTabs.forEach((item) => {
-      const active = item === tab
-      item.classList.toggle("is-active", active)
-      item.setAttribute("aria-selected", String(active))
-      item.tabIndex = active ? 0 : -1
+      labTabs.forEach((item) => {
+        const active = item === tab
+        item.classList.toggle("is-active", active)
+        item.setAttribute("aria-selected", String(active))
+        item.tabIndex = active ? 0 : -1
+      })
+      labPanels.forEach((panel) => {
+        const active = panel.getAttribute("data-lab-panel") === name
+        panel.classList.toggle("is-active", active)
+        panel.hidden = !active
+      })
+
+      const labWindowTitle = doc.getElementById("labWindowTitle")
+      const labWindowStatus = doc.getElementById("labWindowStatus")
+      if (labWindowTitle)
+        labWindowTitle.textContent = tab.getAttribute("data-lab-title") || ""
+      if (labWindowStatus)
+        labWindowStatus.textContent = tab.getAttribute("data-lab-status") || ""
+    }
+
+    wireOnce(labTabs[0], () => {
+      labTabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => showLabPanel(tab))
+        tab.addEventListener("keydown", (e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
+          e.preventDefault()
+          const next = (index + (e.key === "ArrowRight" ? 1 : -1) + labTabs.length) % labTabs.length
+          labTabs[next].focus()
+          labTabs[next].click()
+        })
+      })
     })
-    labPanels.forEach((panel) => {
-      const active = panel.getAttribute("data-lab-panel") === name
-      panel.classList.toggle("is-active", active)
-      panel.hidden = !active
-    })
-
-    if (labWindowTitle) labWindowTitle.textContent = tab.getAttribute("data-lab-title") || ""
-    if (labWindowStatus) labWindowStatus.textContent = tab.getAttribute("data-lab-status") || ""
   }
-
-  labTabs.forEach((tab, index) => {
-    tab.addEventListener("click", () => showLabPanel(tab))
-    tab.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
-      e.preventDefault()
-      const next = (index + (e.key === "ArrowRight" ? 1 : -1) + labTabs.length) % labTabs.length
-      labTabs[next].focus()
-      labTabs[next].click()
-    })
-  })
 
   /* ----------------------------------------------------------------------
      VS Code — file tabs within the VS Code panel
   ---------------------------------------------------------------------- */
-  const vscodeTabs = Array.from(doc.querySelectorAll("[data-vscode-file]"))
-  const vscodeBreadcrumb = doc.getElementById("vscodeBreadcrumb")
-  const vscodeCode = doc.getElementById("vscodeCode")
+  function wireVscodeFiles() {
+    const vscodeTabs = Array.from(doc.querySelectorAll("[data-vscode-file]"))
+    if (!vscodeTabs.length) return
 
-  function showVscodeFile(tab) {
-    vscodeTabs.forEach((item) => {
-      const active = item === tab
-      item.classList.toggle("is-active", active)
-      item.setAttribute("aria-selected", String(active))
-      item.tabIndex = active ? 0 : -1
+    function showVscodeFile(tab) {
+      vscodeTabs.forEach((item) => {
+        const active = item === tab
+        item.classList.toggle("is-active", active)
+        item.setAttribute("aria-selected", String(active))
+        item.tabIndex = active ? 0 : -1
+      })
+
+      const vscodeBreadcrumb = doc.getElementById("vscodeBreadcrumb")
+      const vscodeCode = doc.getElementById("vscodeCode")
+      if (vscodeBreadcrumb)
+        vscodeBreadcrumb.textContent = tab.getAttribute("data-vscode-breadcrumb") || ""
+      if (vscodeCode) vscodeCode.innerHTML = tab.getAttribute("data-vscode-code") || ""
+    }
+
+    wireOnce(vscodeTabs[0], () => {
+      vscodeTabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => showVscodeFile(tab))
+        tab.addEventListener("keydown", (e) => {
+          if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
+          e.preventDefault()
+          const next =
+            (index + (e.key === "ArrowRight" ? 1 : -1) + vscodeTabs.length) % vscodeTabs.length
+          vscodeTabs[next].focus()
+          vscodeTabs[next].click()
+        })
+      })
     })
-
-    if (vscodeBreadcrumb)
-      vscodeBreadcrumb.textContent = tab.getAttribute("data-vscode-breadcrumb") || ""
-    if (vscodeCode) vscodeCode.innerHTML = tab.getAttribute("data-vscode-code") || ""
   }
-
-  vscodeTabs.forEach((tab, index) => {
-    tab.addEventListener("click", () => showVscodeFile(tab))
-    tab.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return
-      e.preventDefault()
-      const next =
-        (index + (e.key === "ArrowRight" ? 1 : -1) + vscodeTabs.length) % vscodeTabs.length
-      vscodeTabs[next].focus()
-      vscodeTabs[next].click()
-    })
-  })
 
   /* ----------------------------------------------------------------------
      Kernel selector — switches the kernel shown in the lab demos
@@ -253,6 +329,7 @@ export function initSite() {
 
       // Keep the lab window chrome in sync when a lab panel is active
       const panel = select.closest("[data-lab-panel]")
+      const labWindowStatus = doc.getElementById("labWindowStatus")
       if (panel && panel.classList.contains("is-active") && labWindowStatus) {
         labWindowStatus.textContent = `${kernel} · idle`
         const tab = doc.querySelector(`[data-lab-tab="${panel.getAttribute("data-lab-panel")}"]`)
@@ -267,7 +344,8 @@ export function initSite() {
      (IntersectionObserver), or when the main thread is idle as a fallback.
   ---------------------------------------------------------------------- */
   function scheduleDemoInit(anchor, init) {
-    if (!anchor) return
+    if (!anchor || isWired(anchor)) return
+    markWired(anchor)
 
     if ("IntersectionObserver" in window) {
       const observer = new IntersectionObserver(
@@ -1252,10 +1330,7 @@ export function initSite() {
     // }
 
     // "New" menu items live in the React island; delegate their actions here.
-    doc.addEventListener("click", (e) => {
-      const item = e.target.closest("[data-fm-action]")
-      if (!item) return
-      const action = item.getAttribute("data-fm-action")
+    fmActionHandler = (action) => {
       if (action === "upload") {
         // Upload disabled for demo
         return
@@ -1264,7 +1339,8 @@ export function initSite() {
       } else if (action === "notebook") {
         addNotebook()
       }
-    })
+    }
+    bindFmActions()
   }
 
   /* ----------------------------------------------------------------------
@@ -1690,24 +1766,30 @@ export function initSite() {
     renderChatThread("field-notes")
   }
 
-  /* Kick off each demo once its section approaches the viewport. Pages
-     without a given demo skip its scans and listeners entirely. */
-  scheduleDemoInit(doc.getElementById("resultsList"), initSearchDemo)
-  scheduleDemoInit(doc.getElementById("fileList"), initFileManager)
-  scheduleDemoInit(doc.getElementById("agentTrace"), initAgentExamples)
-  // The chat demo is homepage-only: /collaboration reuses #chatMessages (and
-  // #anonToggle) for its own collaboration.js demo, which uses #chatForm
-  // instead of #chatComposer — requiring the composer keeps site.js from
-  // clobbering that page's live thread.
-  const chatDemoAnchor = doc.getElementById("chatComposer")
-    ? doc.getElementById("chatMessages")
-    : null
-  scheduleDemoInit(chatDemoAnchor, initChat)
-
   /* ----------------------------------------------------------------------
-     Stat counters
+     Page demos — lazy wiring for client-side navigation
+
+     initSite runs once when the (site) layout mounts, but page markup is
+     swapped in afterwards by client-side navigations (and PageTransition can
+     replace subtrees during transitions). scanAdded() wires any demo root
+     that hasn't been initialized yet; a MutationObserver feeds it every added
+     node, and per-element wiring marks keep each root single-initialized.
   ---------------------------------------------------------------------- */
-  const counters = Array.from(doc.querySelectorAll(".counter"))
+  const DEMO_SCAN_SELECTOR =
+    "[data-hero-tab],[data-lab-tab],[data-vscode-file],.counter," +
+    "#resultsList,#fileList,#agentTrace,#chatMessages"
+
+  function wireDemoAnchor(el) {
+    if (el.id === "resultsList") scheduleDemoInit(el, initSearchDemo)
+    else if (el.id === "fileList") scheduleDemoInit(el, initFileManager)
+    else if (el.id === "agentTrace") scheduleDemoInit(el, initAgentExamples)
+    // The chat demo is homepage-only: /collaboration reuses #chatMessages (and
+    // #anonToggle) for its own collaboration.js demo, which uses #chatForm
+    // instead of #chatComposer — requiring the composer keeps site.js from
+    // clobbering that page's live thread.
+    else if (el.id === "chatMessages" && doc.getElementById("chatComposer"))
+      scheduleDemoInit(el, initChat)
+  }
 
   function animateCounter(el) {
     const target = parseFloat(el.getAttribute("data-target"))
@@ -1725,15 +1807,21 @@ export function initSite() {
     window.requestAnimationFrame(frame)
   }
 
-  if (counters.length) {
+  let counterObserver = null
+
+  function observeCounter(el) {
+    if (isWired(el)) return
+    markWired(el)
+
     if (reducedMotion || !("IntersectionObserver" in window)) {
-      counters.forEach((el) => {
-        el.textContent = parseFloat(el.getAttribute("data-target")).toFixed(
-          parseInt(el.getAttribute("data-decimals") || "0", 10),
-        )
-      })
-    } else {
-      const counterObserver = new IntersectionObserver(
+      el.textContent = parseFloat(el.getAttribute("data-target")).toFixed(
+        parseInt(el.getAttribute("data-decimals") || "0", 10),
+      )
+      return
+    }
+
+    if (!counterObserver) {
+      counterObserver = new IntersectionObserver(
         (entries, observer) => {
           entries.forEach((entry) => {
             if (!entry.isIntersecting) return
@@ -1743,7 +1831,35 @@ export function initSite() {
         },
         { threshold: 0.6 },
       )
-      counters.forEach((el) => counterObserver.observe(el))
     }
+    counterObserver.observe(el)
   }
+
+  function scanAdded(node) {
+    if (!(node instanceof Element)) return
+
+    wireMobileNav()
+
+    const targets = []
+    if (node.matches(DEMO_SCAN_SELECTOR)) targets.push(node)
+    node.querySelectorAll(DEMO_SCAN_SELECTOR).forEach((el) => targets.push(el))
+
+    targets.forEach((el) => {
+      if (el.hasAttribute("data-hero-tab")) wireHeroTabs()
+      else if (el.hasAttribute("data-lab-tab")) wireLabTabs()
+      else if (el.hasAttribute("data-vscode-file")) wireVscodeFiles()
+      else if (el.classList.contains("counter")) observeCounter(el)
+      else wireDemoAnchor(el)
+    })
+  }
+
+  wireMobileNav()
+  scanAdded(doc.body)
+
+  const demoMutations = new MutationObserver((records) => {
+    records.forEach((record) => {
+      record.addedNodes.forEach(scanAdded)
+    })
+  })
+  demoMutations.observe(doc.body, { childList: true, subtree: true })
 }

@@ -30,58 +30,19 @@ export default function ContactPage() {
         <section className="section">
           <div className="contact-page-grid container">
             <div className="contact-aside">
-              <h2 className="section-title">Other ways to reach us</h2>
+              <h2 className="section-title">We&apos;ll try to reach you ASAP</h2>
               <p className="section-desc">
-                Prefer email? Write directly, or start a free workspace and see how it feels — five
-                gigabytes are free.
+                Send us a note with the form and we&apos;ll do our best to get back to you as soon
+                as possible. We may not be able to answer every question immediately, but we read
+                every message.
               </p>
-              <div className="contact-grid">
-                <div className="contact-card">
-                  <span className="card-icon">
-                    <svg className="icon icon--sm" aria-hidden="true">
-                      <use href="#i-message" />
-                    </svg>
-                  </span>
-                  <h3>Send an email</h3>
-                  <p>For anything that needs a thread — pricing, procurement, or a demo.</p>
-                  <a className="text-link" href="mailto:hello@spindle.example">
-                    hello@spindle.example{" "}
-                    <svg className="icon icon--xs" aria-hidden="true">
-                      <use href="#i-arrow-right" />
-                    </svg>
-                  </a>
-                </div>
-                <div className="contact-card">
-                  <span className="card-icon">
-                    <svg className="icon icon--sm" aria-hidden="true">
-                      <use href="#i-arrow-right" />
-                    </svg>
-                  </span>
-                  <h3>Start free</h3>
-                  <p>The fastest way to understand Spindle is to put a real project in it.</p>
-                  <a className="text-link" href="/sign-up">
-                    Create a free workspace{" "}
-                    <svg className="icon icon--xs" aria-hidden="true">
-                      <use href="#i-arrow-right" />
-                    </svg>
-                  </a>
-                </div>
-                <div className="contact-card">
-                  <span className="card-icon">
-                    <svg className="icon icon--sm" aria-hidden="true">
-                      <use href="#i-arrow-right" />
-                    </svg>
-                  </span>
-                  <h3>Visit the Help Center</h3>
-                  <p>Searchable guides for setup, billing, security, and the API.</p>
-                  <a className="text-link" href="/help">
-                    Browse help articles{" "}
-                    <svg className="icon icon--xs" aria-hidden="true">
-                      <use href="#i-arrow-right" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
+              <p className="section-desc">
+                Prefer email? Write to us directly at{" "}
+                <a className="text-link" href="mailto:hello@spindle.example">
+                  hello@spindle.example
+                </a>
+                .
+              </p>
             </div>
             <div className="contact-form-wrap">
               {/* The form posts via fetch, so it can't send without

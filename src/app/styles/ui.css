@@ -989,6 +989,7 @@
   color: var(--text-dim);
 }
 .ui-plan-content {
+  flex: 1;
   padding: 0;
 }
 .ui-plan-desc {

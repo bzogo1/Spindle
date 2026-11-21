@@ -21,9 +21,10 @@
  *
  * - `activation` and `retention_week1` are *proxies* — they measure product
  *   analytics activity, not verified outcomes.
- * - There is no payment processor wired yet (see src/lib/pricing.ts — Team
- *   and Enterprise are contact-us). `conversions` therefore counts checkout-
- *   style analytics events by name and reports `billingWired: false`.
+ * - There is no payment processor wired yet (see src/lib/pricing.ts — Hobby
+ *   is donation-funded and Enterprise is a custom agreement). `conversions`
+ *   therefore counts checkout-style analytics events by name and reports
+ *   `billingWired: false`.
  */
 
 /* ------------------------------------------------------------------------ */

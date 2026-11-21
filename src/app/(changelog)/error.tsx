@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 
-import { ChangelogThemeToggle } from "@/components/site/changelog-theme-toggle"
 import { useErrorReference } from "@/components/site/use-error-reference"
 
 export default function ChangelogError({
@@ -19,7 +18,6 @@ export default function ChangelogError({
       <div className="cl-topbar">
         <div className="cl-shell cl-topbar-inner">
           <p className="cl-page-title">Changelog</p>
-          <ChangelogThemeToggle />
         </div>
       </div>
       <main id="main-content" tabIndex={-1} className="cl-shell cl-content">

@@ -1,15 +1,21 @@
 "use client"
 
+import { usePathname } from "next/navigation"
+
 import { useLanguage } from "@/components/i18n/language-provider"
 import { LanguageSwitcher } from "@/components/i18n/language-switcher"
 import { MainNav, MobileNav } from "@/components/site/site-nav"
 import { SiteSessionMenu } from "@/components/site/site-session-menu"
 import { SiteCommandMenu } from "@/components/site/lazy-site-command-menu"
-import { SiteThemeToggle } from "@/components/site/site-theme-toggle"
 
 /** Shared header: brand, desktop navigation, sign-in, and mobile menu. */
 export function SiteHeader() {
   const { t } = useLanguage()
+  const pathname = usePathname()
+
+  // The docs area is a self-contained space with its own masthead and tree
+  // navigation, so the site navbar steps aside on /docs routes only.
+  if (pathname === "/docs" || pathname?.startsWith("/docs/")) return null
 
   return (
     <header className="site-header" id="header">
@@ -36,7 +42,6 @@ export function SiteHeader() {
         <div className="header-actions">
           <SiteCommandMenu />
           <LanguageSwitcher />
-          <SiteThemeToggle />
           <SiteSessionMenu />
           <a href="/sign-up" className="btn btn--primary btn--sm">
             {t("auth.startFree")}

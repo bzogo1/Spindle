@@ -1,12 +1,40 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react"
 import createGlobe, { type COBEOptions } from "cobe"
 import * as Sentry from "@sentry/nextjs"
 
 import { cn } from "@/lib/utils"
 
-const MOVEMENT_DAMPING = 1400
+/** Pointer travel (px) per radian of horizontal rotation. Lower turns faster. */
+const MOVEMENT_DAMPING = 1200
+/** Vertical drag sensitivity; slightly stiffer so tilting feels controlled. */
+const THETA_DAMPING = 1600
+/** Idle drift in radians per millisecond (~0.22 rad/s: a turn every ~29s). */
+const AUTO_SPIN_SPEED = 0.00022
+/** How far a drag may tilt away from the configured theta, in radians. */
+const MAX_THETA_OFFSET = 0.5
+/** Subtle cursor-follow parallax at the canvas edges, in radians. */
+const HOVER_PHI = 0.14
+const HOVER_THETA = 0.1
+/**
+ * Drag follow stiffness, in radians per second. The displayed rotation is a
+ * critically damped spring toward the pointer target, so it accelerates and
+ * settles instead of being glued to the cursor (lower is floatier).
+ */
+const DRAG_OMEGA = 9
+/**
+ * Damping ratio once a drag ends. Below 1 the spring overshoots the rotation
+ * it settles on and springs back with a small (a couple of degrees) bounce;
+ * while dragging it stays critically damped so the globe never wobbles under
+ * the pointer. Reduced motion keeps the critical damping.
+ */
+const RELEASE_DAMPING = 0.4
+/** Exponential-smoothing time constants (ms); lower is snappier. */
+const HOVER_TAU = 260
+const SPIN_TAU = 420
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 /**
  * Dark-theme palette. cobe v2 has no render loop — `GlobeScene` drives a
@@ -104,29 +132,63 @@ export function GlobeScene({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const phiRef = useRef(0)
   const widthRef = useRef(0)
-  const pointerInteracting = useRef<number | null>(null)
   const reducedMotion = useRef<MediaQueryList | null>(null)
-  /** Drag target rotation offset, in radians. */
-  const dragTarget = useRef(0)
-  /** Smoothed offset actually applied to phi; eases toward dragTarget. */
-  const dragOffset = useRef(0)
+  /** Drag rotation target, in radians, accumulated from pointer movement. */
+  const dragTarget = useRef({ phi: 0, theta: 0 })
+  /** Smoothed drag rotation actually applied; springs toward dragTarget. */
+  const dragOffset = useRef({ phi: 0, theta: 0 })
+  /** Angular velocity of the drag spring (radians per second). */
+  const dragVelocity = useRef({ phi: 0, theta: 0 })
+  /** Pointer-follow parallax target, in radians; eased into hoverOffset. */
+  const hoverTarget = useRef({ phi: 0, theta: 0 })
+  /** Smoothed parallax actually applied. */
+  const hoverOffset = useRef({ phi: 0, theta: 0 })
+  /** Pointer id while a drag is in progress, else null. */
+  const pointerIdRef = useRef<number | null>(null)
+  /** Last pointer sample; horizontal and vertical drag deltas derive from it. */
+  const lastPointerRef = useRef({ x: 0, y: 0 })
+  /**
+   * Auto-rotation weight: starts at 0 and eases up, drops to 0 while dragging,
+   * and comes back after release. Stays at 0 under reduced motion.
+   */
+  const spinFactorRef = useRef(0)
+  /** Previous frame timestamp, for delta-time based smoothing. */
+  const lastFrameRef = useRef<number | null>(null)
   /** Current theme; read each frame to pick the palette. */
   const darkRef = useRef(true)
   /** Tracks IntersectionObserver state for the render-pause gate. */
   const inViewRef = useRef(true)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const updatePointerInteraction = (value: number | null) => {
-    pointerInteracting.current = value
+  const setCanvasCursor = (grabbing: boolean) => {
     if (canvasRef.current) {
-      canvasRef.current.style.cursor = value !== null ? "grabbing" : "grab"
+      canvasRef.current.style.cursor = grabbing ? "grabbing" : "grab"
     }
   }
 
-  const updateMovement = (clientX: number) => {
-    if (pointerInteracting.current !== null) {
-      dragTarget.current += (clientX - pointerInteracting.current) / MOVEMENT_DAMPING
+  /** Map the cursor position to a small, signed rotation offset. */
+  const updateHover = (canvas: HTMLCanvasElement, clientX: number, clientY: number) => {
+    const rect = canvas.getBoundingClientRect()
+    if (rect.width === 0 || rect.height === 0) return
+    const nx = clamp(((clientX - rect.left) / rect.width) * 2 - 1, -1, 1)
+    const ny = clamp(((clientY - rect.top) / rect.height) * 2 - 1, -1, 1)
+    hoverTarget.current.phi = nx * HOVER_PHI
+    hoverTarget.current.theta = ny * HOVER_THETA
+  }
+
+  const resetHover = () => {
+    hoverTarget.current.phi = 0
+    hoverTarget.current.theta = 0
+  }
+
+  const endDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (event.pointerId !== pointerIdRef.current) return
+    pointerIdRef.current = null
+    const canvas = event.currentTarget
+    if (canvas.hasPointerCapture?.(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId)
     }
+    setCanvasCursor(false)
   }
 
   useEffect(() => {
@@ -230,17 +292,58 @@ export function GlobeScene({
         rafId = window.requestAnimationFrame(tick)
         if (paused) return
 
-        // Auto-rotation is decorative; under prefers-reduced-motion the
-        // globe only turns while the visitor drags it.
-        if (!pointerInteracting.current && !reducedMotion.current?.matches) {
-          phiRef.current += 0.005
-        }
-        // Ease the displayed offset toward the drag target each frame,
-        // replacing the motion spring this component used to use.
-        dragOffset.current += (dragTarget.current - dragOffset.current) * 0.08
+        const now = performance.now()
+        const previous = lastFrameRef.current
+        lastFrameRef.current = now
+        // Clamp the frame delta so resuming after a pause (hidden tab,
+        // offscreen gate, first frame) cannot make the globe jump.
+        const dt = clamp(previous === null ? 16.7 : now - previous, 0, 48)
+        const reduced = reducedMotion.current?.matches ?? false
+        const dragging = pointerIdRef.current !== null
+
+        // Auto-rotation is decorative; it stops while dragging and under
+        // prefers-reduced-motion, then eases back in so it never snaps.
+        const spinTarget = dragging || reduced ? 0 : 1
+        spinFactorRef.current +=
+          (spinTarget - spinFactorRef.current) * (1 - Math.exp(-dt / SPIN_TAU))
+        phiRef.current += AUTO_SPIN_SPEED * dt * spinFactorRef.current
+
+        // Follow the pointer with a critically damped spring rather than
+        // pinning the globe to it: the rotation eases in behind quick drags
+        // and glides the last few degrees after the pointer stops, which
+        // reads as weight instead of a rigid, sticky object.
+        const dtSeconds = dt / 1000
+        const stiffness = DRAG_OMEGA * DRAG_OMEGA
+        // Elastic only after release: underdamped then, so the residual
+        // velocity carries the globe just past its resting rotation and it
+        // eases back, instead of stopping dead on pointer-up.
+        const dampingRatio = dragging || reduced ? 1 : RELEASE_DAMPING
+        const damping = 2 * dampingRatio * DRAG_OMEGA
+        const phiAcceleration =
+          stiffness * (dragTarget.current.phi - dragOffset.current.phi) -
+          damping * dragVelocity.current.phi
+        dragVelocity.current.phi += phiAcceleration * dtSeconds
+        dragOffset.current.phi += dragVelocity.current.phi * dtSeconds
+        const thetaAcceleration =
+          stiffness * (dragTarget.current.theta - dragOffset.current.theta) -
+          damping * dragVelocity.current.theta
+        dragVelocity.current.theta += thetaAcceleration * dtSeconds
+        dragOffset.current.theta += dragVelocity.current.theta * dtSeconds
+
+        // Gentle parallax toward the cursor; off for reduced motion.
+        const hoverEase = 1 - Math.exp(-dt / HOVER_TAU)
+        const hoverPhiTarget = reduced ? 0 : hoverTarget.current.phi
+        const hoverThetaTarget = reduced ? 0 : hoverTarget.current.theta
+        hoverOffset.current.phi += (hoverPhiTarget - hoverOffset.current.phi) * hoverEase
+        hoverOffset.current.theta += (hoverThetaTarget - hoverOffset.current.theta) * hoverEase
 
         const state: Partial<COBEOptions> = {
-          phi: phiRef.current + dragOffset.current,
+          phi: phiRef.current + dragOffset.current.phi + hoverOffset.current.phi,
+          theta: clamp(
+            config.theta + dragOffset.current.theta + hoverOffset.current.theta,
+            -1,
+            1,
+          ),
           // CSS-pixel size; v2 multiplies by devicePixelRatio itself.
           width: widthRef.current,
           height: widthRef.current,
@@ -283,17 +386,54 @@ export function GlobeScene({
     >
       <canvas
         className={cn(
-          "size-full opacity-0 transition-opacity duration-500 contain-[layout_paint_size]",
+          "size-full touch-none opacity-0 transition-opacity duration-500 contain-[layout_paint_size] select-none",
         )}
         ref={canvasRef}
-        onPointerDown={(e) => {
-          pointerInteracting.current = e.clientX
-          updatePointerInteraction(e.clientX)
+        onPointerDown={(event) => {
+          if (event.pointerType === "mouse" && event.button !== 0) return
+          pointerIdRef.current = event.pointerId
+          lastPointerRef.current = { x: event.clientX, y: event.clientY }
+          resetHover()
+          try {
+            event.currentTarget.setPointerCapture(event.pointerId)
+          } catch {
+            // Capture is a nicety that keeps a drag alive outside the canvas;
+            // ignore environments that do not support it.
+          }
+          setCanvasCursor(true)
         }}
-        onPointerUp={() => updatePointerInteraction(null)}
-        onPointerOut={() => updatePointerInteraction(null)}
-        onMouseMove={(e) => updateMovement(e.clientX)}
-        onTouchMove={(e) => e.touches[0] && updateMovement(e.touches[0].clientX)}
+        onPointerMove={(event) => {
+          const canvas = event.currentTarget
+          if (pointerIdRef.current === event.pointerId) {
+            const last = lastPointerRef.current
+            const dx = event.clientX - last.x
+            const dy = event.clientY - last.y
+            dragTarget.current.phi += dx / MOVEMENT_DAMPING
+            dragTarget.current.theta = clamp(
+              dragTarget.current.theta + dy / THETA_DAMPING,
+              -MAX_THETA_OFFSET,
+              MAX_THETA_OFFSET,
+            )
+            lastPointerRef.current = { x: event.clientX, y: event.clientY }
+            return
+          }
+          // No drag: let a mouse subtly steer the sphere (touch has no hover).
+          if (event.pointerType === "mouse") updateHover(canvas, event.clientX, event.clientY)
+        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={() => {
+          pointerIdRef.current = null
+          setCanvasCursor(false)
+        }}
+        onPointerEnter={(event) => {
+          if (event.pointerType === "mouse" && pointerIdRef.current === null) {
+            updateHover(event.currentTarget, event.clientX, event.clientY)
+          }
+        }}
+        onPointerLeave={() => {
+          if (pointerIdRef.current === null) resetHover()
+        }}
       />
     </div>
   )

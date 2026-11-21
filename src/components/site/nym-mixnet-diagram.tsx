@@ -293,8 +293,8 @@ export function NymMixnetDiagram() {
               Entry Gateway
             </text>
 
-            {/* connection line entry -> mixnet (y=300) */}
-            <line x1="385" y1="300" x2="420" y2="300" stroke="#4c554d" strokeWidth="1.5" />
+            {/* connection line entry -> mixnet left diamond tip (368) */}
+            <line x1="385" y1="300" x2="368" y2="300" stroke="#4c554d" strokeWidth="1.5" />
 
             {/* ===== MIXNET (center diamond mesh) ===== */}
             <g className="nym-node" transform="translate(368, 254)">
@@ -346,33 +346,29 @@ export function NymMixnetDiagram() {
 
             {/* box above mixnet: Data mixing + Timing obfuscation */}
             <rect
-              x="396"
-              y="104"
-              width="128"
-              height="34"
+              x="378"
+              y="98"
+              width="164"
+              height="40"
               rx="4"
               fill="#121512"
               stroke="#6d766e"
               strokeWidth="1"
               opacity="0.9"
             />
-            <text x="460" y="124" textAnchor="middle" className="nym-caption">
+            <text x="460" y="114" textAnchor="middle" className="nym-caption">
               Data mixing
-            </text>
-            <text x="480" y="124" className="nym-sign">
-              +
-            </text>
-            <text x="508" y="124" textAnchor="middle" className="nym-caption">
+              <tspan className="nym-sign"> + </tspan>
               Timing
             </text>
-            <text x="508" y="140" textAnchor="middle" className="nym-caption">
+            <text x="460" y="130" textAnchor="middle" className="nym-caption">
               obfuscation
             </text>
-            {/* lines from box down to mixnet top node */}
+            {/* lines from box bottom converging to mixnet top diamond tip (460, 254) */}
             <line
               x1="432"
               y1="138"
-              x2="432"
+              x2="460"
               y2="254"
               stroke="#6d766e"
               strokeWidth="1"
@@ -390,7 +386,7 @@ export function NymMixnetDiagram() {
             <line
               x1="488"
               y1="138"
-              x2="488"
+              x2="460"
               y2="254"
               stroke="#6d766e"
               strokeWidth="1"
@@ -448,8 +444,8 @@ export function NymMixnetDiagram() {
               Exit Gateway
             </text>
 
-            {/* connection line mixnet -> exit gateway (y=300) */}
-            <line x1="500" y1="300" x2="560" y2="300" stroke="#4c554d" strokeWidth="1.5" />
+            {/* connection line mixnet right diamond tip (552) -> exit gateway */}
+            <line x1="552" y1="300" x2="560" y2="300" stroke="#4c554d" strokeWidth="1.5" />
             {/* connection line exit -> web (y=300) */}
             <line x1="616" y1="300" x2="780" y2="300" stroke="#4c554d" strokeWidth="1.5" />
             {/* anonymized traffic dots */}
@@ -561,7 +557,7 @@ export function NymMixnetDiagram() {
               </g>
               <circle cx="28" cy="38" r="2" fill="#14e76f" />
             </g>
-            <text x="18" y="125" textAnchor="middle" className="nym-label">
+            <text x="808" y="420" textAnchor="middle" className="nym-label">
               WEB
             </text>
           </svg>

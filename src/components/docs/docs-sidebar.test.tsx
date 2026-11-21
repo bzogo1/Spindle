@@ -22,6 +22,10 @@ const groups: DocsNavSection[] = [
     title: "Workspace",
     guides: [{ id: "search", title: "Search" }],
   },
+  {
+    title: "Roadmap",
+    guides: [],
+  },
 ]
 
 beforeEach(() => {
@@ -29,7 +33,8 @@ beforeEach(() => {
 })
 
 describe("DocsSidebar", () => {
-  it("links every guide under /docs/<id> and marks the current one", () => {
+  it("links every guide under /docs/<id> and marks the current one", async () => {
+    const user = userEvent.setup()
     render(<DocsSidebar groups={groups} currentId="install" />)
 
     const nav = screen.getAllByRole("navigation", { name: "Documentation guides" })[0]
@@ -41,7 +46,25 @@ describe("DocsSidebar", () => {
     const current = within(nav).getByRole("link", { name: "Installation" })
     expect(current).toHaveAttribute("href", "/docs/install")
     expect(current).toHaveAttribute("aria-current", "page")
-    expect(within(nav).getByRole("link", { name: "Search" })).not.toHaveAttribute("aria-current")
+
+    // Directories that do not hold the current guide stay collapsed.
+    expect(within(nav).queryByRole("link", { name: "Search" })).not.toBeInTheDocument()
+
+    await user.click(within(nav).getByRole("button", { name: /Workspace/ }))
+    expect(within(nav).getByRole("link", { name: "Search" })).toHaveAttribute(
+      "href",
+      "/docs/search",
+    )
+  })
+
+  it("shows an empty state for directories without pages", async () => {
+    const user = userEvent.setup()
+    render(<DocsSidebar groups={groups} currentId="install" />)
+
+    const nav = screen.getAllByRole("navigation", { name: "Documentation guides" })[0]
+    await user.click(within(nav).getByRole("button", { name: /Roadmap/ }))
+
+    expect(within(nav).getByText("No pages yet")).toBeInTheDocument()
   })
 
   it("shows the current guide title on the drawer trigger", () => {
@@ -60,11 +83,17 @@ describe("DocsSidebar", () => {
     const dialog = await screen.findByRole("dialog")
     const links = within(dialog).getAllByRole("link")
     expect(links.map((link) => link.getAttribute("href"))).toEqual(
-      expect.arrayContaining(["/docs/intro", "/docs/install", "/docs/search"]),
+      expect.arrayContaining(["/docs/intro", "/docs/install"]),
     )
     expect(within(dialog).getByRole("link", { name: "Installation" })).toHaveAttribute(
       "aria-current",
       "page",
+    )
+
+    await user.click(within(dialog).getByRole("button", { name: /Workspace/ }))
+    expect(within(dialog).getByRole("link", { name: "Search" })).toHaveAttribute(
+      "href",
+      "/docs/search",
     )
   })
 })

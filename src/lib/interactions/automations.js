@@ -948,6 +948,68 @@ export function initAutomations() {
   }
 
   /* ---------------------------------------------------------------------- */
+  /* TIMELINE — progressive dot animation for the rhythm section             */
+  /* ---------------------------------------------------------------------- */
+
+  const timelineItems = $$(".timeline li")
+
+  if (timelineItems.length && "IntersectionObserver" in window) {
+    // Clear any static is-hot that may be set in the HTML so the animation
+    // plays fresh each time the section scrolls into view.
+    timelineItems.forEach((li) => {
+      li.classList.remove("is-hot", "is-done")
+    })
+
+    const timelineEl = doc.querySelector(".timeline")
+    let timelineAnimated = false
+
+    function runTimelineAnimation() {
+      if (timelineAnimated) return
+      timelineAnimated = true
+
+      const delay = reduced ? 0 : 480
+
+      timelineItems.forEach((li, index) => {
+        window.setTimeout(
+          () => {
+            // Mark all previous items as "done" (green, dimmed)
+            for (let i = 0; i < index; i++) {
+              timelineItems[i].classList.remove("is-hot")
+              timelineItems[i].classList.add("is-done")
+            }
+            // Mark the current item as the active/hot one
+            li.classList.add("is-hot")
+
+          },
+          reduced ? 0 : delay * index,
+        )
+      })
+    }
+
+    const rhythmSection = doc.querySelector(".rhythm-section")
+    if (rhythmSection) {
+      const tlObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              runTimelineAnimation()
+              tlObserver.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold: 0.25 },
+      )
+      tlObserver.observe(rhythmSection)
+    } else {
+      // Fallback: show all lit immediately
+      timelineItems.forEach((li, index, arr) => {
+        if (index < arr.length - 1) li.classList.add("is-done")
+        else li.classList.add("is-hot")
+      })
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
   /* Init                                                                    */
   /* ---------------------------------------------------------------------- */
 

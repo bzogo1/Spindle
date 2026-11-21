@@ -68,6 +68,14 @@ export default function SolutionsPage() {
                 </ul>
               </div>
             </div>
+            <div className="page-actions">
+              <a href="/solutions/researchers" className="text-link">
+                Explore the researcher workspace
+                <svg className="icon icon--xs" aria-hidden="true">
+                  <use href="#i-arrow-right" />
+                </svg>
+              </a>
+            </div>
           </div>
         </section>
         <section className="section section--alt" id="labs">
@@ -107,6 +115,14 @@ export default function SolutionsPage() {
                 </ul>
               </div>
             </div>
+            <div className="page-actions">
+              <a href="/solutions/labs" className="text-link">
+                Explore the lab workspace
+                <svg className="icon icon--xs" aria-hidden="true">
+                  <use href="#i-arrow-right" />
+                </svg>
+              </a>
+            </div>
           </div>
         </section>
         <section className="section" id="teams">
@@ -141,6 +157,14 @@ export default function SolutionsPage() {
                   <li>Clear ownership as the team changes</li>
                 </ul>
               </div>
+            </div>
+            <div className="page-actions">
+              <a href="/solutions/teams" className="text-link">
+                Explore the team workspace
+                <svg className="icon icon--xs" aria-hidden="true">
+                  <use href="#i-arrow-right" />
+                </svg>
+              </a>
             </div>
           </div>
         </section>
@@ -179,6 +203,14 @@ export default function SolutionsPage() {
                   <li>A single place to hand work over</li>
                 </ul>
               </div>
+            </div>
+            <div className="page-actions">
+              <a href="/solutions/institutions" className="text-link">
+                Explore institutional workspaces
+                <svg className="icon icon--xs" aria-hidden="true">
+                  <use href="#i-arrow-right" />
+                </svg>
+              </a>
             </div>
           </div>
         </section>

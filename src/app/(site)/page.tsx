@@ -458,10 +458,9 @@ export default async function HomePage() {
                           data-kernel-status="labKernelStatusText"
                           data-kernel-mirror="labMenuKernelName"
                           aria-label="Select kernel"
+                          defaultValue="Python 3.12"
                         >
-                          <option value="Python 3.12" selected>
-                            Python 3.12
-                          </option>
+                          <option value="Python 3.12">Python 3.12</option>
                           <option value="R 4.4">R 4.4</option>
                           <option value="Julia 1.10">Julia 1.10</option>
                         </select>

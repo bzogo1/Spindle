@@ -272,21 +272,21 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
     slug: "understand-plans-and-pricing",
     title: "Understand plans and pricing",
     excerpt:
-      "What Free, Team, and Enterprise include — seats, storage, and which features live on which plan.",
+      "What the free Hobby plan includes, how donations fund it, and when a custom Enterprise agreement makes sense.",
     category: "billing",
-    updatedAt: "2025-11-15",
-    keywords: ["pricing", "plans", "free", "team", "enterprise", "upgrade", "seats", "storage"],
+    updatedAt: "2025-11-21",
+    keywords: ["pricing", "plans", "free", "hobby", "enterprise", "donations", "storage"],
     body: [
       p(
-        "Spindle has three plans. The Free plan covers one workspace with 5 GB of storage — enough for a real project. Team adds more storage, SSO, and priority support. Enterprise adds custom retention, SLAs, and dedicated onboarding.",
+        "Spindle has no paid plans. The Hobby plan is free forever and covers the whole product: files, Lab, Search, Agent, chat, real-time collaboration, and 5 GB of storage. Donations from people who find it useful pay for the servers, storage, bandwidth, and development time.",
       ),
       h2("Seats and storage"),
       p(
-        "Billing is per workspace seat. Storage is pooled across the workspace, so one heavy project doesn't change the maths for everyone else.",
+        "There is no per-seat pricing. Hobby includes 5 GB per workspace, and inviting collaborators does not change what you pay, because you are not paying. Enterprise agreements can include custom storage and agent allowances.",
       ),
-      h2("Changing plans"),
+      h2("Enterprise"),
       p(
-        "Upgrades apply immediately and are prorated. Downgrades take effect at the end of the current billing period so you don't lose access mid-cycle.",
+        "Enterprise is a custom contract for organizations that need dedicated infrastructure, SSO and audit logs, an uptime SLA, onboarding, or a countersigned DPA. Contact us with the scope and we will quote the work. It does not create a consumer paid tier.",
       ),
     ],
   },
@@ -340,7 +340,7 @@ export const HELP_ARTICLES: readonly HelpArticle[] = [
       ]),
       h2("Need more room?"),
       p(
-        "Upgrading the plan raises the pooled storage limit immediately. See Understand plans and pricing for the current tiers.",
+        "Free up space, or talk to us about an Enterprise agreement if your work regularly needs more than 5 GB. See Understand plans and pricing for the details.",
       ),
     ],
   },

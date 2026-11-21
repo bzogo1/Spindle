@@ -1193,7 +1193,7 @@ export default function AutomationsPage() {
                 </p>
               </div>
               <div className="guard-grid">
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="0">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-eye" />
@@ -1205,7 +1205,7 @@ export default function AutomationsPage() {
                     say so.
                   </p>
                 </article>
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="60">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-git" />
@@ -1217,7 +1217,7 @@ export default function AutomationsPage() {
                     click.
                   </p>
                 </article>
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="120">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-lock" />
@@ -1229,7 +1229,7 @@ export default function AutomationsPage() {
                     editing jobs.
                   </p>
                 </article>
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="180">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-globe" />
@@ -1238,7 +1238,7 @@ export default function AutomationsPage() {
                   <h3>Timezone aware</h3>
                   <p>5 PM means 5 PM where your team works. DST shifts are handled for you.</p>
                 </article>
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="240">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-bolt" />
@@ -1250,7 +1250,7 @@ export default function AutomationsPage() {
                     human.
                   </p>
                 </article>
-                <article className="guard-card" data-reveal>
+                <article className="guard-card" data-reveal data-reveal-delay="300">
                   <span className="guard-icon">
                     <svg className="icon">
                       <use href="#i-folder" />

@@ -17,21 +17,6 @@ describe("initChangelog", () => {
     })
   })
 
-  it("toggles the dark class on .cl-theme-toggle clicks", () => {
-    const toggle = document.createElement("button")
-    toggle.className = "cl-theme-toggle"
-    document.body.appendChild(toggle)
-
-    toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    expect(document.documentElement.classList.contains("dark")).toBe(true)
-    expect(localStorage.getItem("spindle-site-theme")).toBe("dark")
-    expect(localStorage.getItem("changelog-theme")).toBeNull()
-
-    toggle.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    expect(document.documentElement.classList.contains("dark")).toBe(false)
-    expect(localStorage.getItem("spindle-site-theme")).toBe("light")
-  })
-
   it("copies the permalink and shows 'Copied' for .cl-copy-link buttons added after init", async () => {
     // Simulates a permalink page rendered by a later SPA navigation.
     const button = document.createElement("button")
